@@ -1,0 +1,1175 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Bridge API
+  description: 'Manage secure, encrypted connections between JFrog Platform Deployments
+    (JPDs) in hybrid topologies. For more information, see [JFrog Bridge](https://docs.jfrog.com/administration/docs/manage-jfrog-bridges).
+
+
+    **Note:** Bridges defined directly in `system.yaml` appear in the Bridges table
+    but cannot be managed using the Platform interface or the Bridge APIs. Use only
+    the JFrog Platform interface or the Bridge APIs to create and manage Bridges.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (`Authorization:
+    Bearer <token>`).
+
+
+    **Security:** Unless otherwise specified, all APIs require Platform Admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+  description: JFrog Platform Server
+  variables:
+    protocol:
+      default: https
+      enum:
+      - http
+      - https
+    host:
+      default: demo.jfrog.io
+      description: JFrog Platform hostname
+tags:
+- name: Bridge Client
+  description: Manage bridge connections, configurations, and diagnostics on the Self-managed
+    JPD.
+- name: Bridge Server
+  description: Manage bridge connections, blacklists, and diagnostics on the SaaS
+    JPD.
+security:
+- AdminBearerAuth: []
+paths:
+  /bridge-client/api/v1/system/liveness:
+    get:
+      tags:
+      - Bridge Client
+      summary: Bridge Client Liveness Check
+      description: 'Verifies the liveness of the Bridge Client service.
+
+
+        **Security:** Does not require authentication.
+
+        '
+      operationId: getBridgeClientLiveness
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+              example:
+                code: OK
+  /bridge-client/api/v1/system/readiness:
+    get:
+      tags:
+      - Bridge Client
+      summary: Bridge Client Readiness Check
+      description: 'Verifies the readiness of the Bridge Client service.
+
+
+        **Security:** Does not require authentication.
+
+        '
+      operationId: getBridgeClientReadiness
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+              example:
+                code: OK
+  /bridge-client/api/v1/service_trust/pairing/bridge/{bridge_id}:
+    put:
+      tags:
+      - Bridge Client
+      summary: Establish Bridge Trust Pairing
+      description: 'Establish trust between the Bridge Client and Bridge Server using
+        a pairing token. This endpoint completes the pairing process for an existing
+        bridge configuration.
+
+
+        **Note:** The pairing token can also be updated using the PATCH `/bridges/{bridge_id}`
+        endpoint.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: establishBridgeTrustPairing
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PairingRequest'
+            example:
+              pairing_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
+      responses:
+        '200':
+          description: Success - Trust established
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairingResponse'
+              example:
+                message: Trust with service Bridge was established successfully
+        '400':
+          description: Bad Request - Invalid request body
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '404':
+          description: Specified bridge not found
+        '409':
+          description: Conflict - Another pairing process is already in progress for
+            this bridge
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/bridges:
+    post:
+      tags:
+      - Bridge Client
+      summary: Define a New Bridge
+      description: 'Define a new JFrog Bridge connection between JPDs. After successful
+        creation, the bridge is active. For more information, see [Add a JFrog Bridge](https://docs.jfrog.com/administration/docs/add-a-jfrog-bridge).
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: defineNewBridge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BridgeCreateRequest'
+            example:
+              bridge_id: my-bridge-01
+              remote: https://mycompany.jfrog.io
+              local: https://my-local-jpd.example.com
+              pairing_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
+      responses:
+        '201':
+          description: Success - Bridge created and active
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Failed to create bridge
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/bridges/{bridge_id}:
+    patch:
+      tags:
+      - Bridge Client
+      summary: Modify Bridge Configuration
+      description: 'Change connection details and TCP tunnel creation thresholds for
+        an existing bridge. After successful update, the bridge is active with new
+        settings. For more information, see [Manage Bridges](https://docs.jfrog.com/administration/docs/manage-bridges).
+
+
+        You can submit a shorter payload with the full path of the modified key-value
+        pair, for example: `{"jobs": {"tunnel_creation": {"interval_minutes": 10}}}`.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: modifyBridgeConfiguration
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BridgeModifyRequest'
+      responses:
+        '204':
+          description: Success - Bridge configuration updated
+        '400':
+          description: Bad Request - Failed to update bridge
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '404':
+          description: Specified bridge not found
+        '500':
+          description: Internal Server Error
+    delete:
+      tags:
+      - Bridge Client
+      summary: Delete a Bridge
+      description: 'Delete a JFrog Bridge connection.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: deleteBridge
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '204':
+          description: Success - Bridge deleted (idempotent - returns 204 even if
+            bridge does not exist)
+        '400':
+          description: Bad Request - Invalid bridge ID or bridge is system-configured
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/bridges/{bridge_id}/config:
+    get:
+      tags:
+      - Bridge Client
+      summary: Get Bridge Configuration
+      description: 'Retrieve the configuration of a specific bridge. The remote token
+        is redacted in the response for security purposes.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: getBridgeConfig
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '200':
+          description: Success - Bridge configuration returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BridgeConfigResponse'
+              example:
+                type: default
+                bridge_id: my-bridge-01
+                stopped: false
+                last_updated_at: 1706745600000
+                remote:
+                  url: https://mycompany.jfrog.io
+                  token: <removed>
+                  insecure: false
+                  proxy:
+                    enabled: false
+                    cache_expiration_secs: 300
+                    key: ''
+                    scheme_override: ''
+                local:
+                  url: https://my-local-jpd.example.com
+                  anonymous_endpoints:
+                  - .*/system/(ping|readiness|liveness)
+                  dial_timeout_secs: 30
+                min_tunnels: 1
+                max_tunnels: 5
+                target_usage:
+                  low: 10
+                  high: 100
+                jobs:
+                  tunnel_creation:
+                    interval_minutes: 10
+                  tunnel_closing:
+                    cron_expr: ''
+                    allow_close_used_tunnels: false
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '404':
+          description: Specified bridge not found
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/bridges/{bridge_id}/reset:
+    post:
+      tags:
+      - Bridge Client
+      summary: Reset Active Bridge Connections
+      description: 'Reset the active tunnel connections for a specific bridge on this
+        Bridge Client instance. This operation terminates existing tunnel connections
+        and allows new ones to be established.
+
+
+        **Note:** In High Availability (HA) deployments, this endpoint only affects
+        the specific instance that handles the request.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: resetBridgeClient
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '204':
+          description: Success - Bridge connection pool reset
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '404':
+          description: Specified bridge not found
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/bridges/{bridge_id}/stop:
+    post:
+      tags:
+      - Bridge Client
+      summary: Stop a Bridge at the Bridge Client
+      description: 'Suspend a JFrog Bridge connection between JPDs without removing
+        the Bridge. Active TCP nodes and tunnels are terminated. The Bridge is listed
+        as Offline in the JFrog Platform user interface and in response to Bridge
+        API queries. For more information, see [Manage Bridges](https://docs.jfrog.com/administration/docs/manage-bridges).
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: stopBridge
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '204':
+          description: Success - Bridge stopped
+        '400':
+          description: Bad Request - Failed to stop bridge
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '404':
+          description: Specified bridge not found
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/bridges/{bridge_id}/restart:
+    post:
+      tags:
+      - Bridge Client
+      summary: Restart a Bridge at the Bridge Client
+      description: 'Restart a JFrog Bridge connection between JPDs. Active sessions
+        over TCP nodes or communication tunnels are terminated and new sessions are
+        established after restart. For more information, see [Manage Bridges](https://docs.jfrog.com/administration/docs/manage-bridges).
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: restartBridge
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '204':
+          description: Success - Bridge restarted
+        '400':
+          description: Bad Request - Failed to restart bridge
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '404':
+          description: Specified bridge not found
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/bridges/debug:
+    get:
+      tags:
+      - Bridge Client
+      summary: Get Bridge Client Debug Snapshot
+      description: 'Returns operational statistics and runtime information for all
+        bridges configured on this Bridge Client instance, including active connections,
+        request counts, and creation timestamps.
+
+
+        **Note:** In High Availability (HA) deployments, this endpoint returns information
+        from the specific instance that handles the request.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: getBridgeClientDebugSnapshot
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BridgeClientDebugResponse'
+              example:
+                bridges:
+                - id: my-bridge-01
+                  config:
+                    type: default
+                    bridge_id: my-bridge-01
+                    remote:
+                      url: https://mycompany.jfrog.io
+                      token: <removed>
+                    local:
+                      url: https://my-local-jpd.example.com
+                    min_tunnels: 1
+                    max_tunnels: 5
+                  active_connections:
+                  - id: conn-abc123
+                    active_streams: 2
+                    created_at: '2024-01-31T12:00:00Z'
+                  created_at: '2024-01-31T10:00:00Z'
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+  /bridge-client/api/v1/metrics:
+    get:
+      tags:
+      - Bridge Client
+      summary: Get Bridge Client Metrics
+      description: 'Retrieve metrics in Prometheus format from the Bridge Client service.
+
+
+        **Security:** Requires Platform Admin privileges or a token with `system:metrics:r`
+        scope.
+
+        '
+      operationId: getBridgeClientMetrics
+      security:
+      - MetricsBearerAuth: []
+      responses:
+        '200':
+          description: Success - Returned metrics are in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Prometheus-format metrics
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Forbidden - Token does not have required scope
+        '404':
+          description: Not Found - Metrics collection is disabled
+        '500':
+          description: Internal Server Error
+  /bridge-client/api/v1/system/support/bundle:
+    post:
+      tags:
+      - Bridge Client
+      summary: Create Bridge Client Support Bundle
+      description: 'Creates a Bridge Client support bundle for troubleshooting purposes.
+        The support bundle collects diagnostic information from all microservices
+        in the topology. Only one support bundle can be created at a time.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: createBridgeClientSupportBundle
+      security:
+      - SupportBundleBearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupportBundleRequest'
+      responses:
+        '200':
+          description: Success - Support bundle created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportBundleResponse'
+        '400':
+          description: Bad Request - Invalid JSON input
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Forbidden - Token does not have required scope
+        '409':
+          description: Conflict - Cannot create multiple support bundles simultaneously
+        '500':
+          description: Internal Server Error
+  /bridge-server/api/v1/system/liveness:
+    get:
+      tags:
+      - Bridge Server
+      summary: Bridge Server Liveness Check
+      description: 'Tests the liveness of the Bridge Server service.
+
+
+        **Security:** Does not require authentication.
+
+        '
+      operationId: getBridgeServerLiveness
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+              example:
+                code: OK
+  /bridge-server/api/v1/system/readiness:
+    get:
+      tags:
+      - Bridge Server
+      summary: Bridge Server Readiness Check
+      description: 'Tests the readiness of the Bridge Server service.
+
+
+        **Security:** Does not require authentication.
+
+        '
+      operationId: getBridgeServerReadiness
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+              example:
+                code: OK
+  /bridge-server/api/v1/metrics:
+    get:
+      tags:
+      - Bridge Server
+      summary: Get Bridge Server Metrics
+      description: 'Retrieve metrics in Prometheus format from the Bridge Server service.
+
+
+        **Security:** Requires Platform Admin privileges or a token with `system:metrics:r`
+        scope.
+
+        '
+      operationId: getBridgeServerMetrics
+      security:
+      - MetricsBearerAuth: []
+      responses:
+        '200':
+          description: Success - Returned metrics are in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Prometheus-format metrics
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Forbidden - Token does not have required scope
+        '404':
+          description: Not Found - Metrics collection is disabled
+        '500':
+          description: Internal Server Error
+  /bridge-server/api/v1/bridges/{bridge_id}/reset:
+    post:
+      tags:
+      - Bridge Server
+      summary: Reset Bridge Connections at Server
+      description: 'Reset the active tunnel connections for a specific bridge on this
+        Bridge Server instance. This operation terminates existing tunnel connections
+        and allows new ones to be established.
+
+
+        **Note:** In High Availability (HA) deployments, this endpoint only affects
+        the specific instance that handles the request.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: resetBridgeServer
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '204':
+          description: Success - Bridge connection pool reset
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '404':
+          description: Specified bridge not found
+        '500':
+          description: Internal Server Error
+  /bridge-server/api/v1/blacklist/{bridge_id}:
+    put:
+      tags:
+      - Bridge Server
+      summary: Block a Bridge at the Bridge Server
+      description: 'Add a Bridge to the Bridge Server''s blacklist. The Bridge Server
+        terminates connections to the Bridge Client and declines new connections,
+        but the Bridge is not removed. For more information, see [Manage Bridges](https://docs.jfrog.com/administration/docs/manage-bridges).
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: blockBridge
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '204':
+          description: Success - Bridge blocked
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+    delete:
+      tags:
+      - Bridge Server
+      summary: Unblock a Bridge at the Bridge Server
+      description: 'Remove a Bridge from the Bridge Server''s blacklist, allowing
+        connections to resume. For more information, see [Manage Bridges](https://docs.jfrog.com/administration/docs/manage-bridges).
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: unblockBridge
+      parameters:
+      - name: bridge_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the Bridge
+      responses:
+        '204':
+          description: Success - Bridge unblocked
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /bridge-server/api/v1/blacklist:
+    get:
+      tags:
+      - Bridge Server
+      summary: Get Bridge Server Blacklist
+      description: 'Get the list of blocked bridges on the Bridge Server.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: getBridgeServerBlacklist
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: Bridge ID
+              example:
+              - blocked-bridge-01
+              - blocked-bridge-02
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /bridge-server/api/v1/bridges/debug:
+    get:
+      tags:
+      - Bridge Server
+      summary: Get Bridge Server Debug Snapshot
+      description: 'Returns operational statistics and runtime information for all
+        bridges configured on this Bridge Server instance, including active connections,
+        request counts, and creation timestamps.
+
+
+        **Note:** In High Availability (HA) deployments, this endpoint returns information
+        from the specific instance that handles the request.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: getBridgeServerDebugSnapshot
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BridgeServerDebugResponse'
+              example:
+                bridges:
+                - id: my-bridge-01
+                  type: default
+                  active_connections:
+                  - id: conn-xyz789
+                    active_streams: 3
+                    created_at: '2024-01-31T12:00:00Z'
+                  created_at: '2024-01-31T10:00:00Z'
+                  requests:
+                    processing: 1
+                    success:
+                      '200': 150
+                      '201': 25
+                    failed:
+                      '500': 2
+                    total: 177
+                    first_at: '2024-01-31T10:05:00Z'
+                    latest_at: '2024-01-31T14:30:00Z'
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+components:
+  securitySchemes:
+    AdminBearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token with admin permissions as bearer token
+      bearerFormat: JWT
+    MetricsBearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token with system:metrics:r scope as bearer token
+      bearerFormat: JWT
+    SupportBundleBearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token with system:supportbundle:x scope as bearer token
+      bearerFormat: JWT
+  schemas:
+    SystemHealthResponse:
+      type: object
+      description: Health check response for liveness and readiness endpoints
+      properties:
+        code:
+          type: string
+          description: Health status code
+          example: OK
+    PairingRequest:
+      type: object
+      description: Request body for establishing bridge trust pairing
+      required:
+      - pairing_token
+      properties:
+        pairing_token:
+          type: string
+          description: A valid pairing token generated on the Bridge Server JPD
+    PairingResponse:
+      type: object
+      description: Response for successful trust pairing
+      properties:
+        message:
+          type: string
+          description: Success message
+          example: Trust with service Bridge was established successfully
+    BridgeConfigResponse:
+      type: object
+      description: Bridge configuration response (remote token is redacted)
+      properties:
+        type:
+          type: string
+          description: Tunnel type
+        bridge_id:
+          type: string
+          description: Bridge identifier
+        stopped:
+          type: boolean
+          description: Whether the bridge is stopped
+        last_updated_at:
+          type: integer
+          format: int64
+          description: Timestamp of last configuration update (Unix epoch)
+        remote:
+          type: object
+          properties:
+            url:
+              type: string
+              description: Remote Bridge Server URL
+            token:
+              type: string
+              description: Remote token (redacted as "<removed>" for security)
+            insecure:
+              type: boolean
+              description: Allow insecure connections
+            proxy:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                cache_expiration_secs:
+                  type: integer
+                key:
+                  type: string
+                scheme_override:
+                  type: string
+        local:
+          type: object
+          properties:
+            url:
+              type: string
+              description: Local Bridge Client URL
+            anonymous_endpoints:
+              type: array
+              items:
+                type: string
+            dial_timeout_secs:
+              type: integer
+        min_tunnels:
+          type: integer
+        max_tunnels:
+          type: integer
+        target_usage:
+          type: object
+          properties:
+            low:
+              type: integer
+            high:
+              type: integer
+        jobs:
+          type: object
+          properties:
+            tunnel_creation:
+              type: object
+              properties:
+                interval_minutes:
+                  type: integer
+            tunnel_closing:
+              type: object
+              properties:
+                cron_expr:
+                  type: string
+                allow_close_used_tunnels:
+                  type: boolean
+    BridgeClientDebugResponse:
+      type: object
+      description: Debug information for all bridges on Bridge Client
+      properties:
+        bridges:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Bridge identifier
+              config:
+                $ref: '#/components/schemas/BridgeConfigResponse'
+              active_connections:
+                type: array
+                description: List of active tunnel connections
+                items:
+                  $ref: '#/components/schemas/ConnStats'
+              created_at:
+                type: string
+                description: Bridge creation timestamp
+    BridgeServerDebugResponse:
+      type: object
+      description: Debug information for all bridges on Bridge Server
+      properties:
+        bridges:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Bridge identifier
+              type:
+                type: string
+                description: Tunnel type
+              active_connections:
+                type: array
+                description: List of active tunnel connections
+                items:
+                  $ref: '#/components/schemas/ConnStats'
+              created_at:
+                type: string
+                description: Bridge creation timestamp
+              requests:
+                $ref: '#/components/schemas/RequestStats'
+    ConnStats:
+      type: object
+      description: Connection statistics for a single tunnel connection
+      properties:
+        id:
+          type: string
+          description: Connection identifier
+        active_streams:
+          type: integer
+          description: Number of active streams on this connection
+        created_at:
+          type: string
+          description: Connection creation timestamp
+        last_dialed_at:
+          type: string
+          description: Timestamp of the last dial attempt (optional)
+    RequestStats:
+      type: object
+      description: Request statistics for Bridge Server
+      properties:
+        processing:
+          type: integer
+          description: Number of requests currently being processed
+        success:
+          type: object
+          description: Count of successful requests by HTTP status code
+          additionalProperties:
+            type: integer
+        failed:
+          type: object
+          description: Count of failed requests by HTTP status code
+          additionalProperties:
+            type: integer
+        total:
+          type: integer
+          description: Total number of requests
+        first_at:
+          type: string
+          description: Timestamp of the first request
+        latest_at:
+          type: string
+          description: Timestamp of the most recent request
+    SupportBundleRequest:
+      type: object
+      description: Optional parameters for support bundle creation
+      properties:
+        parameters:
+          type: object
+          description: Support bundle parameters
+          properties:
+            configuration:
+              type: boolean
+              default: true
+              description: Include configuration files
+            logs:
+              type: object
+              properties:
+                include:
+                  type: boolean
+                  default: true
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+            system:
+              type: boolean
+              default: true
+              description: Include system information
+            thread_dump:
+              type: object
+              properties:
+                count:
+                  type: integer
+                  default: 1
+                interval:
+                  type: integer
+                  default: 0
+    SupportBundleResponse:
+      type: object
+      description: Response for successful support bundle creation
+      properties:
+        id:
+          type: string
+          description: The support bundle ID
+        artifactory:
+          type: object
+          properties:
+            service_id:
+              type: string
+              description: The service ID
+            bundle_url:
+              type: string
+              description: URL to access the support bundle in Artifactory
+    BridgeCreateRequest:
+      type: object
+      required:
+      - bridge_id
+      - remote
+      - local
+      - pairing_token
+      properties:
+        bridge_id:
+          type: string
+          description: The unique identifier of the new Bridge
+        remote:
+          type: string
+          description: The URL of the JPD that is the Bridge Server
+        local:
+          type: string
+          description: The URL of the Bridge Client on the local JPD
+        pairing_token:
+          type: string
+          description: A valid pairing token generated on the Bridge Server JPD
+    BridgeModifyRequest:
+      type: object
+      description: 'Full payload with all legal fields for modifying bridge configuration.
+
+        You can submit a shorter payload with the full path of the modified key-value
+        pair.
+
+        '
+      properties:
+        pairing_token:
+          type: string
+          description: A new pairing token to update the bridge trust relationship
+        remote:
+          type: object
+          properties:
+            url:
+              type: string
+              description: Remote URL
+            insecure:
+              type: boolean
+              description: Allow insecure connections
+            proxy:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: Enable proxy
+                cache_expiration_secs:
+                  type: integer
+                  description: Cache expiration in seconds
+                  example: 300
+                key:
+                  type: string
+                  description: Proxy key
+                scheme_override:
+                  type: string
+                  description: Scheme override (http, https, or empty string to disable)
+                  enum:
+                  - http
+                  - https
+                  - ''
+        local:
+          type: object
+          properties:
+            url:
+              type: string
+              description: Local URL
+            anonymous_endpoints:
+              type: array
+              items:
+                type: string
+              description: List of anonymous endpoints
+              example:
+              - endpoint1
+              - endpoint2
+            dial_timeout_secs:
+              type: integer
+              description: Dial timeout in seconds for local connections
+              example: 30
+        min_tunnels:
+          type: integer
+          description: Minimum number of tunnels
+          example: 1
+        max_tunnels:
+          type: integer
+          description: Maximum number of tunnels
+          example: 5
+        target_usage:
+          type: object
+          properties:
+            low:
+              type: integer
+              description: Low usage threshold
+              example: 10
+            high:
+              type: integer
+              description: High usage threshold
+              example: 100
+        jobs:
+          type: object
+          properties:
+            tunnel_creation:
+              type: object
+              properties:
+                interval_minutes:
+                  type: integer
+                  description: Interval in minutes for tunnel creation
+                  example: 10
+            tunnel_closing:
+              type: object
+              properties:
+                cron_expr:
+                  type: string
+                  description: Cron expression for tunnel closing
+                  example: 0 0 * * *
+                allow_close_used_tunnels:
+                  type: boolean
+                  description: Allow closing tunnels that are in use
+                  example: false
+x-readme:
+  explorer-enabled: false

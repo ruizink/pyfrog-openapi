@@ -1,0 +1,1358 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Artifactory System API
+  description: 'Artifactory system configuration APIs for the JFrog Platform.
+
+
+    **Authentication:**
+
+    - Basic authentication using username and password
+
+    - Access Tokens instead of password for basic authentication
+
+    - Access Tokens as bearer token in authorization header (Authorization: Bearer
+    <token>)
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Artifactory System
+  description: Artifactory system configuration APIs.
+- name: Support Bundle
+  description: Support bundle generation and management APIs. Available only in Self-Hosted
+    platforms.
+security:
+- BearerAuth: []
+paths:
+  /artifactory/api/system/ping:
+    get:
+      tags:
+      - Artifactory System
+      summary: Artifactory Ping
+      description: 'Check if Artifactory is alive.
+
+
+        **Security:** Requires a valid user (can be anonymous).
+
+        '
+      operationId: artifactoryPing
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        '500':
+          description: Internal Server Error
+  /artifactory/api/v1/system/readiness:
+    get:
+      tags:
+      - Artifactory System
+      summary: Readiness Probe
+      description: 'Get a status response about the state of Artifactory using Kubernetes
+        style readiness probe.
+
+        The probe can be used to measure system latency and provides an important
+        metric to monitor.
+
+
+        **Security:** Requires a valid user (can be anonymous).
+
+        '
+      operationId: getReadinessProbe
+      security: []
+      responses:
+        '200':
+          description: Successful request - Artifactory is working properly
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: OK
+              example:
+                code: OK
+        '500':
+          description: Error - Returns HTTP error code with reason if not working
+            properly
+  /artifactory/api/v1/system/liveness:
+    get:
+      tags:
+      - Artifactory System
+      summary: Liveness Probe
+      description: 'Get a status response to know when a container is ready to start
+        accepting traffic.
+
+
+        **Security:** Requires a valid user (can be anonymous).
+
+        '
+      operationId: getLivenessProbe
+      security: []
+      responses:
+        '200':
+          description: Successful request - Working properly
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: OK
+              example:
+                code: OK
+        '500':
+          description: Error - Returns HTTP error code with reason if not working
+            properly
+  /artifactory/api/system/version:
+    get:
+      tags:
+      - Artifactory System
+      summary: Get Artifactory Version
+      description: 'Return information about the current Artifactory version, revision,
+        and currently installed Add-ons.
+
+
+        **Security:** Requires a valid user (can be anonymous).
+
+        '
+      operationId: getArtifactoryVersion
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: Artifactory version
+                  revision:
+                    type: string
+                    description: Revision number
+                  addons:
+                    type: array
+                    items:
+                      type: string
+                    description: List of addons
+        '401':
+          description: Bad Credentials - Invalid credentials
+  /artifactory/api/system:
+    get:
+      tags:
+      - Artifactory System
+      summary: Get System Info
+      description: 'Get general system information.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: getSystemInfo
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/verifyconnection:
+    post:
+      tags:
+      - Artifactory System
+      summary: Verify Connection
+      description: 'Verifies a two-way connection between Artifactory and another
+        product.
+
+        Returns Success (200) if Artifactory receives a similar success code (200)
+        from the provided endpoint.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: verifyConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - endpoint
+              properties:
+                endpoint:
+                  type: string
+                  description: The URL that Artifactory should connect to
+                username:
+                  type: string
+                  description: Username to be used for the connection test (optional)
+                password:
+                  type: string
+                  description: Password to be used for the connection test (optional)
+            example:
+              endpoint: https://example.com/api
+              username: testuser
+              password: testpass
+      responses:
+        '200':
+          description: Successfully connected to endpoint
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Successfully connected to endpoint
+        '400':
+          description: Error connecting to endpoint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          type: integer
+                        message:
+                          type: string
+              example:
+                errors:
+                - status: 400
+                  message: 'Received error from endpoint url: HTTP 404: Page not found'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/configuration/baseUrl:
+    put:
+      tags:
+      - Artifactory System
+      summary: Update Custom URL Base
+      description: 'Changes the Custom URL base.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: updateCustomUrlBase
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: https://mycompany.com:444
+      responses:
+        '200':
+          description: URL base successfully updated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: URL base has been successfully updated to "https://mycompany.com:444".
+        '400':
+          description: Bad Request - Invalid URL
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/configuration:
+    get:
+      tags:
+      - Artifactory System
+      summary: Get System Configuration
+      description: 'Get the general configuration (artifactory.config.xml).
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: getSystemConfiguration
+      responses:
+        '200':
+          description: Success
+          content:
+            application/xml:
+              schema:
+                type: string
+                description: Complete Artifactory configuration XML
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    patch:
+      tags:
+      - Artifactory System
+      summary: Apply Artifactory YAML Configuration Changes
+      description: 'Configure an existing Artifactory instance using a simple YAML
+        configuration file.
+
+        Make single or multiple configuration changes as needed, to create, update,
+        and delete any elements in Artifactory.
+
+
+        **⚠️ Take care when modifying Artifactory configurations:**
+
+        Modifying the Artifactory configurations is an advanced feature, and if done
+        incorrectly may render Artifactory
+
+        in an undefined and unusable state. Since it is easy to overwrite configurations,
+        such as a repository''s package type,
+
+        we strongly recommend backing up the configuration before making any direct
+        changes, and taking great care when doing so.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: patchSystemConfiguration
+      requestBody:
+        required: true
+        content:
+          application/yaml:
+            schema:
+              type: string
+              description: YAML configuration file with changes to apply
+      responses:
+        '200':
+          description: Configuration updated successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Artifactory System
+      summary: Save General Configuration
+      description: 'Save the general configuration (artifactory.config.xml).
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+        This is an advanced feature - make sure the new configuration is really what
+        you wanted before saving.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: saveSystemConfiguration
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: string
+              description: Complete Artifactory configuration XML
+      responses:
+        '200':
+          description: Configuration saved successfully
+        '400':
+          description: Bad Request - Invalid configuration XML
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/license:
+    get:
+      tags:
+      - Artifactory System
+      summary: Get License Information
+      description: 'Return information about the currently installed license.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: getLicenseInfo
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: Commercial
+                  validThrough:
+                    type: string
+                    example: May 15, 2014
+                  licensedTo:
+                    type: string
+                    example: JFrog inc.
+        '400':
+          description: Bad Request - Operation not supported in this environment (e.g.,
+            SaaS, AOL).
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Artifactory System
+      summary: Install License
+      description: 'Install new license key or change the current one.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: installLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                licenseKey:
+                  type: string
+                  description: License key (newline characters must be represented
+                    by escape sequence \n)
+            example:
+              licenseKey: supplied license key
+      responses:
+        '200':
+          description: License installed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: The license has been successfully installed.
+        '400':
+          description: Bad Request - Invalid license
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/licenses:
+    get:
+      tags:
+      - Artifactory System
+      summary: Get HA License Information
+      description: 'Return information about the currently installed licenses in an
+        HA cluster.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires authentication using Access Tokens, either as admin
+        or using a scoped token with the system:info/licenses:r scope.
+
+        '
+      operationId: getHALicenseInfo
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      example: Enterprise
+                    validThrough:
+                      type: string
+                      example: May 15, 2018
+                    licensedTo:
+                      type: string
+                      example: JFrog
+                    licenseHash:
+                      type: string
+                      example: 179b7ea384d0c4655a00dfac7285a21d986a17923
+                    nodeId:
+                      type: string
+                      example: art1
+                    nodeUrl:
+                      type: string
+                      example: http://10.1.16.83:8091/artifactory
+                    expired:
+                      type: boolean
+                      example: false
+        '400':
+          description: Bad Request - Operation not supported in this environment (e.g.,
+            SaaS, AOL).
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Artifactory System
+      summary: Install HA Cluster Licenses
+      description: 'Install new license key(s) on an HA cluster.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: installHALicenses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  licenseKey:
+                    type: string
+                    description: License key (newline characters must be represented
+                      by escape sequence \n)
+            example:
+            - licenseKey: tL9r2Y...lDBiktbbt
+            - licenseKey: DiYgVA...P7nvyNI7q
+      responses:
+        '200':
+          description: License(s) installed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  messages:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    example:
+                      tL9r2Y...lDBiktbbt: OK
+                      DiYgVA...P7nvyNI7q: OK
+        '400':
+          description: Bad Request - Invalid license
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    delete:
+      tags:
+      - Artifactory System
+      summary: Delete HA Cluster License
+      description: 'Deletes a license key from an HA cluster.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: deleteHALicense
+      parameters:
+      - name: licenseHash
+        in: query
+        required: true
+        description: Comma-separated list of license hash codes to delete
+        schema:
+          type: string
+        example: tL9r2YlDBiktbbt,DiYgVAP7nvyNI7q
+      responses:
+        '200':
+          description: License(s) deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  messages:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    example:
+                      tL9r2YlDBiktbbt: OK
+                      DiYgVAP7nvyNI7q: OK
+        '400':
+          description: Bad Request - Invalid license hash
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/configuration/webServer:
+    get:
+      tags:
+      - Artifactory System
+      summary: Get Reverse Proxy Configuration
+      description: 'Returns the reverse proxy configuration.
+
+
+        **Note:** Applicable to a Self-Hosted JFrog Platform only.
+
+
+        **Security:** Requires a valid admin user and supported for users with the
+        relevant permissions.
+
+        Non-admin users will get the proxy method and ports and the list of repositories
+        based on their user permissions.
+
+        '
+      operationId: getReverseProxyConfiguration
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    example: nginx
+                  webServerType:
+                    type: string
+                    example: NGINX
+                  artifactoryAppContext:
+                    type: string
+                    example: artifactory
+                  publicAppContext:
+                    type: string
+                    example: artifactory
+                  serverName:
+                    type: string
+                    example: jfrog.com
+                  serverNameExpression:
+                    type: string
+                    example: '*.jfrog.com'
+                  artifactoryServerName:
+                    type: string
+                    example: localhost
+                  artifactoryPort:
+                    type: integer
+                    example: 8081
+                  sslCertificate:
+                    type: string
+                    example: /etc/ssl/myKey.cert
+                  sslKey:
+                    type: string
+                    example: /etc/ssl/myKey.key
+                  dockerReverseProxyMethod:
+                    type: string
+                    enum:
+                    - SUBDOMAIN
+                    - REPOPATHPREFIX
+                    - PORTPERREPO
+                    example: SUBDOMAIN
+                  useHttps:
+                    type: boolean
+                    example: true
+                  useHttp:
+                    type: boolean
+                    example: true
+                  sslPort:
+                    type: integer
+                    example: 443
+                  httpPort:
+                    type: integer
+                    example: 76
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Artifactory System
+      summary: Update Reverse Proxy Configuration
+      description: 'Updates the reverse proxy configuration.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: updateReverseProxyConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                key:
+                  type: string
+                webServerType:
+                  type: string
+                  enum:
+                  - NGINX
+                  - APACHE
+                artifactoryAppContext:
+                  type: string
+                publicAppContext:
+                  type: string
+                serverName:
+                  type: string
+                serverNameExpression:
+                  type: string
+                artifactoryServerName:
+                  type: string
+                artifactoryPort:
+                  type: integer
+                sslCertificate:
+                  type: string
+                sslKey:
+                  type: string
+                dockerReverseProxyMethod:
+                  type: string
+                  enum:
+                  - SUBDOMAIN
+                  - REPOPATHPREFIX
+                  - PORTPERREPO
+                useHttps:
+                  type: boolean
+                useHttp:
+                  type: boolean
+                sslPort:
+                  type: integer
+                httpPort:
+                  type: integer
+            example:
+              key: nginx
+              webServerType: NGINX
+              artifactoryAppContext: artifactory
+              publicAppContext: artifactory
+              serverName: jfrog.com
+              serverNameExpression: '*.jfrog.com'
+              artifactoryServerName: localhost
+              artifactoryPort: 8081
+              sslCertificate: /etc/ssl/myKey.cert
+              sslKey: /etc/ssl/myKey.key
+              dockerReverseProxyMethod: SUBDOMAIN
+              useHttps: true
+              useHttp: true
+              sslPort: 443
+              httpPort: 76
+      responses:
+        '200':
+          description: Reverse proxy configuration updated successfully
+        '400':
+          description: Bad Request - Invalid configuration
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/configuration/reverseProxy/nginx:
+    get:
+      tags:
+      - Artifactory System
+      summary: Get Reverse Proxy Snippet
+      description: 'Returns the reverse proxy configuration snippet in text format.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: getReverseProxySnippet
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "## add ssl entries when https has been set in config\nssl_certificate\
+                \      /etc/ssl/myKey.cert;\nssl_certificate_key  /etc/ssl/myKey.key;\n\
+                ssl_session_cache shared:SSL:1m;\nssl_prefer_server_ciphers   on;\n\
+                ## server configuration\nserver {\n    listen 443 ssl;\n    listen\
+                \ 76 ;\n    server_name ~(?<repo>.+)\\.jfrog.com jfrog.com;\n    \n\
+                \    if ($http_x_forwarded_proto = '') {\n        set $http_x_forwarded_proto\
+                \  $scheme;\n    }\n    ## Application specific logs\n    ## access_log\
+                \ /var/log/nginx/jfrog.com-access.log timing;\n    ## error_log /var/log/nginx/jfrog.com-error.log;\n\
+                \    rewrite ^/$ /artifactory/webapp/ redirect;\n    rewrite ^/artifactory$\
+                \ /artifactory/webapp/ redirect;\n}\n"
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/migration/sha2/start:
+    post:
+      tags:
+      - Artifactory System
+      summary: Start SHA256 Migration Task
+      description: 'Starts the SHA-256 migration process.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+        Migration can also be configured using a set of properties in Artifactory''s
+        artifactory.system.properties file.
+
+
+        **Security:** Administrator permissions.
+
+        '
+      operationId: startSha256Migration
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                batchThreshold:
+                  type: integer
+                  default: 10
+                  description: Batch threshold for migration
+                queryLimit:
+                  type: integer
+                  default: 100
+                  description: Query limit for migration
+                waitForClusterSleepIntervalMillis:
+                  type: integer
+                  default: 5000
+                  description: Wait for cluster sleep interval in milliseconds
+                sleepIntervalMillis:
+                  type: integer
+                  default: 5000
+                  description: Sleep interval in milliseconds
+                forceRunOnNodeId:
+                  type: string
+                  description: Force run on specific node ID
+            example:
+              batchThreshold: 10
+              queryLimit: 100
+              waitForClusterSleepIntervalMillis: 5000
+              sleepIntervalMillis: 5000
+              forceRunOnNodeId: ''
+      responses:
+        '200':
+          description: Migration task started successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Sha256 migration scheduled to start successfully
+        '400':
+          description: Bad Request - Operation not supported in this environment (e.g.,
+            SaaS, AOL).
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/migration/sha2/stop:
+    post:
+      tags:
+      - Artifactory System
+      summary: Stop SHA256 Migration Task
+      description: 'Stops the SHA-256 migration process.
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+        The sleepIntervalMillis should match what was defined in the Start SHA256
+        Migration Task.
+
+
+        **Security:** Administrator permissions.
+
+        '
+      operationId: stopSha256Migration
+      parameters:
+      - name: sleepIntervalMillis
+        in: query
+        required: false
+        description: Sleep interval in milliseconds (should match the value used when
+          starting migration)
+        schema:
+          type: integer
+          default: 5000
+        example: 5000
+      responses:
+        '200':
+          description: Migration task stopped successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Sha256 migration scheduled to stop successfully.
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/metadata_server/reindex:
+    post:
+      tags:
+      - Artifactory System
+      summary: Re-index Paths on Metadata Server
+      description: 'If needed, Artifactory can re-send Metadata events to the Metadata
+        Server in case of an inconsistent state.
+
+        The API will recursively re-index artifacts under the given repository or
+        path if a repository key or a directory path is specified.
+
+        Asynchronous by default. Does not delete data associated with the given paths
+        on the Metadata Server before re-indexing by default.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: reindexMetadataServer
+      parameters:
+      - name: async
+        in: query
+        required: false
+        description: Execute asynchronously
+        schema:
+          type: boolean
+          default: true
+      - name: delete_first
+        in: query
+        required: false
+        description: Delete data before re-indexing
+        schema:
+          type: boolean
+          default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - paths
+              properties:
+                paths:
+                  type: array
+                  items:
+                    type: string
+                  description: List of repository keys or directory paths to re-index
+            example:
+              paths:
+              - libs-release-local
+              - libs-snapshot-local
+      responses:
+        '200':
+          description: Re-indexing started successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+        '202':
+          description: Accepted - Reindex operation accepted asynchronously.
+        '400':
+          description: Bad Request - Invalid paths
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/support/bundle:
+    post:
+      tags:
+      - Support Bundle
+      summary: Create Support Bundle
+      description: 'Create a new support bundle.
+
+
+        **Note:** This API is available only in Self-Hosted platforms.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: createSupportBundle
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupportBundleConfig'
+            example:
+              name: supportBundle1
+              description: Test support bundle
+              parameters:
+                configuration: true
+                system: true
+                collectSlowQueriesFromDatabase: true
+                logs:
+                  include: true
+                  start_date: '2024-08-01'
+                  end_date: '2024-08-01'
+                thread_dump:
+                  count: 2
+                  interval: 1000
+      responses:
+        '200':
+          description: Support bundle created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: 20240808-185648-592
+                  artifactory:
+                    type: object
+                    properties:
+                      service_id:
+                        type: string
+                        example: jfrt@01j4ph0jnq22ha0733aft61ph1
+                      bundle_url:
+                        type: string
+                        example: http://ARTIFACTORY_SERVER_HOSTNAME:8082/artifactory/jfrog-support-bundle/20240808-185648-592/jfrt/jfrt@01j4ph0jnq22ha0733aft61ph1
+        '400':
+          description: Bad Request - Operation not supported in this environment (e.g.,
+            SaaS, AOL).
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /artifactory/api/system/support/bundle/{bundleId}:
+    get:
+      tags:
+      - Support Bundle
+      summary: Get Support Bundle Metadata
+      description: 'Downloads the metadata for a previously created bundle currently
+        stored in the system.
+
+
+        **Note:** This API is available only in Self-Hosted platforms.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: getSupportBundleMetadata
+      parameters:
+      - name: bundleId
+        in: path
+        required: true
+        description: The bundle ID
+        schema:
+          type: string
+          minLength: 1
+        example: 20240808-185648-592
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: B1
+                  description:
+                    type: string
+                    example: abc
+                  id:
+                    type: string
+                    example: B1-1551008826805
+                  artifactory:
+                    type: object
+                    properties:
+                      service_id:
+                        type: string
+                        example: jfrt@01d482vam7aj0v1w9yjfpe1jnh
+                      bundle_url:
+                        type: string
+                        example: http://localhost:8081/artifactory/jfrog-support-bundle/B1-1551008826805/jfrt/jfrt@01d482vam7aj0v1w9yjfpe1jnh
+                  parameters:
+                    $ref: '#/components/schemas/SupportBundleParameters'
+                  created:
+                    type: string
+                    format: date-time
+                    example: '2019-02-24T13:47:06+02:00'
+                  status:
+                    type: string
+                    example: success
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Bundle not found
+    delete:
+      tags:
+      - Support Bundle
+      summary: Delete Support Bundle
+      description: 'Deletes a previously created bundle from the system.
+
+
+        **Note:** This API is available only in Self-Hosted platforms.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: deleteSupportBundle
+      parameters:
+      - name: bundleId
+        in: path
+        required: true
+        description: The bundle ID to delete
+        schema:
+          type: string
+          minLength: 1
+        example: 20240808-185648-592
+      responses:
+        '204':
+          description: Bundle deleted successfully
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Bundle not found
+  /artifactory/api/system/support/bundle/{bundleId}/archive:
+    get:
+      tags:
+      - Support Bundle
+      summary: Get Support Bundle
+      description: 'Downloads a previously created bundle currently stored in the
+        system.
+
+
+        **Note:** This API is available only in Self-Hosted platforms.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: getSupportBundle
+      parameters:
+      - name: bundleId
+        in: path
+        required: true
+        description: The bundle ID to download
+        schema:
+          type: string
+          minLength: 1
+        example: 20240808-185648-592
+      responses:
+        '200':
+          description: Bundle archive stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Failed to download bundle
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Bundle not found
+  /artifactory/api/system/support/bundles:
+    get:
+      tags:
+      - Support Bundle
+      summary: List Support Bundles
+      description: 'Lists previously created bundles currently stored in the system.
+
+
+        **Note:** This API is available only in Self-Hosted platforms.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: listSupportBundles
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bundles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: B1-1551008826805
+                        name:
+                          type: string
+                          example: B1
+                        description:
+                          type: string
+                          nullable: true
+                          example: abc
+                        created:
+                          type: string
+                          format: date-time
+                          example: '2019-02-24T13:47:06+02:00'
+                        status:
+                          type: string
+                          example: success
+                  count:
+                    type: integer
+                    example: 2
+              example:
+                bundles:
+                - id: B1-1551008826805
+                  name: B1
+                  description: abc
+                  created: '2019-02-24T13:47:06+02:00'
+                  status: success
+                - id: B2-1551008834948
+                  name: B2
+                  description: null
+                  created: '2019-02-24T13:47:14+02:00'
+                  status: success
+                count: 2
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  schemas:
+    SupportBundleParameters:
+      type: object
+      properties:
+        configuration:
+          type: boolean
+          default: true
+          description: Collect configuration files
+        system:
+          type: boolean
+          default: true
+          description: Collect system information (storage, system properties, CPU,
+            JVM)
+        collectSlowQueriesFromDatabase:
+          type: boolean
+          default: false
+          description: 'Collect information about the 10 slowest database queries.
+            Supported databases: PostgreSQL, MySQL, MariaDB, MS SQL'
+        logs:
+          type: object
+          properties:
+            include:
+              type: boolean
+              default: true
+              description: Collect system logs
+            start_date:
+              type: string
+              description: 'Start date for log collection. Format: YYYY-MM-DD. Defaults
+                to day before end_date.'
+              example: '2024-08-01'
+            end_date:
+              type: string
+              description: 'End date for log collection. Format: YYYY-MM-DD. Defaults
+                to today.'
+              example: '2024-08-01'
+        thread_dump:
+          type: object
+          properties:
+            count:
+              type: integer
+              default: 1
+              description: Number of thread dumps to collect
+            interval:
+              type: integer
+              default: 0
+              description: Interval between thread dumps in milliseconds
+    SupportBundleConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Support bundle name
+        description:
+          type: string
+          description: Support bundle description
+        parameters:
+          $ref: '#/components/schemas/SupportBundleParameters'
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication using username and password
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token

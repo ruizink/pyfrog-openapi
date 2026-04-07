@@ -1,0 +1,339 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - SAML API
+  description: 'SAML configuration APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** All APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: SAML
+  description: APIs for creating, updating, deleting, and managing SAML SSO settings
+    in the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/saml:
+    get:
+      tags:
+      - SAML
+      summary: Get All SAML Settings
+      description: 'Get all SAML settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getAllSamlSettings
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SamlSetting'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - SAML
+      summary: Create SAML Setting
+      description: 'Create a new SAML setting.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createSamlSetting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SamlSettingCreate'
+      responses:
+        '201':
+          description: SAML setting created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SamlSetting'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/saml/{name}:
+    get:
+      tags:
+      - SAML
+      summary: Get SAML Setting by Name
+      description: 'Get a SAML setting by name.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getSamlSettingByName
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The SAML setting name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SamlSetting'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - SAML setting not found
+    put:
+      tags:
+      - SAML
+      summary: Update SAML Setting
+      description: 'Update a SAML setting.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateSamlSetting
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The SAML setting name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SamlSetting'
+      responses:
+        '200':
+          description: SAML setting updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SamlSetting'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    delete:
+      tags:
+      - SAML
+      summary: Delete SAML Setting
+      description: 'Delete a SAML setting.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteSamlSetting
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The SAML setting name
+      responses:
+        '204':
+          description: SAML setting deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/saml/general_settings:
+    get:
+      tags:
+      - SAML
+      summary: Get SAML SSO General Settings
+      description: 'Get the SAML SSO general settings, including whether SAML SSO
+        is enabled
+
+        and whether a certificate is present.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getSamlGeneralSettings
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SamlGeneralSettings'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - SAML
+      summary: Enable SAML SSO
+      description: 'Enable or disable SAML SSO.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateSamlGeneralSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - enable
+              properties:
+                enable:
+                  type: boolean
+                  description: Set to true to enable SAML SSO, or false to disable
+                    it.
+      responses:
+        '204':
+          description: SAML SSO settings updated successfully
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    SamlGeneralSettings:
+      type: object
+      properties:
+        enable:
+          type: boolean
+          description: Whether SAML SSO is enabled.
+        certificateIsPresent:
+          type: boolean
+          description: Whether a SAML certificate is present.
+    SamlSetting:
+      type: object
+      properties:
+        name:
+          type: string
+        enable_integration:
+          type: boolean
+        verify_audience_restriction:
+          type: boolean
+        login_url:
+          type: string
+        logout_url:
+          type: string
+        certificate:
+          type: string
+        service_provider_name:
+          type: string
+        auto_user_creation:
+          type: boolean
+        allow_user_to_access_profile:
+          type: boolean
+        use_encrypted_assertion:
+          type: boolean
+        auto_redirect:
+          type: boolean
+        sync_groups:
+          type: boolean
+        group_attribute:
+          type: string
+        email_attribute:
+          type: string
+        name_id_attribute:
+          type: string
+        ldap_group_settings:
+          type: array
+          items:
+            type: string
+    SamlSettingCreate:
+      type: object
+      required:
+      - name
+      - login_url
+      - logout_url
+      - certificate
+      - service_provider_name
+      properties:
+        name:
+          type: string
+        enable_integration:
+          type: boolean
+        verify_audience_restriction:
+          type: boolean
+        login_url:
+          type: string
+        logout_url:
+          type: string
+        certificate:
+          type: string
+        service_provider_name:
+          type: string
+        auto_user_creation:
+          type: boolean
+        allow_user_to_access_profile:
+          type: boolean
+        use_encrypted_assertion:
+          type: boolean
+        auto_redirect:
+          type: boolean
+        sync_groups:
+          type: boolean
+        group_attribute:
+          type: string
+        email_attribute:
+          type: string
+        name_id_attribute:
+          type: string
+        ldap_group_settings:
+          type: array
+          items:
+            type: string
+x-readme:
+  explorer-enabled: false
+  proxy-enabled: false

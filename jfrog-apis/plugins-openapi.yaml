@@ -1,0 +1,633 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Plugins API
+  description: REST API for managing and executing user plugins in JFrog Artifactory.
+    Requires Artifactory Pro. Plugins can be executed, retrieved, and managed through
+    these APIs.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: Artifactory API base path
+tags:
+- name: Plugins
+  description: Plugin execution and management operations
+- name: Live Logs
+  description: Live logs operations (Enterprise+ only)
+paths:
+  /plugins/execute/{executionName}:
+    post:
+      tags:
+      - Plugins
+      summary: Execute Plugin Code
+      description: Executes a named execution closure found in the executions section
+        of a User Plugins. Execution can take parameters and be synchronous (the default)
+        or asynchronous. When parameters can have multiple values, you can separate
+        the items using a semicolon (recommended) or the encoding for the pipe character
+        (%7C).
+      operationId: executePluginCode
+      parameters:
+      - name: executionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the execution closure
+      - name: params
+        in: query
+        schema:
+          type: string
+        description: Parameters for the execution (format p1=v1[,v2][|p2=v3])
+      - name: async
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: Whether to run asynchronously (0 or 1)
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /plugins/download/{pluginName}:
+    get:
+      tags:
+      - Plugins
+      summary: Retrieve Plugin Code
+      description: Returns the source code of the specified user plugin.
+      operationId: retrievePluginCode
+      parameters:
+      - name: pluginName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the plugin
+      responses:
+        '200':
+          description: Success
+          content:
+            text/x-groovy-source:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 404
+                  message: Not Found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /plugins:
+    get:
+      tags:
+      - Plugins
+      summary: Retrieve Plugin Info
+      description: Returns User Plugins information for Executions and Staging plugins
+        (subject to the permissions of the provided credentials).
+      operationId: retrievePluginInfo
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        version:
+                          type: string
+                        description:
+                          type: string
+                        users:
+                          type: array
+                          items:
+                            type: string
+                        groups:
+                          type: array
+                          items:
+                            type: string
+                        params:
+                          type: object
+                          additionalProperties: true
+                  staging:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        version:
+                          type: string
+                        description:
+                          type: string
+                        params:
+                          type: object
+                          additionalProperties: true
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /plugins/{pluginType}:
+    get:
+      tags:
+      - Plugins
+      summary: Retrieve Plugin Info of a Certain Type
+      description: Returns all available User Plugins information (subject to the
+        permissions of the provided credentials) of the specified type.
+      operationId: retrievePluginInfoOfCertainType
+      parameters:
+      - name: pluginType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - executions
+          - staging
+        description: The type of plugin (executions or staging)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executions:
+                    type: array
+                    items:
+                      type: object
+                  staging:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /plugins/build/staging/{strategyName}:
+    get:
+      tags:
+      - Plugins
+      summary: Retrieve Build Staging Strategy
+      description: Returns a build staging strategy defined by a User Plugins. When
+        passing in parameters that may take multiple values, you can separate the
+        items using a semicolon (recommended) or the encoding for the pipe character
+        (%7C).
+      operationId: retrieveBuildStagingStrategy
+      parameters:
+      - name: strategyName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the staging strategy
+      - name: buildName
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The build name
+      - name: params
+        in: query
+        schema:
+          type: string
+        description: Parameters for the strategy (format p1=v1[,v2][|p2=v3])
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  defaultModuleVersion:
+                    type: object
+                    properties:
+                      moduleId:
+                        type: string
+                      nextRelease:
+                        type: string
+                      nextDevelopment:
+                        type: string
+                  vcsConfig:
+                    type: object
+                    properties:
+                      useReleaseBranch:
+                        type: boolean
+                      releaseBranchName:
+                        type: string
+                      createTag:
+                        type: boolean
+                      tagUrlOrName:
+                        type: string
+                      tagComment:
+                        type: string
+                      nextDevelopmentVersionComment:
+                        type: string
+                  promotionConfig:
+                    type: object
+                    properties:
+                      targetRepository:
+                        type: string
+                      comment:
+                        type: string
+                      status:
+                        type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 404
+                  message: Not Found
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /plugins/build/promote/{promotionName}/{buildName}/{buildNumber}:
+    post:
+      tags:
+      - Plugins
+      summary: Execute Build Promotion
+      description: Executes a named promotion closure found in the promotions section
+        of a User Plugins.
+      operationId: executeBuildPromotion
+      parameters:
+      - name: promotionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the promotion closure
+      - name: buildName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The build name
+      - name: buildNumber
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The build number
+      - name: params
+        in: query
+        schema:
+          type: string
+        description: Parameters for the promotion (format p1=v1[,v2][|p2=v3])
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /plugins/reload:
+    post:
+      tags:
+      - Plugins
+      summary: Reload Plugins
+      description: Reloads user plugins if there are modifications since the last
+        user plugins reload. Works regardless of the automatic user plugins refresh
+        interval.
+      operationId: reloadPlugins
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Successfully loaded myplugin1.groovy, myplugin2.groovy
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /system/logs/config:
+    get:
+      tags:
+      - Live Logs
+      summary: Get Live Logs Config
+      description: Returns the Live Logs configuration. The configuration output contains
+        the list of the available logs, the available Artifactory nodes, and the refresh
+        rate. This feature is available only for Enterprise+ subscriptions.
+      operationId: getLiveLogsConfig
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                  refresh_rate_millis:
+                    type: integer
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /system/logs/data:
+    get:
+      tags:
+      - Live Logs
+      summary: Get Live Logs Data
+      description: Returns the Live Logs data for the specified log ID. Contains the
+        log content chunk (up to 300KB), the log file's last updated timestamp, the
+        timestamp of the response, and the total size of the log file. This feature
+        is available only for Enterprise+ subscriptions.
+      operationId: getLiveLogsData
+      parameters:
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The log name/ID
+      - name: file_size
+        in: query
+        schema:
+          type: integer
+        description: The file size
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  last_update_modified:
+                    type: integer
+                    description: The log file's last updated timestamp
+                  last_update_label:
+                    type: integer
+                    description: The timestamp of the response
+                  log_content:
+                    type: string
+                    description: The log content chunk (up to 300KB)
+                  file_size:
+                    type: integer
+                    description: The total size of the log file
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer
+x-readme:
+  explorer-enabled: false

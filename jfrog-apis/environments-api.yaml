@@ -1,0 +1,391 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Environments API
+  description: 'Environment management APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer <token>)
+
+
+    **Availability:** Artifactory 7.53.1+
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Environments
+  description: APIs for creating, renaming, deleting, and listing global and project
+    environments in the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/environments:
+    post:
+      tags:
+      - Environments
+      summary: Create Global Environment
+      description: 'Creates a new global environment.
+
+
+
+        **Note:**
+
+        - By default, Artifactory supports up to 10 global environments.  To change
+        this default value, modify the Access configuration YAML.  The maximum recommended
+        number of environments is 30.
+
+        - The maximum length of an environment name is 32 characters.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: createGlobalEnvironment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - name
+              properties:
+                name:
+                  type: string
+                  description: Environment name
+      responses:
+        '201':
+          description: Environment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '409':
+          description: Conflict - Environment already exists
+    get:
+      tags:
+      - Environments
+      summary: Get Global Environments
+      description: 'Returns a list of existing global environments.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin privileges.
+
+        '
+      operationId: getGlobalEnvironments
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/environments/{environmentName}/rename:
+    post:
+      tags:
+      - Environments
+      summary: Rename a Global Environment
+      description: 'Renames an existing global environment.
+
+
+
+        **Note:** The maximum length of an environment name is 32 characters.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: renameGlobalEnvironment
+      parameters:
+      - name: environmentName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The environment name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - new_name
+              properties:
+                new_name:
+                  type: string
+                  description: New environment name
+      responses:
+        '200':
+          description: Environment renamed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Environment not found
+  /access/api/v1/environments/{environmentName}:
+    delete:
+      tags:
+      - Environments
+      summary: Delete Global Environment
+      description: 'Deletes a global environment.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: deleteGlobalEnvironment
+      parameters:
+      - name: environmentName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The environment name
+      responses:
+        '204':
+          description: Environment deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Environment not found
+  /access/api/v1/projects/{projectKey}/environments:
+    post:
+      tags:
+      - Environments
+      summary: Create Project Environment
+      description: 'Creates a new environment for the specified project.
+
+
+
+        **Note:**
+
+        - By default, Artifactory supports up to 10 project environments.  To change
+        this default value, modify the Access configuration YAML.  The maximum recommended
+        number of environments is 30.
+
+        - The maximum length of an environment name is 32 characters.
+
+
+
+        **Security:** Requires Project Admin or Platform Admin privileges.
+
+        '
+      operationId: createProjectEnvironment
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - name
+              properties:
+                name:
+                  type: string
+                  description: Environment name
+      responses:
+        '201':
+          description: Environment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+        '409':
+          description: Conflict - Environment already exists
+    get:
+      tags:
+      - Environments
+      summary: Get Project Environments
+      description: 'Returns a list of existing environments for the specified project.
+
+
+
+        **Security:** Requires Project Admin or Platform Admin privileges.
+
+        '
+      operationId: getProjectEnvironments
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+  /access/api/v1/projects/{projectKey}/environments/{environmentName}/rename:
+    post:
+      tags:
+      - Environments
+      summary: Rename a Project Environment
+      description: 'Renames an existing environment in the specified project.
+
+
+
+        **Note:** The maximum length of an environment name is 32 characters.
+
+
+
+        **Security:** Requires Project Admin or Platform Admin privileges.
+
+        '
+      operationId: renameProjectEnvironment
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: environmentName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The environment name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - new_name
+              properties:
+                new_name:
+                  type: string
+                  description: New environment name
+      responses:
+        '200':
+          description: Environment renamed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or environment not found
+  /access/api/v1/projects/{projectKey}/environments/{environmentName}:
+    delete:
+      tags:
+      - Environments
+      summary: Delete Project Environment
+      description: 'Deletes an environment from the specified project.
+
+
+
+        **Security:** Requires Project Admin or Platform Admin privileges.
+
+        '
+      operationId: deleteProjectEnvironment
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: environmentName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The environment name
+      responses:
+        '204':
+          description: Environment deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or environment not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+x-readme:
+  explorer-enabled: false

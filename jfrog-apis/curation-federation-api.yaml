@@ -1,0 +1,794 @@
+openapi: 3.0.0
+info:
+  title: JFrog Platform - Curation Federation API
+  description: 'Curation Federation APIs for synchronizing Curation entities across
+    multiple JPDs in a Controller/Follower topology.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** All APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+  description: JFrog Platform Server
+tags:
+- name: Follower JPDs
+  description: APIs for adding, updating, deleting, and listing Follower JPD connections
+    on the Controller JPD.
+- name: Federations
+  description: APIs for creating, listing, retrieving, and deleting Platform Federations
+    on the Controller JPD.
+security:
+- AdminBearerAuth: []
+paths:
+  /pfed/api/v1/jpd:
+    post:
+      tags:
+      - Follower JPDs
+      summary: Add a Follower JPD
+      description: 'Add a Follower JPD on the Controller JPD using a pairing token.
+        This establishes a trust relationship between the Controller and the Follower,
+        allowing the Controller to propagate federated entities (Curation Policies,
+        Conditions, Package Types, and Catalog Custom Labels) to the Follower.
+
+
+        This is the first step in setting up Curation Federation. After adding all
+        Follower JPDs, use the Create a Federation API to define which entities to
+        synchronize.
+
+
+        **Prerequisites:** Obtain a pairing token from the Follower JPD using the
+        [Create Pairing Token](https://docs.jfrog.com/administration/update/reference/createpairingtoken)
+        API with the `platform-federation` use case.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: addFollowerJpd
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJpdRequest'
+            example:
+              id: follower_1
+              url: https://follower1.jfrog.io/
+              pairing_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
+      responses:
+        '201':
+          description: Follower JPD added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JpdResponse'
+              example:
+                id: follower_1
+                url: https://follower1.jfrog.io/
+        '400':
+          description: Bad Request — invalid JSON or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict — a JPD with this ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - Follower JPDs
+      summary: List Follower JPDs
+      description: 'List all Follower JPDs on this Controller JPD.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: listFollowerJpds
+      responses:
+        '200':
+          description: List of Follower JPDs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JpdResponse'
+              example:
+              - id: follower_1
+                url: https://follower1.jfrog.io/
+              - id: follower_2
+                url: https://follower2.jfrog.io/
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /pfed/api/v1/jpd/{id}:
+    get:
+      tags:
+      - Follower JPDs
+      summary: Get a Follower JPD
+      description: 'Retrieve the details of a specific Follower JPD by its ID.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getFollowerJpd
+      parameters:
+      - $ref: '#/components/parameters/JpdId'
+      responses:
+        '200':
+          description: JPD details returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JpdUrlResponse'
+              example:
+                url: https://follower1.jfrog.io/
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found — JPD with specified ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - Follower JPDs
+      summary: Update a Follower JPD
+      description: 'Update the URL and pairing token of an existing Follower JPD.
+
+
+        Use this to rotate the pairing token or update the Follower''s URL.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateFollowerJpd
+      parameters:
+      - $ref: '#/components/parameters/JpdId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJpdRequest'
+            example:
+              url: https://follower1-new.jfrog.io/
+              pairing_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
+      responses:
+        '204':
+          description: JPD updated successfully
+        '400':
+          description: Bad Request — invalid JSON or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found — JPD with specified ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Follower JPDs
+      summary: Delete a Follower JPD
+      description: 'Remove a Follower JPD from the Controller. The Follower will no
+        longer participate in any federations.
+
+
+        **Note:** Ensure the JPD is removed from all federation connection groups
+        before deleting it.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteFollowerJpd
+      parameters:
+      - $ref: '#/components/parameters/JpdId'
+      responses:
+        '204':
+          description: JPD deleted successfully
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found — JPD with specified ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /pfed/api/v1/federations:
+    post:
+      tags:
+      - Federations
+      summary: Create a Federation
+      description: 'Define a new Platform Federation on the Controller JPD. A federation
+        specifies which Curation entities to synchronize and which Follower JPDs participate.
+
+
+        **Prerequisites:** All Follower JPDs referenced in `target_jpd_ids` must already
+        be added via the Add a Follower JPD API (`POST /pfed/api/v1/jpd`).
+
+
+        The request body follows a fixed structure. Only the following fields are
+        user-configurable:
+
+        - **`name`** — A unique name for this federation.
+
+        - **`description`** — A brief description of the use case.
+
+        - **`connection_groups.source-jpd.target_jpd_ids`** — The list of Follower
+        JPD IDs to include.
+
+
+        The `connection_groups` key (`"source-jpd"`) and the `entities` list are fixed
+        and must be provided exactly as shown in the example.
+
+
+        **Fixed entity types (must all be included as-is):**
+
+        - `catalog.customLabels` — Catalog custom labels
+
+        - `xray.curationCondition` — Curation conditions
+
+        - `xray.curationPkgType` — Curation package types
+
+        - `xray.curationPolicy` — Curation policies
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createFederation
+      x-readme:
+        code-samples:
+        - language: curl
+          name: cURL
+          code: "curl --location 'https://<controllerJPD>.jfrog.io/pfed/api/v1/federations'\
+            \ \\\n--header 'Content-Type: application/json' \\\n--header 'Authorization:\
+            \ Bearer <Admin_token>' \\\n--data '{\n  \"name\": \"curation federation\"\
+            ,\n  \"description\": \"manage curation over multisite architecture\"\
+            ,\n  \"connection_groups\": {\n      \"source-jpd\": {\n          \"target_jpd_ids\"\
+            : [\n              \"follower_1\",\n              \"follower_n\"\n   \
+            \       ]\n      }\n  },\n  \"entities\": [\n      {\"type\": \"catalog.customLabels\"\
+            },\n      {\"type\": \"xray.curationCondition\"},\n      {\"type\": \"\
+            xray.curationPkgType\"},\n      {\"type\": \"xray.curationPolicy\"}\n\
+            \  ]\n}'\n"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFederationRequest'
+            example:
+              name: curation federation
+              description: manage curation over multisite architecture
+              connection_groups:
+                source-jpd:
+                  target_jpd_ids:
+                  - follower_1
+                  - follower_n
+              entities:
+              - type: catalog.customLabels
+              - type: xray.curationCondition
+              - type: xray.curationPkgType
+              - type: xray.curationPolicy
+      responses:
+        '201':
+          description: Federation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationDetails'
+              example:
+                id: fed-abc123
+                name: curation federation
+                description: manage curation over multisite architecture
+                connection_groups:
+                  source-jpd:
+                    target_jpd_ids:
+                    - follower_1
+                    - follower_n
+                entities:
+                - type: catalog.customLabels
+                - type: xray.curationCondition
+                - type: xray.curationPkgType
+                - type: xray.curationPolicy
+        '400':
+          description: Bad Request — invalid JSON, missing required fields, or invalid
+            entity type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict — a federation with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - Federations
+      summary: List Federations
+      description: 'List all federations defined on this Controller JPD.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: listFederations
+      responses:
+        '200':
+          description: List of federations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FederationSummary'
+              example:
+              - id: fed-abc123
+                name: curation federation
+              - id: fed-def456
+                name: permissions federation
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /pfed/api/v1/federations/{id}:
+    get:
+      tags:
+      - Federations
+      summary: Get a Federation
+      description: 'Retrieve the full details of a specific federation by its ID,
+        including connection groups and entity types.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getFederation
+      parameters:
+      - $ref: '#/components/parameters/FederationId'
+      responses:
+        '200':
+          description: Federation details returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationDetails'
+              example:
+                id: fed-abc123
+                name: curation federation
+                description: manage curation over multisite architecture
+                connection_groups:
+                  source-jpd:
+                    target_jpd_ids:
+                    - follower_1
+                    - follower_n
+                entities:
+                - type: catalog.customLabels
+                - type: xray.curationCondition
+                - type: xray.curationPkgType
+                - type: xray.curationPolicy
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found — federation with specified ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Federations
+      summary: Delete a Federation
+      description: 'Delete a federation from the Controller JPD. Entity synchronization
+        for this federation will stop immediately.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteFederation
+      parameters:
+      - $ref: '#/components/parameters/FederationId'
+      responses:
+        '204':
+          description: Federation deleted successfully
+        '401':
+          description: Unauthorized — missing or invalid admin token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden — insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found — federation with specified ID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    AdminBearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token with admin permissions as bearer token
+      bearerFormat: JWT
+  parameters:
+    JpdId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: The unique identifier of the Follower JPD
+      example: follower_1
+    FederationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: The unique identifier of the federation
+      example: fed-abc123
+  schemas:
+    CreateJpdRequest:
+      type: object
+      description: Request body for adding a Follower JPD on the Controller
+      required:
+      - id
+      - url
+      - pairing_token
+      properties:
+        id:
+          type: string
+          description: A unique label for this Follower JPD in the federation
+          example: follower_1
+        url:
+          type: string
+          description: The URL of the Follower JPD
+          example: https://follower1.jfrog.io/
+        pairing_token:
+          type: string
+          description: The pairing token obtained from the Follower JPD's Access API
+    UpdateJpdRequest:
+      type: object
+      description: Request body for updating an existing Follower JPD
+      required:
+      - url
+      - pairing_token
+      properties:
+        url:
+          type: string
+          description: The updated URL of the Follower JPD
+          example: https://follower1.jfrog.io/
+        pairing_token:
+          type: string
+          description: A new pairing token obtained from the Follower JPD's Access
+            API
+    JpdResponse:
+      type: object
+      description: Follower JPD information including ID and URL
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the Follower JPD
+          example: follower_1
+        url:
+          type: string
+          description: The URL of the Follower JPD
+          example: https://follower1.jfrog.io/
+    JpdUrlResponse:
+      type: object
+      description: Simplified JPD response with URL only
+      properties:
+        url:
+          type: string
+          description: The URL of the Follower JPD
+          example: https://follower1.jfrog.io/
+    CreateFederationRequest:
+      type: object
+      description: 'Request body for creating a Platform Federation.
+
+
+        Only the following fields are user-configurable:
+
+        - `name` — A unique name for this federation.
+
+        - `description` — A brief description of the use case.
+
+        - `connection_groups.source-jpd.target_jpd_ids` — The list of Follower JPD
+        IDs.
+
+
+        The `connection_groups` key must be `"source-jpd"`. The `entities` array is
+        fixed and
+
+        must be included exactly as shown — it cannot be modified or omitted.
+
+        '
+      required:
+      - name
+      - connection_groups
+      - entities
+      properties:
+        name:
+          type: string
+          description: A unique name for this federation within your subscription
+          example: curation federation
+        description:
+          type: string
+          description: A brief description of the use case or feature supported by
+            the federation
+          example: manage curation over multisite architecture
+        connection_groups:
+          type: object
+          description: 'Connection group configuration. Must contain a single key
+            `"source-jpd"` mapping
+
+            to a connection group with the target Follower JPD IDs.
+
+            '
+    ConnectionGroup:
+      type: object
+      description: 'Defines a connection group within a federation. Specifies the
+        target Follower JPDs
+
+        that a source JPD will synchronize entities to.
+
+        '
+      required:
+      - target_jpd_ids
+      properties:
+        target_jpd_ids:
+          type: array
+          description: List of unique IDs of the Follower JPDs that participate in
+            this connection group
+          items:
+            type: string
+          example:
+          - follower_1
+          - follower_2
+    EntityConfig:
+      type: object
+      description: 'Configuration for an entity type to be synchronized.
+
+        Entity type names follow the format `<service>.<entityType>`.
+
+        '
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          description: 'The entity type identifier in `<service>.<entityType>` format.
+
+            Supported types:
+
+            - `catalog.customLabels` — Catalog custom labels
+
+            - `xray.curationCondition` — Curation conditions
+
+            - `xray.curationPkgType` — Curation package types
+
+            - `xray.curationPolicy` — Curation policies
+
+            '
+    FederationSummary:
+      type: object
+      description: Summary information for a federation in list responses
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the federation
+          example: fed-abc123
+        name:
+          type: string
+          description: The name of the federation
+          example: curation federation
+    FederationDetails:
+      type: object
+      description: Full details of a federation configuration including connection
+        groups and entity types
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the federation (generated by the system)
+          example: fed-abc123
+        name:
+          type: string
+          description: The unique name of the federation
+          example: curation federation
+        description:
+          type: string
+          description: A brief description of the federation
+          example: manage curation over multisite architecture
+        connection_groups:
+          type: object
+          description: Mapping of source JPD IDs to their connection group configurations
+          additionalProperties:
+            $ref: '#/components/schemas/ConnectionGroup'
+        entities:
+          type: array
+          description: List of entity types synchronized by this federation
+          items:
+            $ref: '#/components/schemas/EntityConfig'
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+          example: Invalid JSON format
+        code:
+          type: integer
+          description: HTTP status code
+          example: 400
+x-readme:
+  explorer-enabled: false

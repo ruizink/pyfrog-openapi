@@ -1,0 +1,227 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Loggers API
+  description: REST API for managing logger debug levels in JFrog Artifactory. This
+    feature is supported on the Self-Hosted platform, with a Pro, Pro X, Enterprise
+    X, or Enterprise+ license. Defines temporary debug levels for loggers in memory
+    without changing the logback.xml file.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api/system/debug
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Loggers
+  description: Logger debug level management operations
+paths:
+  /loggers:
+    post:
+      tags:
+      - Loggers
+      summary: Set Logger Debug Levels
+      description: Defines a temporary debug level for one or more loggers in memory
+        without changing the logback.xml file. This request can be used to collect
+        more detailed log information for a short period of time to help investigate
+        a particular issue. When the defined time interval expires, the logger debug
+        level is reset to its previous value. In HA environments, the debug level
+        is propagated so that all nodes have the same log level.
+      operationId: setLoggerDebugLevels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - classes
+              - timer
+              properties:
+                classes:
+                  type: object
+                  additionalProperties:
+                    type: string
+                    enum:
+                    - trace
+                    - debug
+                    - info
+                    - warn
+                    - error
+                    - fatal
+                  description: The names of the loggers whose debug level you want
+                    to change temporarily (for example, com.jfrog.bh), and the debug
+                    level to define for each one. Each logger you want to configure
+                    must be specified individually by name. The maximum number of
+                    loggers that can be configured is 100.
+                  example:
+                    org.dummy.Class: debug
+                    org.dummy.OtherClass: INFO
+                timer:
+                  type: integer
+                  description: The amount of time to keep the loggers at the defined
+                    debug level (in seconds). When the interval expires, the loggers
+                    are reset to the previous debug level.
+                  example: 60
+      responses:
+        '200':
+          description: Logger levels configured successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - No loggers defined, too many loggers defined
+            (maximum is 100), or timer set to < 0
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Loggers
+      summary: Delete Logger Debug Levels
+      description: Deletes the current logger debug level configuration and restores
+        the previous settings. Use this request when you want to return to the previous
+        settings before they expire automatically. If you want to make changes to
+        a POST request that is still running, run this DELETE request first and then
+        issue a new POST request. This request propagates to all nodes in HA environments.
+      operationId: deleteLoggerDebugLevels
+      responses:
+        '200':
+          description: Logger levels were reset to default settings successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - This API is not available on Artifactory SaaS
+            (Cloud). Only available on Self-Hosted instances.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /loggers/{className}:
+    get:
+      tags:
+      - Loggers
+      summary: Get Logger Debug Level
+      description: Returns the current debug level configuration for the specified
+        logger. In HA environments, it returns the debug level from whichever node
+        receives the request. If the className defined in the request does not exist,
+        this API returns the default value of the root from logback.xml.
+      operationId: getLoggerDebugLevel
+      parameters:
+      - name: className
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the logger whose debug level you want returned (for
+          example, org.dummy.Class)
+      responses:
+        '200':
+          description: Fetched
+          content:
+            application/json:
+              schema:
+                type: string
+                enum:
+                - trace
+                - debug
+                - info
+                - warn
+                - error
+                - fatal
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Standard JFrog error envelope
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+                description: HTTP status code
+              message:
+                type: string
+                description: Error message
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer

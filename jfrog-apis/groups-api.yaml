@@ -1,0 +1,534 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Groups API
+  description: 'Group management APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer <token>)
+
+
+    **Security:** Unless otherwise specified, all APIs require admin privileges.
+
+
+    **Availability:** Artifactory 7.49.3+
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Groups
+  description: APIs for creating, updating, deleting, and managing JFrog Platform
+    groups and group memberships.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v2/groups/{name}:
+    get:
+      tags:
+      - Groups
+      summary: Get Group Details
+      description: 'Returns the group''s details based on the group name.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getGroupDetails
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetails'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Group not found
+    patch:
+      tags:
+      - Groups
+      summary: Group Update
+      description: 'Updates an Access group''s external ID, description, and other
+        parameters. To add or remove users, use the Add or Remove a Group Member API
+        instead.
+
+
+        **Note:**
+
+        - This REST API is part of the Access service REST APIs, where modifying the
+        realm and realm attributes parameters is not supported.
+
+        - All fields are optional; if a field is not specified, the value will not
+        change (if the request payload is empty, returns 200).
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateGroup
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupUpdateRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetails'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Group not found
+    delete:
+      tags:
+      - Groups
+      summary: Delete a Group
+      description: 'Deletes an existing group based on the group name.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteGroup
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name to delete
+      responses:
+        '204':
+          description: Successful - Group deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Group not found
+  /access/api/v2/groups:
+    get:
+      tags:
+      - Groups
+      summary: Get a List of Groups
+      description: 'Returns the list of all groups.
+
+
+
+        **Security:** Requires admin privileges, or a scoped token with `system:identities:r`.
+
+        '
+      operationId: getGroupList
+      parameters:
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1000
+        description: Number of results to return
+      - name: descendingOrder
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Whether to return groups in descending lexical order
+      - name: groupName
+        in: query
+        schema:
+          type: string
+        description: Filter by group name pattern
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: Pagination cursor
+      - name: role
+        in: query
+        schema:
+          type: string
+        description: Filter by role. Must be provided together with resourceName and
+          resourceType. Available from Artifactory 7.117.1.
+      - name: resourceType
+        in: query
+        schema:
+          type: string
+        description: Filter by resource type. Must be provided together with resourceName
+          and role. Available from Artifactory 7.117.1.
+      - name: resourceName
+        in: query
+        schema:
+          type: string
+        description: Filter by repository name. Must be provided together with role
+          and resourceType. Available from Artifactory 7.117.1.
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: Filter by project key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupListResponse'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Groups
+      summary: Create a Group
+      description: 'Creates a new group.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupCreateRequest'
+      responses:
+        '201':
+          description: Group created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetails'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - One or more users in members were not found
+        '409':
+          description: Conflict - Group already exists
+  /access/api/v2/groups/{name}/members:
+    patch:
+      tags:
+      - Groups
+      summary: Add or Remove a Group Member
+      description: 'Manage group members by adding and removing group members.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateGroupMembers
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add:
+                  type: array
+                  items:
+                    type: string
+                  description: Members to add
+                remove:
+                  type: array
+                  items:
+                    type: string
+                  description: Members to remove
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Group not found
+  /artifactory/api/security/groups/{groupName}:
+    put:
+      tags:
+      - Groups
+      summary: Create or Replace Group (Deprecated)
+      description: 'Creates a new group in Artifactory or replaces an existing group.
+
+
+
+        **Note:**
+
+        - From Artifactory release 7.49.3, this API is being replaced by the Access
+        service APIs available in the JFrog Platform.
+
+        - Missing values will be set to the default values as defined by the consumed
+        type.
+
+        - To support spaces in the User or Group or Permission names, a Plus symbol
+        (''+'') is automatically placed when there is a space.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createOrReplaceGroup
+      parameters:
+      - name: groupName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupDetails'
+      responses:
+        '200':
+          description: Group created or replaced successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetails'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    GroupDetails:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The group name
+        description:
+          type: string
+          description: Group description
+        auto_join:
+          type: boolean
+          description: Whether new users auto-join this group
+        admin_privileges:
+          type: boolean
+          description: Whether group has admin privileges
+        realm:
+          type: string
+          description: The authentication realm
+        realm_attributes:
+          type: string
+          description: Realm attributes
+        external_id:
+          type: string
+          description: External ID for SCIM
+        members:
+          type: array
+          items:
+            type: string
+          description: Group members
+        reports_manager:
+          type: boolean
+          description: Whether group has reports manager role. Available from Artifactory
+            7.128.0.
+        watch_manager:
+          type: boolean
+          description: Whether group has watch manager role. Available from Artifactory
+            7.128.0.
+        policy_manager:
+          type: boolean
+          description: Whether group has policy manager role. Available from Artifactory
+            7.128.0.
+        policy_viewer:
+          type: boolean
+          description: Whether group has policy viewer role. Available from Artifactory
+            7.128.0.
+        manage_resources:
+          type: boolean
+          description: Whether group manages resources in the default project. Available
+            from Artifactory 7.128.0.
+        manage_webhook:
+          type: boolean
+          description: Whether group has manage webhook permissions. Available from
+            Artifactory 7.128.0.
+    GroupCreateRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: The group name (required)
+        description:
+          type: string
+          description: Group description
+        auto_join:
+          type: boolean
+          default: false
+          description: Whether new users auto-join this group
+        admin_privileges:
+          type: boolean
+          default: false
+          description: Whether group has admin privileges
+        external_id:
+          type: string
+          description: External ID for SCIM
+        members:
+          type: array
+          items:
+            type: string
+          description: Initial group members
+        reports_manager:
+          type: boolean
+          default: false
+          description: Whether group has reports manager role. Available from Artifactory
+            7.128.0.
+        watch_manager:
+          type: boolean
+          default: false
+          description: Whether group has watch manager role. Available from Artifactory
+            7.128.0.
+        policy_manager:
+          type: boolean
+          default: false
+          description: Whether group has policy manager role. Available from Artifactory
+            7.128.0.
+        policy_viewer:
+          type: boolean
+          default: false
+          description: Whether group has policy viewer role. Available from Artifactory
+            7.128.0.
+        manage_resources:
+          type: boolean
+          default: false
+          description: Whether group manages resources in the default project. Available
+            from Artifactory 7.128.0.
+        manage_webhook:
+          type: boolean
+          default: false
+          description: Whether group has manage webhook permissions. Available from
+            Artifactory 7.128.0.
+    GroupUpdateRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          description: Group description
+        auto_join:
+          type: boolean
+          description: Whether new users auto-join this group
+        admin_privileges:
+          type: boolean
+          description: Whether group has admin privileges
+        external_id:
+          type: string
+          description: External ID for SCIM
+        reports_manager:
+          type: boolean
+          description: Whether group has reports manager role. Available from Artifactory
+            7.128.0.
+        watch_manager:
+          type: boolean
+          description: Whether group has watch manager role. Available from Artifactory
+            7.128.0.
+        policy_manager:
+          type: boolean
+          description: Whether group has policy manager role. Available from Artifactory
+            7.128.0.
+        policy_viewer:
+          type: boolean
+          description: Whether group has policy viewer role. Available from Artifactory
+            7.128.0.
+        manage_resources:
+          type: boolean
+          description: Whether group manages resources in the default project. Available
+            from Artifactory 7.128.0.
+        manage_webhook:
+          type: boolean
+          description: Whether group has manage webhook permissions. Available from
+            Artifactory 7.128.0.
+    GroupListResponse:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupRecordResponse'
+        cursor:
+          type: string
+          description: Pagination cursor
+    GroupRecordResponse:
+      type: object
+      properties:
+        group_name:
+          type: string
+          description: Group name
+        uri:
+          type: string
+          description: Group URI
+x-readme:
+  explorer-enabled: false

@@ -1,0 +1,689 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - System & Configuration API
+  description: 'System configuration, status, password policy, certificates, vault,
+    and backup APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** Unless otherwise specified, all APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: System
+  description: APIs for system health checks, status monitoring, and configuration
+    management in the JFrog Platform.
+- name: Password Policy
+  description: APIs for creating and updating password policy configuration in the
+    JFrog Platform.
+- name: Certificates
+  description: APIs for retrieving root and CA public certificates in the JFrog Platform.
+- name: Vault
+  description: APIs for configuring, testing, and managing secret manager (HashiCorp
+    Vault) integration with the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/config/security/password_policy:
+    put:
+      tags:
+      - Password Policy
+      summary: Create Password Policy
+      description: 'Creates a new password policy. This REST API overwrites all existing
+
+        field values:
+
+        if a value is not specified, its default value will be set.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createPasswordPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordPolicy'
+      responses:
+        '204':
+          description: Password policy updated successfully (no response body)
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    patch:
+      tags:
+      - Password Policy
+      summary: Update Password Policy
+      description: 'Updates the password policy (partial update).
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updatePasswordPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordPolicy'
+      responses:
+        '204':
+          description: Password policy updated successfully (no response body)
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/system/ping:
+    get:
+      tags:
+      - System
+      summary: Ping Request
+      description: A simple ping request to verify that Access is running.
+      operationId: pingSystem
+      security: []
+      responses:
+        '200':
+          description: Access is running
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+  /access/api/v1/logshipping/config:
+    post:
+      tags:
+      - System
+      summary: Enable Cloud Log Collection
+      description: 'Enables log collection into a dedicated Logs Artifactory System
+
+        Repository, to improve auditing capabilities.
+
+
+
+        **Note:** Available for Cloud (SaaS) subscriptions only.
+
+
+        - Logs are collected in a dedicated system repository called
+
+        `jfrog-logs`. The repository will be created upon calling the API.
+
+        - Logs are collected in a cycle that may take up to 24 hours.
+
+        - By default, the log types collected are audit and request logs.
+
+
+
+        **Important:** The data transfer and storage you consume for downloading
+
+        or storing the logs will apply against your standard cloud usage, and
+
+        may incur costs.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: enableCloudLogCollection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: Set to true to enable or false to disable cloud log
+                    collection
+            example:
+              enabled: true
+      responses:
+        '200':
+          description: Log collection enabled/disabled successfully
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials or unauthorized
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/cert/root:
+    get:
+      tags:
+      - Certificates
+      summary: Get Root Certificate
+      description: Returns the root certificate.
+      operationId: getRootCertificate
+      parameters:
+      - name: formatted
+        in: query
+        required: false
+        description: When true, returns the certificate in PEM format with header/footer
+          and line breaks.
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+  /access/api/v1/cert/ca:
+    get:
+      tags:
+      - Certificates
+      summary: Get CA Public Certificate
+      description: 'Returns the CA public certificate.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getCaCertificate
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+  /access/api/v1/vault/configs/{vault_key}:
+    parameters:
+    - name: vault_key
+      in: path
+      required: true
+      description: 'Configuration key for this vault integration instance (for example
+        `hashicorp`).
+
+        '
+      schema:
+        type: string
+    put:
+      tags:
+      - Vault
+      summary: Set the Vault Configuration
+      description: 'Connects the vault to the JFrog Platform to use signing keys stored
+        in the vault.
+
+
+
+        **Note:** Requires TLS enabled.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: setVaultConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaultConfigRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultConfig'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '415':
+          description: Unsupported Media Type - body must be application/json
+    delete:
+      tags:
+      - Vault
+      summary: Delete the Secret Manager Configuration
+      description: 'Deletes the connection between the vault and JFrog Platform.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteVaultConfiguration
+      responses:
+        '204':
+          description: Vault configuration deleted (no response body)
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - No configuration exists for this key
+  /access/api/v1/vault/configs:
+    get:
+      tags:
+      - Vault
+      summary: Get the Secret Manager Configurations
+      description: 'Returns a list of all configured secret managers.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getVaultConfigurations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VaultConfig'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/vault/configs/test:
+    post:
+      tags:
+      - Vault
+      summary: Test the Vault Configuration
+      description: 'Tries to connect to the Vault server.
+
+
+
+        **Note:** Requires TLS enabled.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: testVaultConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaultConfigRequest'
+      responses:
+        '204':
+          description: Test completed successfully (no response body)
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '415':
+          description: Unsupported Media Type - body must be application/json
+        '500':
+          description: Internal Server Error
+  /access/api/v1/config/security/authentication/basic_authentication_enabled:
+    get:
+      tags:
+      - System
+      summary: Get Status of Disable Basic Authentication
+      description: 'Returns the status of Disable Basic Authentication in the JPD.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getBasicAuthenticationStatus
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    description: Whether basic authentication is enabled
+              example:
+                enabled: true
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - System
+      summary: Enable or Disable Basic Authentication
+      description: 'Allows you to enable or disable basic authentication in your JFrog
+
+        instance.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: setBasicAuthenticationStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: Set to true to enable or false to disable basic authentication
+            example:
+              enabled: true
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /router/api/v1/system/health:
+    get:
+      tags:
+      - System
+      summary: Health Check
+      description: 'Get a simple status response about the state of a JFrog Product
+        node.
+
+
+        Returns health state and general information regarding the router and
+
+        locally registered services.
+
+
+
+        **Security:** No authentication required.
+
+        '
+      operationId: routerHealthCheck
+      security: []
+      responses:
+        '200':
+          description: All services are healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+              example:
+                router:
+                  node_id: 12345-defg-6789
+                  state: HEALTHY
+                  message: OK
+                services:
+                - service_id: jfsvc@123
+                  node_id: 12345-defg-6789
+                  state: HEALTHY
+                  message: OK
+        '503':
+          description: One or more services are unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+              example:
+                router:
+                  node_id: 12345-defg-6789
+                  state: HEALTHY
+                  message: OK
+                services:
+                - service_id: jfrt@1234
+                  node_id: 12345-defg-6789
+                  state: UNHEALTHY_PEER
+                  message: Service is healthy; there is at least one unhealthy service
+                - service_id: jffe@9876
+                  node_id: 12345-defg-6789
+                  state: UNHEALTHY
+                  message: 'Get http://localhost:3000/health: dial tcp 127.0.0.1:3000:
+                    connect: connection refused'
+  /access/api/v1/system/backup/export:
+    post:
+      tags:
+      - System
+      summary: Export Access Configuration
+      description: 'Exports the Access configuration.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: exportAccessConfiguration
+      responses:
+        '202':
+          description: Configuration export initiated
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/system/backup/import:
+    post:
+      tags:
+      - System
+      summary: Import Access Configuration
+      description: 'Imports the Access configuration.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: importAccessConfiguration
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                saas:
+                  type: boolean
+                  description: Whether to import in SaaS mode
+      responses:
+        '200':
+          description: Configuration imported
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    PasswordPolicy:
+      type: object
+      properties:
+        uppercase:
+          type: integer
+          description: Minimum uppercase characters required
+        lowercase:
+          type: integer
+          description: Minimum lowercase characters required
+        digit:
+          type: integer
+          description: Minimum digits required
+        special_char:
+          type: integer
+          description: Minimum special characters required
+        length:
+          type: integer
+          description: Minimum password length
+        not_match_old:
+          type: boolean
+          description: Whether the new password must differ from the previous one
+    HealthCheckResponse:
+      type: object
+      properties:
+        router:
+          type: object
+          properties:
+            node_id:
+              type: string
+            state:
+              type: string
+              enum:
+              - HEALTHY
+              - UNHEALTHY
+            message:
+              type: string
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              service_id:
+                type: string
+              node_id:
+                type: string
+              state:
+                type: string
+                enum:
+                - HEALTHY
+                - UNHEALTHY
+                - UNHEALTHY_PEER
+              message:
+                type: string
+    VaultConfigRequest:
+      description: Request body when creating, updating, or testing a Vault configuration.
+      type: object
+      required:
+      - type
+      - config
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+          const: HashicorpVault
+        config:
+          $ref: '#/components/schemas/HashicorpVaultConfig'
+    VaultConfig:
+      description: A stored Vault integration configuration.
+      type: object
+      required:
+      - key
+      - type
+      - config
+      properties:
+        key:
+          type: string
+        type:
+          type: string
+          const: HashicorpVault
+        config:
+          $ref: '#/components/schemas/HashicorpVaultConfig'
+    HashicorpVaultConfig:
+      type: object
+      description: HashiCorp Vault connection settings.
+      properties:
+        auth:
+          description: Authentication method (`AppRole`, `Certificate`, or `Agent`).
+          oneOf:
+          - $ref: '#/components/schemas/HashicorpVaultAppRoleAuth'
+          - $ref: '#/components/schemas/HashicorpVaultCertificateAuth'
+          - $ref: '#/components/schemas/HashicorpVaultAgentAuth'
+          discriminator:
+            propertyName: type
+            mapping:
+              AppRole: '#/components/schemas/HashicorpVaultAppRoleAuth'
+              Certificate: '#/components/schemas/HashicorpVaultCertificateAuth'
+              Agent: '#/components/schemas/HashicorpVaultAgentAuth'
+        url:
+          type: string
+          format: uri
+          description: Vault server URL.
+        mounts:
+          type: array
+          description: Secret engine mounts.
+          items:
+            $ref: '#/components/schemas/HashicorpVaultMount'
+    HashicorpVaultMount:
+      type: object
+      properties:
+        path:
+          type: string
+          description: Mount path.
+        type:
+          type: string
+          enum:
+          - KV1
+          - KV2
+          description: Secret engine type.
+    HashicorpVaultAppRoleAuth:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          const: AppRole
+        roleId:
+          type: string
+          description: AppRole role ID.
+        secretId:
+          type: string
+          description: AppRole secret ID.
+    HashicorpVaultCertificateAuth:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          const: Certificate
+        clientCertificate:
+          type: string
+          description: Client certificate (PEM).
+        clientPrivateKey:
+          type: string
+          description: Client private key (PEM).
+    HashicorpVaultAgentAuth:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          const: Agent
+x-readme:
+  explorer-enabled: false

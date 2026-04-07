@@ -1,0 +1,2443 @@
+openapi: 3.0.3
+info:
+  title: JFrog Unified Policy Service APIs
+  description: 'JFrog Unified Policy Service APIs for managing policies across the
+    JFrog Platform.
+
+
+    This API provides endpoints for creating, updating, and managing policies
+
+    that can be applied to various JFrog platform resources.
+
+
+    ## Authentication
+
+    All API requests require a valid JWT bearer token in the Authorization header.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+    url: https://jfrog.com/contact-us/
+    email: support@jfrog.com
+  license:
+    name: JFrog Terms of Service
+    url: https://jfrog.com/terms-and-conditions/
+servers:
+- url: https://{jfrog_url}/unifiedpolicy/api/v1
+  description: JFrog Unified Policy Service API
+tags:
+- name: template
+  description: template rule with optional parameters to customize.
+- name: rule
+  description: rules to use in a policy.
+- name: policy
+  description: policies to apply rules to resources in the JFrog Platform.
+paths:
+  /templates:
+    get:
+      summary: List all templates
+      description: 'Retrieve a paginated list of all templates in the system.
+
+        '
+      tags:
+      - template
+      operationId: templatesList
+      parameters:
+      - $ref: '#/components/parameters/idQueryParam'
+      - $ref: '#/components/parameters/nameQueryParam'
+      - $ref: '#/components/parameters/pageQueryParam'
+      - $ref: '#/components/parameters/limitQueryParam'
+      - $ref: '#/components/parameters/templateSortByParam'
+      - $ref: '#/components/parameters/sortOrderQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/TemplatePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - template:read
+    post:
+      summary: Create a new template
+      description: 'Create a new template in the system.
+
+        '
+      tags:
+      - template
+      operationId: templatesCreate
+      requestBody:
+        $ref: '#/components/requestBodies/TemplateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/TemplateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - template:manage
+  /templates/{templateId}:
+    get:
+      summary: Get a specific template
+      description: 'Retrieve detailed information about a specific template by its
+        unique identifier.
+
+        '
+      tags:
+      - template
+      operationId: templatesGet
+      parameters:
+      - $ref: '#/components/parameters/templateIdPathParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/TemplateResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - template:read
+    put:
+      summary: Update an existing template
+      description: 'Update an existing template with new configuration.
+
+        '
+      tags:
+      - template
+      operationId: templatesUpdate
+      parameters:
+      - $ref: '#/components/parameters/templateIdPathParam'
+      requestBody:
+        $ref: '#/components/requestBodies/TemplateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TemplateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - internal:developer:w
+      - unifiedPolicyAuth:
+        - template:manage
+    delete:
+      summary: Delete a template
+      description: 'Delete a template by its unique identifier.
+
+        This endpoint removes the specified template from the system.
+
+        '
+      tags:
+      - template
+      operationId: templatesDelete
+      parameters:
+      - $ref: '#/components/parameters/templateIdPathParam'
+      responses:
+        '204':
+          description: There is no content to send for this request, but the headers
+            may be useful.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - internal:developer:w
+      - unifiedPolicyAuth:
+        - template:manage
+  /rules:
+    get:
+      summary: List all rules
+      description: 'Retrieve a paginated list of all rules in the system.
+
+        This endpoint supports filtering by template category and other criteria.
+
+
+        **Expand Parameter:**
+
+        - Use `expand=template` to include complete template details with each rule
+
+        '
+      tags:
+      - rule
+      operationId: rulesList
+      parameters:
+      - $ref: '#/components/parameters/idQueryParam'
+      - $ref: '#/components/parameters/nameQueryParam'
+      - $ref: '#/components/parameters/ruleTemplateDataSourceQueryParam'
+      - $ref: '#/components/parameters/ruleTemplateScannersQueryParam'
+      - $ref: '#/components/parameters/ruleTemplateCategoryQueryParam'
+      - $ref: '#/components/parameters/ruleExpandQueryParam'
+      - $ref: '#/components/parameters/pageQueryParam'
+      - $ref: '#/components/parameters/limitQueryParam'
+      - $ref: '#/components/parameters/ruleSortByParam'
+      - $ref: '#/components/parameters/sortOrderQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/RulePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - rule:read
+    post:
+      summary: Create a new rule
+      description: 'Create a new rule in the system.
+
+        '
+      tags:
+      - rule
+      operationId: rulesCreate
+      requestBody:
+        $ref: '#/components/requestBodies/RuleRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/RuleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth: []
+  /rules/{ruleId}:
+    get:
+      summary: Get a specific rule
+      description: 'Retrieve detailed information about a specific rule by its unique
+        identifier.
+
+        This endpoint supports expanding template details using the expand parameter.
+
+        '
+      tags:
+      - rule
+      operationId: rulesGet
+      parameters:
+      - $ref: '#/components/parameters/ruleIdPathParam'
+      - $ref: '#/components/parameters/ruleExpandQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/RuleExpandedResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - rule:read
+    put:
+      summary: Update an existing rule
+      description: 'Update an existing rule with new configuration.
+
+        '
+      tags:
+      - rule
+      operationId: ruleUpdate
+      parameters:
+      - $ref: '#/components/parameters/ruleIdPathParam'
+      requestBody:
+        $ref: '#/components/requestBodies/RuleRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/RuleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth: []
+    delete:
+      summary: Delete a rule
+      description: 'Delete a rule by its unique identifier.
+
+        This endpoint removes the specified rule from the system.
+
+        '
+      tags:
+      - rule
+      operationId: ruleDelete
+      parameters:
+      - $ref: '#/components/parameters/ruleIdPathParam'
+      responses:
+        '204':
+          description: There is no content to send for this request, but the headers
+            may be useful.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth: []
+  /policies:
+    get:
+      summary: List all policies
+      description: 'Retrieve a paginated list of all policies in the system.
+
+        This endpoint supports pagination and filtering of policies based on various
+        criteria.
+
+        '
+      tags:
+      - policy
+      operationId: policiesList
+      parameters:
+      - $ref: '#/components/parameters/policyEnabledQueryParam'
+      - $ref: '#/components/parameters/policyModeQueryParam'
+      - $ref: '#/components/parameters/policyActionQueryParam'
+      - $ref: '#/components/parameters/policyScopeTypeQueryParam'
+      - $ref: '#/components/parameters/policyStageQueryParam'
+      - $ref: '#/components/parameters/policyGateQueryParam'
+      - $ref: '#/components/parameters/policyRuleIdQueryParam'
+      - $ref: '#/components/parameters/policyProjectKeyQueryParam'
+      - $ref: '#/components/parameters/policyHierarchicalQueryParam'
+      - $ref: '#/components/parameters/policyApplicationLabelKeyQueryParam'
+      - $ref: '#/components/parameters/policyApplicationLabelValueQueryParam'
+      - $ref: '#/components/parameters/policyApplicationLabelsParam'
+      - $ref: '#/components/parameters/policyApplicationKeyQueryParam'
+      - $ref: '#/components/parameters/idQueryParam'
+      - $ref: '#/components/parameters/nameQueryParam'
+      - $ref: '#/components/parameters/pageQueryParam'
+      - $ref: '#/components/parameters/limitQueryParam'
+      - $ref: '#/components/parameters/policySortByParam'
+      - $ref: '#/components/parameters/sortOrderQueryParam'
+      - $ref: '#/components/parameters/policyExpandQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/PolicyPaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - policy:read
+    post:
+      summary: Create a new policy
+      description: 'Create a new policy in the system. The policy must include a unique
+        name,
+
+        description, and the policy rules to be enforced.
+
+        '
+      tags:
+      - policy
+      operationId: policiesCreate
+      requestBody:
+        $ref: '#/components/requestBodies/PolicyRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/PolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth: []
+  /policies/{policyId}:
+    get:
+      summary: Get a specific policy
+      description: 'Retrieve detailed information about a specific policy by its unique
+        identifier.
+
+        This endpoint returns the complete policy configuration including rules and
+        metadata.
+
+        '
+      tags:
+      - policy
+      operationId: policiesGet
+      parameters:
+      - $ref: '#/components/parameters/policyIdPathParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/PolicyExpandedResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - policy:read
+    put:
+      summary: Update an existing policy
+      description: 'Update an existing policy with new configuration.
+
+        This endpoint allows updating any aspect of the policy including rules,
+
+        description, and other metadata.
+
+        '
+      tags:
+      - policy
+      operationId: policiesUpdate
+      parameters:
+      - $ref: '#/components/parameters/policyIdPathParam'
+      requestBody:
+        $ref: '#/components/requestBodies/PolicyRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/PolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth: []
+    delete:
+      summary: Delete a policy
+      description: 'Delete a policy by its unique identifier.
+
+        This endpoint removes the specified policy from the system.
+
+        '
+      tags:
+      - policy
+      operationId: policiesDelete
+      parameters:
+      - $ref: '#/components/parameters/policyIdPathParam'
+      responses:
+        '204':
+          description: There is no content to send for this request, but the headers
+            may be useful.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      description: JWT Bearer token authentication
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    unifiedPolicyAuth:
+      description: "Unified Policy OAuth2 security scheme defining required permission\
+        \ scopes.\nUses JFrog's permission scope format: <resource-type>:<target>:<action>\n\
+        \nWhile OAuth2 is defined here for permission documentation, the actual \n\
+        implementation uses JWT Bearer tokens transported via Authorization header.\n\
+        \nPermission scopes follow JFrog's standard format:\n- policy:*:read - Read\
+        \ access to all policies\n- policy:project-key:write - Write access to project-specific\
+        \ policies\n- template:*:manage - Full management access to all templates\n\
+        - rule:rule-id:delete - Delete access to specific rule\n"
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://your-jfrog-instance.com/access/oauth/authorize
+          tokenUrl: https://your-domain.jfrog.io/access/oauth/token
+          scopes:
+            policy:read: Read access to policies
+            policy:manage: Full management access to policies
+            policy:*:read: Read access to all policies
+            policy:*:write: Write access to all policies
+            policy:*:delete: Delete access to all policies
+            policy:*:manage: Full management access to all policies
+            policy:*:execute: Execute/evaluate all policies
+            policy:project:read: Read access to project-scoped policies
+            policy:project:write: Write access to project-scoped policies
+            policy:project:delete: Delete access to project-scoped policies
+            policy:project:manage: Full management of project-scoped policies
+            policy:project:execute: Execute project-scoped policies
+            template:read: Read access to templates
+            template:manage: Full management access to templates
+            template:*:read: Read access to all templates
+            template:*:write: Write access to all templates
+            template:*:delete: Delete access to all templates
+            template:*:manage: Full management access to all templates
+            rule:read: Read access to rules
+            rule:*:read: Read access to all rules
+            rule:*:write: Write access to all rules
+            rule:*:delete: Delete access to all rules
+            rule:*:manage: Full management access to all rules
+            evaluation:*:read: Read access to all evaluations
+            evaluation:*:write: Write access to create evaluations
+            evaluation:*:delete: Delete access to evaluations
+            system:admin: Full system administrative access
+            internal:developer:w: Internal developer write access
+            unifiedpolicy:admin: Full unified policy administrative access
+  parameters:
+    templateIdPathParam:
+      name: templateId
+      in: path
+      description: Template identifier.
+      required: true
+      schema:
+        $ref: '#/components/schemas/JFrogId'
+    templateSortByParam:
+      name: sort_by
+      in: query
+      description: Template attribute to sort by.
+      required: false
+      schema:
+        type: string
+        default: created_at
+        example: created_at
+        enum:
+        - name
+        - created_at
+        x-oapi-codegen-extra-tags:
+          binding: omitempty,oneof=name created_at
+    ruleIdPathParam:
+      name: ruleId
+      in: path
+      description: Rule identifier.
+      required: true
+      schema:
+        $ref: '#/components/schemas/JFrogId'
+    ruleSortByParam:
+      name: sort_by
+      in: query
+      description: Rule attribute to sort by.
+      required: false
+      schema:
+        type: string
+        default: created_at
+        example: created_at
+        enum:
+        - name
+        - created_at
+        x-oapi-codegen-extra-tags:
+          binding: omitempty,oneof=name created_at
+    ruleTemplateScannersQueryParam:
+      name: scanner_types
+      in: query
+      description: Filter rules by template scanner types. Multiple values can be
+        provided for filtering.
+      required: false
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/TemplateScannerType'
+    ruleTemplateDataSourceQueryParam:
+      name: template_data_source
+      in: query
+      description: Filter rules by template data source type.
+      required: false
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        $ref: '#/components/schemas/TemplateDataSourceType'
+    ruleTemplateCategoryQueryParam:
+      name: template_category
+      in: query
+      description: Filter rules by template category.
+      required: false
+      allowEmptyValue: true
+      schema:
+        $ref: '#/components/schemas/TemplateCategory'
+    ruleExpandQueryParam:
+      name: expand
+      in: query
+      description: Comma-separated list of fields to expand in the response.
+      required: false
+      schema:
+        type: string
+        enum:
+        - template
+        example: template
+        x-oapi-codegen-extra-tags:
+          binding: omitempty,oneof=template
+    policyIdPathParam:
+      name: policyId
+      in: path
+      description: Policy identifier.
+      required: true
+      schema:
+        $ref: '#/components/schemas/JFrogId'
+    policyEnabledQueryParam:
+      name: enabled
+      in: query
+      description: Filter by policy enabled status.
+      required: false
+      schema:
+        $ref: '#/components/schemas/PolicyEnabled'
+    policyModeQueryParam:
+      name: mode
+      in: query
+      description: Filter by policy mode.
+      required: false
+      schema:
+        $ref: '#/components/schemas/PolicyMode'
+    policyActionQueryParam:
+      name: action_type
+      in: query
+      description: Filter policies by action types.
+      allowEmptyValue: true
+      schema:
+        $ref: '#/components/schemas/PolicyActionType'
+    policyScopeTypeQueryParam:
+      name: scope_type
+      in: query
+      description: Filter policies by scope type (project or application).
+      allowEmptyValue: true
+      schema:
+        $ref: '#/components/schemas/PolicyScopeType'
+    policyStageQueryParam:
+      name: stage_key
+      in: query
+      description: Filter policies by stage. Multiple values can be provided for filtering.
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/StageKey'
+    policyGateQueryParam:
+      name: stage_gate
+      in: query
+      description: Filter policies by gate. Multiple values can be provided for filtering.
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/LifecycleStageGate'
+    policyProjectKeyQueryParam:
+      name: project_key
+      in: query
+      description: Filter policies by project key.
+      allowEmptyValue: true
+      schema:
+        $ref: '#/components/schemas/ProjectKey'
+    policyHierarchicalQueryParam:
+      name: hierarchical
+      in: query
+      description: Adding hierarchy filter logic in combination with other scope filter.
+      allowEmptyValue: true
+      schema:
+        type: boolean
+    policyApplicationLabelKeyQueryParam:
+      name: application_label_key
+      in: query
+      description: Filter policies by application label key. Multiple values can be
+        provided for filtering.
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/ApplicationLabelKey'
+    policyApplicationLabelValueQueryParam:
+      name: application_label_value
+      in: query
+      description: Filter policies by application label value. Multiple values can
+        be provided for filtering.
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/JFrogResourceName'
+    policyApplicationKeyQueryParam:
+      name: application_key
+      in: query
+      description: Filter policies by application key. Multiple values can be provided
+        for filtering.
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/ApplicationKey'
+    policyRuleIdQueryParam:
+      name: rule_id
+      in: query
+      description: Filter policies by rule ID. Multiple values can be provided for
+        filtering.
+      allowEmptyValue: true
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/JFrogId'
+    policyApplicationLabelsParam:
+      name: application_labels
+      in: query
+      description: 'Filter policies by application labels with exact key/value matches
+        using deepObject style.
+
+        Provide each label as a key in the object with its value as the property value.
+
+
+        Examples (preferred):
+
+        - application_labels[environment]=production
+
+        - application_labels[tier]=backend&application_labels[maturity]=beta
+
+
+        Notes:
+
+        - When this filter is present, the scope type is enforced as project.
+
+        - Policies without labels are included only when no label filters are specified.
+
+        '
+      required: false
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties:
+          type: string
+    policySortByParam:
+      name: sort_by
+      in: query
+      description: Policy attribute to sort by.
+      required: false
+      schema:
+        type: string
+        default: created_at
+        example: created_at
+        enum:
+        - name
+        - enabled
+        - mode
+        - resource
+        - action
+        - created_at
+        x-oapi-codegen-extra-tags:
+          binding: omitempty,oneof=name enabled mode resource action created_at
+    idQueryParam:
+      name: id
+      in: query
+      description: Query by the resource id. Multiple values can be provided for filtering.
+      required: false
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/JFrogId'
+    nameQueryParam:
+      name: name
+      in: query
+      description: 'Query by the resource name. Multiple values can be provided for
+        filtering.
+
+        '
+      required: false
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/SearchName'
+    pageQueryParam:
+      name: offset
+      in: query
+      description: A page offset to the requested page.
+      required: false
+      schema:
+        $ref: '#/components/schemas/JFPageOffset'
+    limitQueryParam:
+      name: limit
+      in: query
+      description: An integer value representing the maximum number of items to include
+        in the response.
+      required: false
+      schema:
+        $ref: '#/components/schemas/JFPageLimit'
+    sortOrderQueryParam:
+      name: sort_order
+      in: query
+      description: Sort direction.
+      required: false
+      schema:
+        type: string
+        default: desc
+        example: desc
+        enum:
+        - asc
+        - desc
+        x-oapi-codegen-extra-tags:
+          binding: omitempty,oneof=asc desc
+    policyExpandQueryParam:
+      name: expand
+      in: query
+      description: Expand policy response to include complete rule objects.
+      required: false
+      schema:
+        type: string
+        enum:
+        - rules
+        x-oapi-codegen-extra-tags:
+          binding: omitempty,oneof=rules
+  schemas:
+    ResourceBase:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          $ref: '#/components/schemas/JFrogResourceName'
+        description:
+          $ref: '#/components/schemas/JFrogResourceDescription'
+      description: 'Foundation schema for all named resources in the system.
+
+        Provides common name and description fields that all resources inherit.
+
+        Used as the base for all resource payload schemas.
+
+        '
+    ResourceIdentity:
+      type: object
+      required:
+      - id
+      - created_at
+      - created_by
+      - updated_at
+      - updated_by
+      properties:
+        id:
+          $ref: '#/components/schemas/JFrogId'
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the resource was created
+        created_by:
+          $ref: '#/components/schemas/JFPrincipal'
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the resource was last updated
+        updated_by:
+          $ref: '#/components/schemas/JFPrincipal'
+      description: 'System-managed identity and audit trail fields for all resources.
+
+        These fields are automatically managed by the system and cannot be modified
+        by clients.
+
+        Included in all resource response schemas to provide complete resource information.
+
+        '
+    CustomResource:
+      description: 'Custom resource flag
+
+        '
+      type: object
+      properties:
+        is_custom:
+          $ref: '#/components/schemas/IsCustom'
+    TemplatePayloadBase:
+      description: 'Base template data without data_source_type field.
+
+        Used as a base for both TemplatePayload and TemplateCreatePayload.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/ResourceBase'
+      - type: object
+        required:
+        - version
+        - category
+        - rego
+        - parameters
+        properties:
+          version:
+            $ref: '#/components/schemas/JFrogResourceVersion'
+            x-oapi-codegen-extra-tags:
+              binding: required
+          category:
+            $ref: '#/components/schemas/TemplateCategory'
+            x-oapi-codegen-extra-tags:
+              binding: required
+          scanners:
+            type: array
+            items:
+              $ref: '#/components/schemas/TemplateScannerType'
+            description: List of scanner types that this template supports. Defaults
+              to empty array if not provided.
+            minItems: 0
+            maxItems: 10
+            default: []
+            x-oapi-codegen-extra-tags:
+              binding: omitempty,min=0,max=10,dive,oneof=secrets sca exposures contextual_analysis
+                malicious_package
+          rego:
+            $ref: '#/components/schemas/Rego'
+            x-oapi-codegen-extra-tags:
+              binding: required
+          parameters:
+            type: array
+            items:
+              $ref: '#/components/schemas/TemplateParameter'
+            description: List of configurable parameters for the template
+            maxItems: 20
+            x-oapi-codegen-extra-tags:
+              binding: max=20,dive
+    TemplatePayload:
+      description: 'Template data for create and update operations.
+
+        Contains the template configuration without system-managed fields.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/TemplatePayloadBase'
+      - type: object
+        required:
+        - data_source_type
+        properties:
+          data_source_type:
+            $ref: '#/components/schemas/TemplateDataSourceType'
+            x-oapi-codegen-extra-tags:
+              binding: required
+    TemplateCreatePayload:
+      description: 'Template data for create and update operations.
+
+        Restricts data_source_type to only ''noop'' and ''evidence''.
+
+        Inherits all properties from TemplatePayloadBase and adds restricted data_source_type.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/TemplatePayloadBase'
+      - type: object
+        required:
+        - data_source_type
+        properties:
+          data_source_type:
+            $ref: '#/components/schemas/TemplateCreateDataSourceType'
+            x-oapi-codegen-extra-tags:
+              binding: required,oneof=noop evidence
+    Template:
+      description: 'Complete template resource including system-managed identity fields.
+
+        Returned in all template response operations.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/TemplatePayload'
+      - $ref: '#/components/schemas/CustomResource'
+      - $ref: '#/components/schemas/ResourceIdentity'
+    IsCustom:
+      type: boolean
+      description: Whether the resource is custom or built-in.
+    TemplateCategory:
+      type: string
+      enum:
+      - security
+      - legal
+      - operational
+      - quality
+      - audit
+      - workflow
+      description: Type/category of the rule.
+      example: security
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=security legal operational quality audit workflow
+    TemplateScannerType:
+      type: string
+      maxLength: 50
+      enum:
+      - secrets
+      - sca
+      - exposures
+      - contextual_analysis
+      - malicious_package
+      description: The type of scanner that the template's Rego policy expects to
+        evaluate.
+      example: sca
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=secrets sca exposures contextual_analysis malicious_package,max=50
+    TemplateDataSourceType:
+      type: string
+      enum:
+      - noop
+      - evidence
+      - public_vulnerability
+      description: The type of data source that the template's Rego policy expects
+        to evaluate.
+      example: public_vulnerability
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=noop evidence public_vulnerability
+    TemplateCreateDataSourceType:
+      type: string
+      enum:
+      - noop
+      - evidence
+      description: The type of data source that can be used when creating a template.
+        Only 'noop' and 'evidence' are allowed for template creation.
+      example: evidence
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=noop evidence
+    TemplateParameter:
+      allOf:
+      - type: object
+        required:
+        - name
+        - type
+        properties:
+          name:
+            $ref: '#/components/schemas/TemplateParameterName'
+          type:
+            $ref: '#/components/schemas/TemplateParameterType'
+        description: 'Configurable parameter for a template.
+
+          Templates can define parameters that can be customized when creating rules
+          from the template.
+
+          '
+    RuleParameter:
+      allOf:
+      - type: object
+        required:
+        - name
+        - value
+        properties:
+          name:
+            $ref: '#/components/schemas/TemplateParameterName'
+          value:
+            $ref: '#/components/schemas/TemplateParameterValue'
+            x-oapi-codegen-extra-tags:
+              binding: required
+        description: 'Rule-specific parameter value.
+
+          When the rule is based on a template, the parameter name must match a template
+          parameter,
+
+          and the value must be compatible with the template parameter''s type.
+
+          '
+    TemplateParameterName:
+      type: string
+      minLength: 1
+      maxLength: 100
+      pattern: ^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+      description: "Parameter name (must be unique within the template).\nMust begin\
+        \ and end with an alphanumeric character and may consist only of dashes, \n\
+        underscores, dots and alphanumerics in between.\n"
+      example: severity_threshold
+      x-oapi-codegen-extra-tags:
+        binding: required,min=1,max=100,regex=^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+    TemplateParameterType:
+      type: string
+      enum:
+      - string
+      - bool
+      - int
+      - float
+      - object
+      description: Data type of the parameter
+      example: string
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=string bool int float object
+    TemplateParameterValue:
+      description: 'Parameter value (must match the template parameter type).
+
+        The value format depends on the parameter type:
+
+        - string: Any string value
+
+        - bool: "true" or "false"
+
+        - int: Integer number as string
+
+        - float: Floating point number as string
+
+        - object: JSON object as string
+
+        '
+      type: string
+      example: critical
+      x-oapi-codegen-extra-tags:
+        binding: required
+    RulePayload:
+      description: 'Rule data for create and update operations.
+
+        Contains the rule configuration without system-managed fields.
+
+
+        When creating a rule from a template:
+
+        - template_id must be provided
+
+        - rule parameters must match the template parameters
+
+        - all template parameters must be provided
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/ResourceBase'
+      - type: object
+        required:
+        - template_id
+        properties:
+          template_id:
+            $ref: '#/components/schemas/JFrogId'
+          parameters:
+            type: array
+            items:
+              $ref: '#/components/schemas/RuleParameter'
+            description: 'Rule-specific parameter values.
+
+              When template_id is provided, these must match the template parameters.
+
+              All template parameters without default values must be provided.
+
+              '
+            maxItems: 20
+            x-oapi-codegen-extra-tags:
+              binding: omitempty,max=20,dive
+    Rule:
+      description: 'Complete rule resource including system-managed identity fields.
+
+        The template field is optional and included when expand=template parameter
+        is used.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/RulePayload'
+      - $ref: '#/components/schemas/CustomResource'
+      - $ref: '#/components/schemas/ResourceIdentity'
+    RuleExpanded:
+      description: 'Complete rule resource including system-managed identity fields
+        and template details.
+
+        Returned when the expand=template parameter is used.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/Rule'
+      - type: object
+        properties:
+          template:
+            $ref: '#/components/schemas/Template'
+    PolicyPayload:
+      description: 'Policy data for create and update operations.
+
+        Contains the policy configuration without system-managed fields.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/ResourceBase'
+      - type: object
+        properties:
+          enabled:
+            $ref: '#/components/schemas/PolicyEnabled'
+          mode:
+            $ref: '#/components/schemas/PolicyMode'
+          action:
+            $ref: '#/components/schemas/PolicyAction'
+          scope:
+            $ref: '#/components/schemas/PolicyScope'
+          rule_ids:
+            $ref: '#/components/schemas/PolicyRules'
+        required:
+        - enabled
+        - mode
+        - action
+        - scope
+        - rule_ids
+    Policy:
+      description: 'Complete policy resource including system-managed identity fields.
+
+        Returned in all policy response operations.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/PolicyPayload'
+      - $ref: '#/components/schemas/ResourceIdentity'
+    PolicyExpanded:
+      description: 'Complete policy resource including system-managed identity fields
+        and expanded rule objects.
+
+        Returned when expand=rules query parameter is used.
+
+        '
+      allOf:
+      - $ref: '#/components/schemas/Policy'
+      - type: object
+        properties:
+          rules:
+            readOnly: true
+            type: array
+            minItems: 1
+            maxItems: 1
+            items:
+              $ref: '#/components/schemas/RuleExpanded'
+            description: Complete rule objects when expand=rules is requested
+    PolicyEnabled:
+      type: boolean
+      description: if true policy is active, otherwise it is inactive.
+    PolicyMode:
+      type: string
+      enum:
+      - block
+      - warning
+      description: Controls the behavior of unified policy, allowing it to run in
+        a non-enforcing state.
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=block warning
+    PolicyActionType:
+      type: string
+      enum:
+      - certify_to_gate
+      description: The action type the policy applies to.
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=certify_to_gate
+    PolicyAction:
+      description: Attributes defines the action a policy is applicable.
+      oneOf:
+      - $ref: '#/components/schemas/PolicyActionCertifyToGate'
+      discriminator:
+        propertyName: type
+        mapping:
+          certify_to_gate: '#/components/schemas/PolicyActionCertifyToGate'
+      x-oapi-codegen-extra-tags:
+        binding: required
+    PolicyActionCertifyToGate:
+      title: Certify to Gate Action
+      type: object
+      required:
+      - type
+      - stage
+      properties:
+        type:
+          type: string
+          enum:
+          - certify_to_gate
+          x-oapi-codegen-extra-tags:
+            binding: required,oneof=certify_to_gate
+        stage:
+          $ref: '#/components/schemas/PolicyLifecycleStage'
+      example:
+        type: certify_to_gate
+        stage:
+          key: qa
+          gate: entry
+    PolicyLifecycleStage:
+      allOf:
+      - type: object
+        required:
+        - key
+        - gate
+        properties:
+          key:
+            $ref: '#/components/schemas/StageKey'
+          gate:
+            $ref: '#/components/schemas/LifecycleStageGate'
+        description: The stage gate the policy is defined for.
+    LifecycleStageGate:
+      type: string
+      enum:
+      - entry
+      - exit
+      - release
+      description: Application lifecycle phase to evaluate for a specific stage.
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=entry exit release
+    PolicyScope:
+      description: Attributes defines when a policy is applicable.
+      oneOf:
+      - $ref: '#/components/schemas/PolicyScopeProject'
+      - $ref: '#/components/schemas/PolicyScopeApplication'
+      discriminator:
+        propertyName: type
+        mapping:
+          project: '#/components/schemas/PolicyScopeProject'
+          application: '#/components/schemas/PolicyScopeApplication'
+      example:
+        type: project
+        project_keys:
+        - prj-security
+      x-oapi-codegen-extra-tags:
+        binding: required
+    PolicyScopeType:
+      type: string
+      maxLength: 50
+      enum:
+      - project
+      - application
+      description: The action type the policy applies to.
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=project application,max=50
+    PolicyScopeProject:
+      title: Project Scope
+      type: object
+      required:
+      - type
+      - project_keys
+      properties:
+        type:
+          type: string
+          enum:
+          - project
+          x-oapi-codegen-extra-tags:
+            binding: required,oneof=project
+        project_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectKey'
+          minItems: 1
+          maxItems: 1
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=1,dive
+        application_labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApplicationLabel'
+          minItems: 1
+          maxItems: 10
+          x-oapi-codegen-extra-tags:
+            binding: omitempty,min=1,max=10,dive
+      example:
+        type: project
+        project_keys:
+        - prj-a
+    ApplicationLabel:
+      type: object
+      required:
+      - key
+      - value
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: ^[a-zA-Z0-9]([a-zA-Z0-9._\-]*[a-zA-Z0-9])?$
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=255,regex=^[a-zA-Z0-9]([a-zA-Z0-9._\-]*[a-zA-Z0-9])?$
+        value:
+          type: string
+          minLength: 0
+          maxLength: 255
+          pattern: ^$|^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+          description: "Application label value.\nMust begin and end with an alphanumeric\
+            \ character and may consist only of dashes, \nunderscores, dots and alphanumerics\
+            \ in between. Can be empty or up to 255 characters.\n"
+          x-oapi-codegen-extra-tags:
+            binding: required,min=0,max=255,regex=^$|^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+    PolicyScopeApplication:
+      title: Application Scope
+      type: object
+      required:
+      - type
+      - application_keys
+      properties:
+        type:
+          type: string
+          enum:
+          - application
+          x-oapi-codegen-extra-tags:
+            binding: required,oneof=application
+        application_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApplicationKey'
+          minItems: 1
+          maxItems: 1
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=1,dive
+      example:
+        type: application
+        application_keys:
+        - app-a
+    PolicyRules:
+      type: array
+      items:
+        $ref: '#/components/schemas/JFrogId'
+      minItems: 1
+      maxItems: 1
+      description: 'A list of rule ids that the policy enforces.
+
+        **Note:** Currently limit to 1 rule per policy.
+
+        '
+      x-oapi-codegen-extra-tags:
+        binding: required,min=1,max=1,dive
+    JFPageLimit:
+      type: integer
+      format: int32
+      description: The maximum number of items to return per page.
+      minimum: 1
+      maximum: 1000
+      default: 100
+      example: 100
+      x-oapi-codegen-extra-tags:
+        binding: min=1,max=1000
+    JFPageOffset:
+      type: integer
+      format: int32
+      description: The number of items to skip before starting to collect the result
+        set.
+      minimum: 0
+      default: 0
+      example: 0
+      x-oapi-codegen-extra-tags:
+        binding: min=0
+    JFPageSize:
+      type: integer
+      format: int32
+      description: The number of items returned in the current page.
+      minimum: 0
+      example: 100
+      x-oapi-codegen-extra-tags:
+        binding: min=0
+    JFTotalCount:
+      type: integer
+      format: int64
+      description: The total number of items in the database matching the filter criteria.
+      minimum: 0
+      example: 1000
+      x-oapi-codegen-extra-tags:
+        binding: min=0
+    PaginationResponse:
+      type: object
+      required:
+      - page_size
+      - offset
+      - limit
+      properties:
+        offset:
+          $ref: '#/components/schemas/JFPageOffset'
+        limit:
+          $ref: '#/components/schemas/JFPageLimit'
+        page_size:
+          $ref: '#/components/schemas/JFPageSize'
+        total_count:
+          $ref: '#/components/schemas/JFTotalCount'
+      x-oapi-codegen-extra-tags:
+        binding: required
+    JFPrincipal:
+      type: string
+      maxLength: 255
+      description: 'A human or system identifier that interacts with the API.
+
+        Examples include usernames, email addresses, and system account identifiers.
+
+        '
+      example: john.doe
+      x-oapi-codegen-extra-tags:
+        binding: required,max=255
+    JFrogId:
+      type: string
+      description: A Snowflake unique identifier (64-bit integer, represented as a
+        string).
+      pattern: ^[0-9]*$
+      minLength: 4
+      maxLength: 20
+      example: '123456789012345'
+      x-oapi-codegen-extra-tags:
+        binding: required,min=4,max=20,regex=^[0-9]*$
+    ProjectKey:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: 'Project key identifier in the JFrog platform.
+
+        Must be non-empty and cannot be ''default''. Used to scope policies and resources
+        to specific projects.
+
+        '
+      example: prj-security
+      x-oapi-codegen-extra-tags:
+        binding: required,min=1,max=255
+    ApplicationKey:
+      type: string
+      minLength: 2
+      maxLength: 64
+      pattern: ^[a-z][a-z0-9\\-]*$
+      description: 'Application key identifier in the JFrog platform.
+
+        Must be 2-64 characters, lowercase alphanumeric characters and hyphens, beginning
+        with a letter.
+
+        '
+      example: web-application
+      x-oapi-codegen-extra-tags:
+        binding: required,min=2,max=64,regex=^[a-z][a-z0-9\-]*$
+    ApplicationLabelKey:
+      type: string
+      minLength: 1
+      maxLength: 255
+      pattern: ^[a-zA-Z0-9]([a-zA-Z0-9._\-]*[a-zA-Z0-9])?$
+      description: "Application label key identifier.\nMust begin and end with an\
+        \ alphanumeric character and may consist only of dashes, underscores, \ndots\
+        \ and alphanumerics in between. Must be 1-255 characters long.\n"
+      example: environment
+      x-oapi-codegen-extra-tags:
+        binding: required,min=1,max=255,regex=^[a-zA-Z0-9]([a-zA-Z0-9._\-]*[a-zA-Z0-9])?$
+    StageKey:
+      type: string
+      minLength: 1
+      maxLength: 255
+      pattern: ^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+      description: "Lifecycle stage key identifier.\nMust begin and end with an alphanumeric\
+        \ character and may consist only of dashes, underscores, \ndots and alphanumerics\
+        \ in between. Examples: \"qa\", \"dev\", \"production\".\n"
+      example: qa
+      x-oapi-codegen-extra-tags:
+        binding: required,min=1,max=255,regex=^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+    JFrogResourceName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      pattern: ^[a-zA-Z0-9_ -]*$
+      description: 'A unique name for JFrog resources.
+
+        Must be 1-255 alphanumeric characters, underscores, hyphens, and spaces.
+
+        '
+      example: resource-name
+      x-oapi-codegen-extra-tags:
+        binding: min=1,max=255,regex=^[a-zA-Z0-9_ -]*$
+    SearchName:
+      type: string
+      minLength: 1
+      maxLength: 257
+      description: 'Name pattern for searching resources in list/search APIs.
+
+        Supports four patterns (ordered by search performance):
+
+        - `name`: Exact match (e.g., `my-policy`)
+
+        - `name*`: Prefix search (e.g., `policy*` matches names starting with "policy")
+
+        - `*name`: Suffix search (e.g., `*policy` matches names ending with "policy")
+
+        - `*name*`: Contains search (e.g., `*policy*` matches names containing "policy")
+
+
+        **Important:** All name searches are case-sensitive. For example, `Policy`
+        will not match `policy`.
+
+        '
+      pattern: ^[*]?[a-zA-Z0-9_\- ]*[*]?$
+      example: '*policy*'
+      x-oapi-codegen-extra-tags:
+        binding: min=1,max=257,regex=^[*]?[a-zA-Z0-9_\- ]*[*]?$
+    JFrogResourceDescription:
+      type: string
+      maxLength: 2048
+      description: 'A human-readable description of the resource.
+
+        Optional field with a maximum length of 2048 characters. Can contain any characters.
+
+        '
+      example: This is a description of a platform resource.
+      x-oapi-codegen-extra-tags:
+        binding: omitempty,max=2048
+    JFrogResourceVersion:
+      type: string
+      minLength: 1
+      maxLength: 100
+      pattern: ^[a-zA-Z0-9_.:-]*$
+      description: 'Resource version in the JFrog platform.
+
+        Must be 1-100 alphanumeric characters, underscores, hyphens, periods, and
+        colons.
+
+        Examples: "1.0.0", "v2.1.3", "1.0.0-beta.1"
+
+        '
+      example: 1.0.0
+      x-oapi-codegen-extra-tags:
+        binding: min=1,max=100,regex=^[a-zA-Z0-9_.:-]*$
+    Rego:
+      type: string
+      minLength: 1
+      maxLength: 65536
+      description: 'Rego policy language code for evaluation (Open Policy Agent policy
+        language).
+
+        Must be valid Rego syntax that defines evaluation logic. The policy should
+        define
+
+        an ''allow'' rule that returns a boolean value.
+
+
+        Rego supports all standard programming language characters including:
+
+        - Alphanumeric characters (a-z, A-Z, 0-9)
+
+        - Special characters (!@#$%^&*()_+-=[]{}|;:''",.<>?/~`)
+
+        - Whitespace characters (spaces, tabs, newlines)
+
+        - Unicode characters for identifiers and string literals
+
+
+        Syntax validation should be performed by an OPA parser. This field only enforces
+
+        length constraints (1-65536 characters).
+
+
+        For Rego syntax reference, see: https://www.openpolicyagent.org/docs/latest/policy-language/
+
+        '
+      example: "package policy\n\ndefault allow = false\n\nallow {\n  input.parameters.severity_threshold\
+        \ == \"critical\"\n  count(input.vulnerabilities) <= input.parameters.max_vulnerabilities\n\
+        }\n"
+      x-oapi-codegen-extra-tags:
+        binding: required,min=1,max=65536
+    JFBaseError:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: A unique, machine-readable code for the general error type.
+          example: resource_not_found
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=100
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: A human-readable message summarizing the error.
+          example: The resource with the specified ID was not found.
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=1000
+        trace_id:
+          type: string
+          maxLength: 64
+          description: 'A unique trace identifier for distributed tracing, logging,
+            and support purposes.
+
+            Typically an uber trace id (hexadecimal string, 16 or 32 characters) matching
+            the regex pattern ^[0-9a-fA-F-]{1,64}$,
+
+            automatically extracted from the ''uber-trace-id'' header when available.
+
+            '
+          example: 1a2b3c4d5e6f7890
+          x-oapi-codegen-extra-tags:
+            binding: omitempty,max=64
+      required:
+      - code
+      - message
+      x-oapi-codegen-extra-tags:
+        binding: required
+    JFErrorDetail:
+      type: object
+      properties:
+        property:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: The name of the property that failed validation.
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=100
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: A human-readable message for this specific error.
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=500
+      required:
+      - property
+      - message
+      example:
+        property: password
+        message: Password must be at least 8 characters long.
+      x-oapi-codegen-extra-tags:
+        binding: required
+    JFValidationError:
+      allOf:
+      - $ref: '#/components/schemas/JFBaseError'
+      - type: object
+        properties:
+          details:
+            type: array
+            items:
+              $ref: '#/components/schemas/JFErrorDetail'
+            minItems: 1
+            maxItems: 100
+            x-oapi-codegen-extra-tags:
+              binding: required,min=1,max=100
+      example:
+        code: validation_error
+        message: One or more fields failed validation.
+        details:
+        - property: email
+          message: Email must be a valid email address.
+        - property: password
+          message: Password must be at least 8 characters long.
+        trace_id: c9d0e1f2-a3b4-c5d6-e7f8-a9b0c1d2e3f4
+      x-oapi-codegen-extra-tags:
+        binding: required
+  requestBodies:
+    TemplateRequest:
+      description: Template input object for create/update operations with simplified
+        fields.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TemplateCreatePayload'
+          examples:
+            security_template:
+              summary: Security Vulnerability Template
+              description: Example of a security vulnerability template
+              value:
+                name: Security Vulnerability Template
+                description: Template for creating security vulnerability policies
+                version: 1.0.0
+                category: security
+                data_source_type: evidence
+                rego: "package policy\n\ndefault allow = false\n\nallow {\n  input.parameters.severity_threshold\
+                  \ == \"critical\"\n  count(input.vulnerabilities) <= input.parameters.max_vulnerabilities\n\
+                  }\n"
+                parameters:
+                - name: severity_threshold
+                  type: string
+                - name: max_vulnerabilities
+                  type: int
+    RuleRequest:
+      description: Rule input object for create/update.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RulePayload'
+          examples:
+            security_rule:
+              summary: Security Vulnerability Rule
+              description: Example of a security vulnerability rule
+              value:
+                name: Critical Vulnerability Check
+                description: Checks for critical security vulnerabilities in artifacts
+                template_id: '67890'
+                parameters:
+                - name: severity_threshold
+                  value: critical
+                - name: max_vulnerabilities
+                  value: '5'
+    PolicyRequest:
+      description: Policy input object for create/update.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PolicyPayload'
+  responses:
+    TemplateResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Template'
+    TemplatePaginatedResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            allOf:
+            - type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Template'
+            - $ref: '#/components/schemas/PaginationResponse'
+    RuleResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Rule'
+    RuleExpandedResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RuleExpanded'
+          examples:
+            rule:
+              $ref: '#/components/examples/RuleExample'
+            rule_expanded:
+              $ref: '#/components/examples/RuleExpandedExample'
+    RulePaginatedResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            allOf:
+            - type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/RuleExpanded'
+            - $ref: '#/components/schemas/PaginationResponse'
+          examples:
+            rules:
+              $ref: '#/components/examples/RulesPaginatedExample'
+            rules_expanded:
+              $ref: '#/components/examples/RulesExpandedPaginatedExample'
+    PolicyResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Policy'
+    PolicyExpandedResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PolicyExpanded'
+          examples:
+            rule:
+              $ref: '#/components/examples/PolicyExample'
+            rule_expanded:
+              $ref: '#/components/examples/PolicyExpandedExample'
+    PolicyPaginatedResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            allOf:
+            - type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PolicyExpanded'
+            - $ref: '#/components/schemas/PaginationResponse'
+          examples:
+            rule:
+              $ref: '#/components/examples/PolicyPaginateExample'
+            rule_expanded:
+              $ref: '#/components/examples/PolicyPaginateExpandedExample'
+    BadRequestError:
+      description: The request syntax was invalid or malformed, or validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JFValidationError'
+          examples:
+            bad_request:
+              $ref: '#/components/examples/BadRequestErrorExample'
+    UnauthorizedError:
+      description: Authentication credentials are required or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JFBaseError'
+          examples:
+            unauthorized:
+              $ref: '#/components/examples/UnauthorizedErrorExample'
+    ForbiddenError:
+      description: You do not have sufficient permissions to perform this action.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JFBaseError'
+          examples:
+            forbidden:
+              $ref: '#/components/examples/ForbiddenErrorExample'
+    NotFoundError:
+      description: The resource with the specified ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JFBaseError'
+          examples:
+            not_found:
+              $ref: '#/components/examples/NotFoundErrorExample'
+    ConflictError:
+      description: The request conflicts with the current state of the resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JFBaseError'
+          examples:
+            conflict:
+              $ref: '#/components/examples/ConflictErrorExample'
+    InternalServerError:
+      description: An unexpected error occurred. Please contact support.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JFBaseError'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerErrorExample'
+  examples:
+    BadRequestErrorExample:
+      summary: Bad Request Error
+      description: Example of bad request error for invalid query parameters, request
+        syntax, or request body validation
+      value:
+        code: bad_request
+        message: One or more fields failed validation.
+        details:
+        - property: name
+          message: Name must be a string
+        - property: email
+          message: Email must be a valid email address
+        - property: policy.name
+          message: Policy name must be shorter than or equal to 255 characters
+        trace_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+    UnauthorizedErrorExample:
+      summary: Unauthorized Error
+      description: Example of unauthorized error
+      value:
+        code: unauthorized
+        message: Authentication token is required.
+        trace_id: c3d4e5f6-7890-9012-cdef-345678901234
+    ForbiddenErrorExample:
+      summary: Forbidden Error
+      description: Example of forbidden error
+      value:
+        code: forbidden
+        message: You do not have sufficient permissions to perform this action.
+        trace_id: e5f6a7b8-7890-1234-efab-567890123456
+    NotFoundErrorExample:
+      summary: Not Found Error
+      description: Example of resource not found error
+      value:
+        code: not_found
+        message: The requested resource was not found.
+        trace_id: a7b8c9d0-e1f2-3456-abcd-789012345678
+    ConflictErrorExample:
+      summary: Conflict Error
+      description: Example of resource conflict error
+      value:
+        code: conflict
+        message: The request conflicts with the current state of the resource.
+        trace_id: b8c9d0e1-f2a3-4567-abcd-890123456789
+    InternalServerErrorExample:
+      summary: Internal Server Error
+      description: Example of internal server error
+      value:
+        code: internal_server_error
+        message: An unexpected error occurred while processing your request.
+        trace_id: c3d4e5f6-a7b8-9012-abcd-345678901234
+    RuleExample:
+      summary: Rule Example
+      description: Example response for a rule without expanded template
+      value:
+        id: '12345'
+        name: Critical Vulnerability Check
+        description: Checks for critical security vulnerabilities in artifacts
+        created_at: '2024-01-15T10:30:00Z'
+        created_by: admin
+        updated_at: '2024-01-15T10:30:00Z'
+        updated_by: admin
+        is_custom: false
+        template_id: '67890'
+        parameters:
+        - name: severity_threshold
+          value: critical
+        - name: max_vulnerabilities
+          value: '5'
+        - name: fail_on_critical
+          value: 'true'
+    RuleExpandedExample:
+      summary: Rule with Expanded Template Example
+      description: Example response for a rule with expanded template
+      value:
+        id: '12345'
+        name: Critical Vulnerability Check
+        description: Checks for critical security vulnerabilities in artifacts
+        created_at: '2024-01-15T10:30:00Z'
+        created_by: admin
+        updated_at: '2024-01-15T10:30:00Z'
+        updated_by: admin
+        is_custom: false
+        template_id: '67890'
+        parameters:
+        - name: severity_threshold
+          value: critical
+        - name: max_vulnerabilities
+          value: '5'
+        template:
+          id: '67890'
+          name: Security Vulnerability Template
+          description: Template for creating security vulnerability policies
+          created_at: '2024-01-10T09:00:00Z'
+          created_by: system
+          updated_at: '2024-01-10T09:00:00Z'
+          updated_by: system
+          version: 1.0.0
+          category: security
+          scanners:
+          - sca
+          data_source_type: public_vulnerability
+          is_custom: false
+          rego: "package policy\n\ndefault allow = false\n\nallow {\n  input.parameters.severity_threshold\
+            \ == \"critical\"\n  count(input.vulnerabilities) <= input.parameters.max_vulnerabilities\n\
+            }\n"
+          parameters:
+          - name: severity_threshold
+            type: string
+          - name: max_vulnerabilities
+            type: int
+    RulesPaginatedExample:
+      summary: Rules List Example
+      description: Example response for a rules list without expanded templates
+      value:
+        items:
+        - id: '12345'
+          name: Critical Vulnerability Check
+          description: Checks for critical security vulnerabilities in artifacts
+          created_at: '2024-01-15T10:30:00Z'
+          created_by: admin
+          updated_at: '2024-01-15T10:30:00Z'
+          updated_by: admin
+          is_custom: false
+          template_id: '67890'
+          parameters:
+          - name: severity_threshold
+            value: critical
+          - name: max_vulnerabilities
+            value: '5'
+        - id: '67890'
+          name: Code Coverage Threshold
+          description: Ensures minimum code coverage requirements are met
+          created_at: '2024-01-15T11:00:00Z'
+          created_by: admin
+          updated_at: '2024-01-15T11:00:00Z'
+          updated_by: admin
+          is_custom: false
+          template_id: '11111'
+          parameters:
+          - name: coverage_threshold
+            value: '80'
+          - name: enforce_coverage
+            value: 'true'
+        page: 1
+        page_size: 10
+        limit: 10
+        offset: 0
+        total: 2
+        total_pages: 1
+    RulesExpandedPaginatedExample:
+      summary: Rules List with Expanded Templates Example
+      description: Example response for a rules list with expanded templates
+      value:
+        items:
+        - id: '12345'
+          name: Critical Vulnerability Check
+          description: Checks for critical security vulnerabilities in artifacts
+          created_at: '2024-01-15T10:30:00Z'
+          created_by: admin
+          updated_at: '2024-01-15T10:30:00Z'
+          updated_by: admin
+          is_custom: false
+          template_id: '67890'
+          parameters:
+          - name: severity_threshold
+            value: critical
+          - name: max_vulnerabilities
+            value: '5'
+          template:
+            id: '67890'
+            name: Security Vulnerability Template
+            description: Template for creating security vulnerability policies
+            created_at: '2024-01-10T09:00:00Z'
+            created_by: system
+            updated_at: '2024-01-10T09:00:00Z'
+            updated_by: system
+            version: 1.0.0
+            category: security
+            scanners:
+            - sca
+            data_source_type: public_vulnerability
+            is_custom: false
+            rego: "package policy\n\ndefault allow = false\n\nallow {\n  input.parameters.severity_threshold\
+              \ == \"critical\"\n  count(input.vulnerabilities) <= input.parameters.max_vulnerabilities\n\
+              }\n"
+            parameters:
+            - name: severity_threshold
+              type: string
+            - name: max_vulnerabilities
+              type: int
+        page: 1
+        page_size: 10
+        limit: 10
+        offset: 0
+        total: 1
+        total_pages: 1
+    PolicyExample:
+      summary: Policy Example
+      description: Example response for a policy without expanded rules
+      value:
+        id: '1001'
+        name: Security Vulnerability Policy
+        description: Enforces security vulnerability checks for application versions
+        created_at: '2024-01-20T14:30:00Z'
+        created_by: admin
+        updated_at: '2024-01-20T14:30:00Z'
+        updated_by: admin
+        enabled: true
+        mode: block
+        action:
+          type: certify_to_gate
+          stage:
+            key: qa
+            gate: entry
+        scope:
+          type: project
+          project_keys:
+          - prj-security
+          application_labels:
+          - key: environment
+            value: production
+        rule_ids:
+        - '12345'
+    PolicyExpandedExample:
+      summary: Policy with Expanded Rules Example
+      description: Example response for a policy with expanded rules (when expand=rules
+        is used)
+      value:
+        id: '1001'
+        name: Security Vulnerability Policy
+        description: Enforces security vulnerability checks for application versions
+        created_at: '2024-01-20T14:30:00Z'
+        created_by: admin
+        updated_at: '2024-01-20T14:30:00Z'
+        updated_by: admin
+        enabled: true
+        mode: block
+        action:
+          type: certify_to_gate
+          stage:
+            key: qa
+            gate: entry
+        scope:
+          type: project
+          project_keys:
+          - prj-security
+          application_labels:
+          - key: environment
+            value: production
+        rule_ids:
+        - '12345'
+        rules:
+        - id: '12345'
+          name: Critical Vulnerability Check
+          description: Checks for critical security vulnerabilities in artifacts
+          created_at: '2024-01-15T10:30:00Z'
+          created_by: admin
+          updated_at: '2024-01-15T10:30:00Z'
+          updated_by: admin
+          is_custom: false
+          template_id: '67890'
+          parameters:
+          - name: severity_threshold
+            value: critical
+          - name: max_vulnerabilities
+            value: '5'
+          template:
+            id: '67890'
+            name: Security Vulnerability Template
+            description: Template for creating security vulnerability policies
+            created_at: '2024-01-10T09:00:00Z'
+            created_by: system
+            updated_at: '2024-01-10T09:00:00Z'
+            updated_by: system
+            version: 1.0.0
+            category: security
+            scanners:
+            - sca
+            data_source_type: public_vulnerability
+            is_custom: false
+            rego: "package policy\n\ndefault allow = false\n\nallow {\n  input.parameters.severity_threshold\
+              \ == \"critical\"\n  count(input.vulnerabilities) <= input.parameters.max_vulnerabilities\n\
+              }\n"
+            parameters:
+            - name: severity_threshold
+              type: string
+            - name: max_vulnerabilities
+              type: int
+    PolicyPaginateExample:
+      summary: Policies List Example
+      description: Example response for a policies list without expanded rules
+      value:
+        items:
+        - id: '1001'
+          name: Security Vulnerability Policy
+          description: Enforces security vulnerability checks for application versions
+          created_at: '2024-01-20T14:30:00Z'
+          created_by: admin
+          updated_at: '2024-01-20T14:30:00Z'
+          updated_by: admin
+          enabled: true
+          mode: block
+          action:
+            type: certify_to_gate
+            stage:
+              key: qa
+              gate: entry
+          scope:
+            type: project
+            project_keys:
+            - prj-security
+            application_labels:
+            - key: environment
+              value: production
+          rule_ids:
+          - '12345'
+        - id: '1002'
+          name: Code Quality Policy
+          description: Ensures code quality standards are met before promotion
+          created_at: '2024-01-21T09:15:00Z'
+          created_by: admin
+          updated_at: '2024-01-21T09:15:00Z'
+          updated_by: admin
+          enabled: true
+          mode: warning
+          action:
+            type: certify_to_gate
+            stage:
+              key: dev
+              gate: exit
+          scope:
+            type: project
+            project_keys:
+            - prj-quality
+          rule_ids:
+          - '67890'
+        limit: 10
+        offset: 0
+        page_size: 2
+    PolicyPaginateExpandedExample:
+      summary: Policies List with Expanded Rules Example
+      description: Example response for a policies list with expanded rules (when
+        expand=rules is used)
+      value:
+        items:
+        - id: '1001'
+          name: Security Vulnerability Policy
+          description: Enforces security vulnerability checks for application versions
+          created_at: '2024-01-20T14:30:00Z'
+          created_by: admin
+          updated_at: '2024-01-20T14:30:00Z'
+          updated_by: admin
+          enabled: true
+          mode: block
+          action:
+            type: certify_to_gate
+            stage:
+              key: qa
+              gate: entry
+          scope:
+            type: project
+            project_keys:
+            - prj-security
+            application_labels:
+            - key: environment
+              value: production
+          rule_ids:
+          - '12345'
+          rules:
+          - id: '12345'
+            name: Critical Vulnerability Check
+            description: Checks for critical security vulnerabilities in artifacts
+            created_at: '2024-01-15T10:30:00Z'
+            created_by: admin
+            updated_at: '2024-01-15T10:30:00Z'
+            updated_by: admin
+            is_custom: false
+            template_id: '67890'
+            parameters:
+            - name: severity_threshold
+              value: critical
+            - name: max_vulnerabilities
+              value: '5'
+            template:
+              id: '67890'
+              name: Security Vulnerability Template
+              description: Template for creating security vulnerability policies
+              created_at: '2024-01-10T09:00:00Z'
+              created_by: system
+              updated_at: '2024-01-10T09:00:00Z'
+              updated_by: system
+              version: 1.0.0
+              category: security
+              scanners:
+              - exposures
+              data_source_type: public_vulnerability
+              is_custom: false
+              rego: "package policy\n\ndefault allow = false\n\nallow {\n  input.parameters.severity_threshold\
+                \ == \"critical\"\n  count(input.vulnerabilities) <= input.parameters.max_vulnerabilities\n\
+                }\n"
+              parameters:
+              - name: severity_threshold
+                type: string
+              - name: max_vulnerabilities
+                type: int
+        - id: '1002'
+          name: Code Quality Policy
+          description: Ensures code quality standards are met before promotion
+          created_at: '2024-01-21T09:15:00Z'
+          created_by: admin
+          updated_at: '2024-01-21T09:15:00Z'
+          updated_by: admin
+          enabled: true
+          mode: warning
+          action:
+            type: certify_to_gate
+            stage:
+              key: dev
+              gate: exit
+          scope:
+            type: project
+            project_keys:
+            - prj-quality
+          rule_ids:
+          - '123456789012345'
+          rules:
+          - id: '987654321098765'
+            name: Code Coverage Threshold
+            description: Ensures minimum code coverage requirements are met
+            created_at: '2024-01-15T11:00:00Z'
+            created_by: admin
+            updated_at: '2024-01-15T11:00:00Z'
+            updated_by: admin
+            is_custom: false
+            template_id: '111111111111111'
+            parameters:
+            - name: coverage_threshold
+              value: '80'
+            - name: enforce_coverage
+              value: 'true'
+            template:
+              id: '111111111111111'
+              name: Code Quality Template
+              description: Template for code quality policies
+              created_at: '2024-01-10T08:00:00Z'
+              created_by: system
+              updated_at: '2024-01-10T08:00:00Z'
+              updated_by: system
+              version: 1.0.0
+              category: quality
+              scanners:
+              - sca
+              data_source_type: noop
+              is_custom: false
+              rego: "package policy\n\ndefault allow = false\n\nallow {\n  input.parameters.coverage_threshold\
+                \ >= 80\n  input.parameters.enforce_coverage == true\n}\n"
+              parameters:
+              - name: coverage_threshold
+                type: int
+              - name: enforce_coverage
+                type: bool
+        limit: 10
+        offset: 0
+        page_size: 2
+x-readme:
+  explorer-enabled: false

@@ -1,0 +1,768 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - SCIM API
+  description: 'SCIM 2.0 protocol APIs for user and group provisioning in the JFrog
+    Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** All APIs require authentication using Access Tokens, either as admin
+    or using a scoped token with the appropriate `system:identities:*` scope.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: SCIM
+  description: APIs for managing users and groups using the SCIM 2.0 protocol, including
+    discovery endpoints for resource types, schemas, and service provider configuration.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/scim/v2/ResourceTypes:
+    get:
+      tags:
+      - SCIM
+      summary: Get Resource Types
+      description: 'Returns a list of SCIM resource types supported by the server,
+        such as
+
+        User and Group.
+
+
+        Use this REST API to discover the types of resources available.
+
+
+
+        **Availability:** Artifactory 7.127.0+
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimResourceTypes
+      responses:
+        '200':
+          description: Success
+          content:
+            application/scim+json:
+              schema:
+                type: object
+                properties:
+                  totalResults:
+                    type: integer
+                  itemsPerPage:
+                    type: integer
+                  startIndex:
+                    type: integer
+                  Resources:
+                    type: array
+                    items:
+                      type: object
+                  schemas:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+  /access/api/v1/scim/v2/Schemas:
+    get:
+      tags:
+      - SCIM
+      summary: Get Schemas
+      description: 'Returns all SCIM schema definitions supported by the server. SCIM
+
+        schemas define the structure of SCIM resources, such as User and Group.
+
+
+
+        **Availability:** Artifactory 7.127.0+
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimSchemas
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+  /access/api/v1/scim/v2/Schemas/{schemaId}:
+    get:
+      tags:
+      - SCIM
+      summary: Get Schema by ID
+      description: 'Returns a specific SCIM schema definition by its ID. SCIM schemas
+        define
+
+        the structure of SCIM resources, such as User and Group.
+
+
+
+        **Availability:** Artifactory 7.127.0+
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimSchemaById
+      parameters:
+      - name: schemaId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The schema ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - Schema not found
+  /access/api/v1/scim/v2/ServiceProviderConfig:
+    get:
+      tags:
+      - SCIM
+      summary: Get Service Provider Configuration
+      description: 'Returns the SCIM Service Provider Configuration, describing the
+        SCIM
+
+        features and authentication schemes supported by the server.
+
+
+
+        **Availability:** Artifactory 7.127.0+
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimServiceProviderConfig
+      responses:
+        '200':
+          description: Success
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+  /access/api/v1/scim/v2/Users:
+    get:
+      tags:
+      - SCIM
+      summary: GET Users / GET Users by Filter (SCIM)
+      description: 'Returns a list of SCIM users. When a filter query parameter is
+        provided
+
+        in the form of `filter=userName eq "username"`, returns matching users''
+
+        details. When a filter is not provided, the response will contain all
+
+        users.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimUsers
+      parameters:
+      - name: filter
+        in: query
+        schema:
+          type: string
+        description: SCIM filter expression (e.g., userName eq "username")
+        example: userName eq "bjensen"
+      - name: startIndex
+        in: query
+        schema:
+          type: integer
+        description: Starting index for pagination
+      - name: count
+        in: query
+        schema:
+          type: integer
+        description: Number of results to return
+      - name: excludedAttributes
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of attributes to exclude from the response
+      responses:
+        '200':
+          description: Success
+          content:
+            application/scim+json:
+              schema:
+                type: object
+                properties:
+                  totalResults:
+                    type: integer
+                  itemsPerPage:
+                    type: integer
+                  startIndex:
+                    type: integer
+                  Resources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        userName:
+                          type: string
+                        active:
+                          type: boolean
+                        emails:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              primary:
+                                type: boolean
+                              value:
+                                type: string
+                        groups:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              value:
+                                type: string
+                        schemas:
+                          type: array
+                          items:
+                            type: string
+                        meta:
+                          type: object
+                          properties:
+                            resourceType:
+                              type: string
+                  schemas:
+                    type: array
+                    items:
+                      type: string
+              example:
+                totalResults: 1
+                itemsPerPage: 20
+                startIndex: 1
+                Resources:
+                - id: bjensenexamplecom
+                  userName: bjensenexamplecom
+                  active: true
+                  emails:
+                  - primary: true
+                    value: bjensen@example.com
+                  groups:
+                  - value: readers
+                  schemas:
+                  - urn:ietf:params:scim:schemas:core:2.0:User
+                  meta:
+                    resourceType: User
+                schemas:
+                - urn:ietf:params:scim:api:messages:2.0:ListResponse
+        '401':
+          description: Bad Credentials - Invalid credentials
+    post:
+      tags:
+      - SCIM
+      summary: CREATE Users (SCIM)
+      description: 'Creates a new SCIM user.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:w` scope.
+
+        '
+      operationId: createScimUser
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: User created
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '409':
+          description: Conflict - User already exists
+  /access/api/v1/scim/v2/Users/{username}:
+    get:
+      tags:
+      - SCIM
+      summary: GET Specific User (SCIM)
+      description: 'Returns a specific SCIM user by username.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimUserByUsername
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      - name: excludedAttributes
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of attributes to exclude from the response
+      responses:
+        '200':
+          description: Success
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - User not found
+    put:
+      tags:
+      - SCIM
+      summary: UPDATE User (SCIM)
+      description: 'Updates a SCIM user (full replacement).
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:w` scope.
+
+        '
+      operationId: updateScimUser
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - User not found
+    patch:
+      tags:
+      - SCIM
+      summary: DISABLE User (SCIM)
+      description: 'Partially updates a SCIM user (can be used to disable).
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:w` scope.
+
+        '
+      operationId: patchScimUser
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - User not found
+    delete:
+      tags:
+      - SCIM
+      summary: DELETE User (SCIM)
+      description: 'Deletes a SCIM user.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:d` scope.
+
+        '
+      operationId: deleteScimUser
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      responses:
+        '204':
+          description: User deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - User not found
+  /access/api/v1/scim/v2/Groups:
+    get:
+      tags:
+      - SCIM
+      summary: Get Groups / Get Group by Filter (SCIM)
+      description: 'Returns a list of SCIM groups. When a filter query parameter is
+        provided
+
+        in the form of `filter=displayName eq "groupName"`, returns matching
+
+        group details. When a filter is not provided, the response will contain
+
+        all groups.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimGroups
+      parameters:
+      - name: filter
+        in: query
+        schema:
+          type: string
+        description: SCIM filter expression (e.g., displayName eq "groupName")
+        example: displayName eq "readers"
+      - name: startIndex
+        in: query
+        schema:
+          type: integer
+        description: Starting index for pagination
+      - name: count
+        in: query
+        schema:
+          type: integer
+        description: Number of results to return
+      - name: excludedAttributes
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of attributes to exclude from the response
+      responses:
+        '200':
+          description: Success
+          content:
+            application/scim+json:
+              schema:
+                type: object
+                properties:
+                  totalResults:
+                    type: integer
+                  itemsPerPage:
+                    type: integer
+                  startIndex:
+                    type: integer
+                  Resources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        displayName:
+                          type: string
+                        id:
+                          type: string
+                        description:
+                          type: string
+                        members:
+                          type: array
+                          items:
+                            type: object
+                        schemas:
+                          type: array
+                          items:
+                            type: string
+                        meta:
+                          type: object
+                          nullable: true
+                          properties:
+                            resourceType:
+                              type: string
+                  schemas:
+                    type: array
+                    items:
+                      type: string
+              example:
+                totalResults: 1
+                itemsPerPage: 20
+                startIndex: 1
+                Resources:
+                - displayName: readers
+                  id: readers
+                  description: A group for read-only users
+                  members: []
+                  schemas:
+                  - urn:ietf:params:scim:schemas:core:2.0:Group
+                  meta: null
+                  resourceType: Group
+                schemas:
+                - urn:ietf:params:scim:api:messages:2.0:ListResponse
+        '401':
+          description: Bad Credentials - Invalid credentials
+    post:
+      tags:
+      - SCIM
+      summary: Create Group (SCIM)
+      description: 'Creates a new SCIM group.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:w` scope.
+
+        '
+      operationId: createScimGroup
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '409':
+          description: Conflict - Group already exists
+  /access/api/v1/scim/v2/Groups/{groupName}:
+    get:
+      tags:
+      - SCIM
+      summary: Get Group by Name (SCIM)
+      description: 'Returns a specific SCIM group by name.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:r` scope.
+
+        '
+      operationId: getScimGroupByName
+      parameters:
+      - name: groupName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      - name: excludedAttributes
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of attributes to exclude from the response
+      responses:
+        '200':
+          description: Success
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - Group not found
+    put:
+      tags:
+      - SCIM
+      summary: Update Group (SCIM)
+      description: 'Updates a SCIM group (full replacement).
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:w` scope.
+
+        '
+      operationId: updateScimGroup
+      parameters:
+      - name: groupName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - Group not found
+    patch:
+      tags:
+      - SCIM
+      summary: Patch Group (SCIM)
+      description: 'Partially updates a SCIM group.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:w` scope.
+
+        '
+      operationId: patchScimGroup
+      parameters:
+      - name: groupName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/scim+json:
+              schema:
+                type: object
+        '204':
+          description: No Content - Group updated with no response body
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - Group not found
+    delete:
+      tags:
+      - SCIM
+      summary: Delete Group (SCIM)
+      description: 'Deletes a SCIM group.
+
+
+
+        **Security:** Requires admin privileges or a scoped token with the
+
+        `system:identities:d` scope.
+
+        '
+      operationId: deleteScimGroup
+      parameters:
+      - name: groupName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      responses:
+        '204':
+          description: Group deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '404':
+          description: Not Found - Group not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+x-readme:
+  explorer-enabled: false

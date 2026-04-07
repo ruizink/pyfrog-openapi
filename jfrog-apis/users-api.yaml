@@ -1,0 +1,668 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Users API
+  description: 'User management APIs for the JFrog Platform.
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer <token>)
+
+    **Security:** Unless otherwise specified, all APIs require admin privileges.
+
+    **Availability:** Artifactory 7.49.3+
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Users
+  description: APIs for creating, updating, deleting, and managing JFrog Platform
+    users, groups, and passwords.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v2/users/{username}:
+    get:
+      tags:
+      - Users
+      summary: Get User Details
+      description: 'Returns the user''s details based on the username.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getUserDetails
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to retrieve details for
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+        '400':
+          description: Bad Request - Invalid input, object invalid
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Username not found
+    patch:
+      tags:
+      - Users
+      summary: Update a User (Partial Update)
+      description: "Updates an existing Access user.\n\n**Note:** \n- All fields are\
+        \ optional; if a specific field is not specified the value\nwill not change.\
+        \ \n\n- When `internal_password_disabled=false` and this field was true before,\n\
+        the 'password' field is mandatory.\n\n\n**Security:** Requires admin privileges.\n"
+      operationId: updateUser
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+        '400':
+          description: Bad Request - Invalid input, object invalid
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Username not found
+    delete:
+      tags:
+      - Users
+      summary: Delete User
+      description: 'Delete an existing user based on the username.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteUser
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to delete
+      responses:
+        '204':
+          description: Successful - User deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Username not found
+  /access/api/v2/users:
+    get:
+      tags:
+      - Users
+      summary: Get User List
+      description: 'Returns the list of users.
+
+
+        **Security:** Requires admin privileges, or a scoped token with `system:identities:r`.
+
+        '
+      operationId: getUserList
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - invited
+          - enabled
+          - disabled
+          - locked
+        description: Filter users by status
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1000
+        description: Number of results to return (minimum 1, default 1000)
+      - name: username
+        in: query
+        schema:
+          type: string
+        description: Filter by username (contains)
+      - name: onlyAdmins
+        in: query
+        schema:
+          type: boolean
+        description: Filter to only admin users. Cannot be used with resourceName.
+          Available from Artifactory 7.117.x.
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: Pagination cursor - shows results after this cursor
+      - name: role
+        in: query
+        schema:
+          type: string
+        description: Filter users by role. When filtering by role, onlyAdmins and
+          username parameters are ignored. Available from Artifactory 7.117.x.
+      - name: resourceType
+        in: query
+        schema:
+          type: string
+        description: Filter by resource type. Required when filtering by repository
+          role. Available from Artifactory 7.117.x.
+      - name: resourceName
+        in: query
+        schema:
+          type: string
+        description: Filter by repository name. Cannot be used with onlyAdmins. Available
+          from Artifactory 7.117.x.
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: Filter by project key. Refines search within a specific project
+          context.
+      - name: descendingOrder
+        in: query
+        schema:
+          type: boolean
+        description: Sort results in descending order
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '400':
+          description: Bad Request - Invalid input, object invalid
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Users
+      summary: Create User
+      description: "Creates a new Access user.\n\n\n**Note:** \n- When `internal_password_disabled=true`,\
+        \ the 'password' field is not mandatory. \n- The parameter `realm` will be\
+        \ `internal`\n\n\n**Security:** Requires admin privileges.\n"
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+        '400':
+          description: Bad Request - Invalid input, object invalid
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '409':
+          description: Conflict - User already exists
+  /access/api/v2/users/{username}/groups:
+    patch:
+      tags:
+      - Users
+      summary: Add or Remove User from Groups
+      description: 'Add or remove groups from a user.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateUserGroups
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to update groups for
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add:
+                  type: array
+                  items:
+                    type: string
+                  description: Groups to add the user to
+                remove:
+                  type: array
+                  items:
+                    type: string
+                  description: Groups to remove the user from
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Username not found
+  /access/api/v2/users/{username}/password:
+    put:
+      tags:
+      - Users
+      summary: Change a User Password
+      description: 'Change a user password.
+
+
+        **Security:** Requires admin privileges, or the authenticated user matches
+        {username}.
+
+        '
+      operationId: changeUserPassword
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to change password for
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - password
+              properties:
+                password:
+                  type: string
+                  description: The new password
+      responses:
+        '204':
+          description: Password changed successfully
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Username not found
+  /access/api/v2/users/{username}/password/expire:
+    post:
+      tags:
+      - Users
+      summary: Set User Password as Expired
+      description: 'Set a user password as expired.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: expireUserPassword
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to expire password for
+      responses:
+        '204':
+          description: Successful - Password expired
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Username not found
+  /access/api/v2/users/{username}/unlock:
+    post:
+      tags:
+      - Users
+      summary: Unlock User
+      description: 'Unlocks a locked user.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: unlockUser
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to unlock
+      responses:
+        '204':
+          description: Successful - User unlocked
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Username not found
+  /access/api/v2/users/expire_password_for_all_users:
+    post:
+      tags:
+      - Users
+      summary: Expire Password for All Users
+      description: 'Expires all existing user passwords in your instance, requiring
+        all users to update their passwords.
+
+
+        **Security:** Requires admin privileges.
+
+
+        **Availability:** Artifactory 7.128.0+
+
+        '
+      operationId: expirePasswordForAllUsers
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: All users credentials were successfully expired
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v2/users/unexpire_password_for_all_users:
+    post:
+      tags:
+      - Users
+      summary: Un-Expire Password for All Users
+      description: 'Un-expires all existing expired user passwords in your instance,
+        making them usable again.
+
+
+        **Security:** Requires admin privileges.
+
+
+        **Availability:** Artifactory 7.128.0+
+
+        '
+      operationId: unexpirePasswordForAllUsers
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: All users credentials were successfully unexpired
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    UserDetails:
+      type: object
+      properties:
+        username:
+          type: string
+          description: The username
+        email:
+          type: string
+          description: The user's email address
+        admin:
+          type: boolean
+          description: Whether the user is an admin
+        effective_admin:
+          type: boolean
+          description: Whether the user is effectively an admin (based on groups).
+        profile_updatable:
+          type: boolean
+          description: Whether the user can update their profile
+        disable_ui_access:
+          type: boolean
+          description: Whether UI access is disabled for this user
+        internal_password_disabled:
+          type: boolean
+          description: Whether internal password is disabled
+        last_logged_in:
+          type: string
+          format: date-time
+          description: Last login timestamp
+        realm:
+          type: string
+          description: The authentication realm
+        groups:
+          type: array
+          items:
+            type: string
+          description: Groups the user belongs to
+        status:
+          type: string
+          enum:
+          - invited
+          - enabled
+          - disabled
+          - locked
+          description: User status
+        watch_manager:
+          type: boolean
+          description: Whether user is a watch manager. Available from Artifactory
+            7.128.0.
+        policy_viewer:
+          type: boolean
+          description: Whether user is a policy viewer. Available from Artifactory
+            7.128.0.
+        policy_manager:
+          type: boolean
+          description: Whether user is a policy manager. Available from Artifactory
+            7.128.0.
+        reports_manager:
+          type: boolean
+          description: Whether user is a reports manager. Available from Artifactory
+            7.128.0.
+        resources_manager:
+          type: boolean
+          description: Whether user is a resources manager. Available from Artifactory
+            7.128.0.
+        manage_webhook:
+          type: boolean
+          description: Whether user can manage webhooks. Available from Artifactory
+            7.128.0.
+        platform_auditor:
+          type: boolean
+          description: Whether user is a platform auditor. Available from Artifactory
+            7.141.0.
+    UserCreateRequest:
+      type: object
+      required:
+      - username
+      - email
+      properties:
+        username:
+          type: string
+          description: The username (required)
+        password:
+          type: string
+          description: The password (not required if internal_password_disabled=true)
+        email:
+          type: string
+          description: The user's email address
+        groups:
+          type: array
+          items:
+            type: string
+          description: Groups to add the user to
+        admin:
+          type: boolean
+          default: false
+          description: Whether the user is an admin
+        profile_updatable:
+          type: boolean
+          default: true
+          description: Whether the user can update their profile
+        internal_password_disabled:
+          type: boolean
+          default: false
+          description: Whether internal password is disabled
+        disable_ui_access:
+          type: boolean
+          default: false
+          description: Whether UI access is disabled
+        watch_manager:
+          type: boolean
+          description: Whether user is a watch manager. Available from Artifactory
+            7.128.0.
+        policy_viewer:
+          type: boolean
+          description: Whether user is a policy viewer. Available from Artifactory
+            7.128.0.
+        policy_manager:
+          type: boolean
+          description: Whether user is a policy manager. Available from Artifactory
+            7.128.0.
+        reports_manager:
+          type: boolean
+          description: Whether user is a reports manager. Available from Artifactory
+            7.128.0.
+        resources_manager:
+          type: boolean
+          description: Whether user is a resources manager. Available from Artifactory
+            7.128.0.
+        manage_webhook:
+          type: boolean
+          default: false
+          description: Whether user can manage webhooks. Available from Artifactory
+            7.128.0.
+        platform_auditor:
+          type: boolean
+          default: false
+          description: Whether user is a platform auditor. Available from Artifactory
+            7.141.0.
+    UserUpdateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          description: The user's email address
+        password:
+          type: string
+          description: The password (mandatory when internal_password_disabled changes
+            to false)
+        admin:
+          type: boolean
+          description: Whether the user is an admin
+        profile_updatable:
+          type: boolean
+          description: Whether the user can update their profile
+        internal_password_disabled:
+          type: boolean
+          description: Whether internal password is disabled
+        disable_ui_access:
+          type: boolean
+          description: Whether UI access is disabled
+        watch_manager:
+          type: boolean
+          description: Whether user is a watch manager. Available from Artifactory
+            7.128.0.
+        policy_viewer:
+          type: boolean
+          description: Whether user is a policy viewer. Available from Artifactory
+            7.128.0.
+        policy_manager:
+          type: boolean
+          description: Whether user is a policy manager. Available from Artifactory
+            7.128.0.
+        reports_manager:
+          type: boolean
+          description: Whether user is a reports manager. Available from Artifactory
+            7.128.0.
+        resources_manager:
+          type: boolean
+          description: Whether user is a resources manager. Available from Artifactory
+            7.128.0.
+        manage_webhook:
+          type: boolean
+          description: Whether user can manage webhooks. Available from Artifactory
+            7.128.0.
+        platform_auditor:
+          type: boolean
+          description: Whether user is a platform auditor. Available from Artifactory
+            7.141.0.
+    UserListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              username:
+                type: string
+              uri:
+                type: string
+              realm:
+                type: string
+              status:
+                type: string
+        cursor:
+          type: string
+          description: Pagination cursor
+x-readme:
+  explorer-enabled: false

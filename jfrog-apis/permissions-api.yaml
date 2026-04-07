@@ -1,0 +1,506 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Permissions API
+  description: 'Permission management APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer <token>)
+
+
+    **Security:** Unless otherwise specified, all APIs require admin privileges.
+
+
+    **Availability:** Artifactory 7.72.0+
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Permissions
+  description: APIs for creating, updating, deleting, and managing JFrog Platform
+    permission targets and resources.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v2/permissions:
+    post:
+      tags:
+      - Permissions
+      summary: Create Permission
+      description: 'Creates a new permission target in the system.
+
+
+
+        **Security:** Requires admin privileges.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: createPermission
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCreateRequest'
+      responses:
+        '201':
+          description: Permission created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionDetails'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '409':
+          description: Conflict - Permission already exists
+    get:
+      tags:
+      - Permissions
+      summary: Get Permissions
+      description: 'Get the list of all permissions in the system.
+
+
+
+        **Note:** You can use `cursor` and `limit` attributes independently or together
+        to refine the results. Enter a permission name in `cursor` to list permissions
+        starting from that name. Enter an integer in `limit` to define the number
+        of results, between 1 and 99,999 (non-inclusive).
+
+
+
+        **Security:** Requires admin privileges, or a scoped token with `system:permissions:r`.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: getPermissions
+      parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: Permission name to start listing from
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 99999
+        description: Number of results (between 1 and 99,999, non-inclusive)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionListResponse'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v2/permissions/{permissionName}:
+    get:
+      tags:
+      - Permissions
+      summary: Get Permission Details by Permission Name
+      description: 'Get the details of a permission by permission name.
+
+
+
+        **Security:** Requires admin privileges.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: getPermissionDetails
+      parameters:
+      - name: permissionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The permission name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionDetails'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Permission not found
+    delete:
+      tags:
+      - Permissions
+      summary: Delete Permission
+      description: 'Delete a permission from the system.
+
+
+
+        **Security:** Requires admin privileges.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: deletePermission
+      parameters:
+      - name: permissionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The permission name to delete
+      responses:
+        '204':
+          description: Permission deleted successfully
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Permission not found
+  /access/api/v2/permissions/{permissionName}/{resourceType}:
+    get:
+      tags:
+      - Permissions
+      summary: Get Permission Resource Based on Permission Name and Resource Type
+      description: 'Get the details of a permission resource by permission name and
+        resource type.
+
+
+
+        **Security:** Requires admin privileges.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: getPermissionResource
+      parameters:
+      - name: permissionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The permission name
+      - name: resourceType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - artifact
+          - build
+          - release_bundle
+        description: The resource type
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionResource'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Permission or resource not found
+    put:
+      tags:
+      - Permissions
+      summary: Replace Permission Resource Based on Permission Name and Resource Type
+      description: 'Replace a permission resource in a permission by permission name
+        and resource type.
+
+
+
+        **Security:** Requires admin privileges.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: replacePermissionResource
+      parameters:
+      - name: permissionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The permission name
+      - name: resourceType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - artifact
+          - build
+          - release_bundle
+        description: The resource type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionResource'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionResource'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Permission not found
+    patch:
+      tags:
+      - Permissions
+      summary: Update Permission Resource Based on Permission Name and Resource Type
+      description: 'Update a permission resource in a permission by permission name
+        and resource type.
+
+
+
+        **Security:** Requires admin privileges.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: updatePermissionResource
+      parameters:
+      - name: permissionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The permission name
+      - name: resourceType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - artifact
+          - build
+          - release_bundle
+        description: The resource type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionResourceUpdate'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionResource'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Permission not found
+    delete:
+      tags:
+      - Permissions
+      summary: Delete Permission Resource Based on Permission Name and Resource Type
+      description: 'Delete a permission resource from a permission by permission name
+        and resource type.
+
+
+
+        **Security:** Requires admin privileges.
+
+
+
+        **Availability:** Artifactory 7.72.0+
+
+        '
+      operationId: deletePermissionResource
+      parameters:
+      - name: permissionName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The permission name
+      - name: resourceType
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - artifact
+          - build
+          - release_bundle
+        description: The resource type
+      responses:
+        '204':
+          description: Permission resource deleted successfully
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Permission or resource not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    PermissionDetails:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Permission name
+        resources:
+          type: object
+          properties:
+            artifact:
+              $ref: '#/components/schemas/PermissionResource'
+            build:
+              $ref: '#/components/schemas/PermissionResource'
+            release_bundle:
+              $ref: '#/components/schemas/PermissionResource'
+    PermissionCreateRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: Permission name
+        description:
+          type: string
+          description: Permission description
+        resources:
+          type: object
+          description: Resource types included in this permission
+          properties:
+            artifact:
+              description: Repository (artifact) actions and targets
+              $ref: '#/components/schemas/PermissionResource'
+            build:
+              description: Build-info actions and targets
+              $ref: '#/components/schemas/PermissionResource'
+            release_bundle:
+              description: Release bundle actions and targets
+              $ref: '#/components/schemas/PermissionResource'
+    PermissionResource:
+      type: object
+      properties:
+        actions:
+          description: User and group action grants for this resource type
+          $ref: '#/components/schemas/Actions'
+        targets:
+          type: object
+          description: Map of target names to their include/exclude patterns
+          additionalProperties:
+            $ref: '#/components/schemas/Patterns'
+    Actions:
+      type: object
+      properties:
+        users:
+          type: object
+          description: Map of username to allowed actions
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        groups:
+          type: object
+          description: Map of group name to allowed actions
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    Patterns:
+      type: object
+      properties:
+        include_patterns:
+          type: array
+          items:
+            type: string
+          description: Include patterns
+        exclude_patterns:
+          type: array
+          items:
+            type: string
+          description: Exclude patterns
+    PermissionResourceUpdate:
+      type: object
+      properties:
+        actions:
+          $ref: '#/components/schemas/Actions'
+        targets:
+          type: object
+          description: Map of target names to their include/exclude patterns
+          additionalProperties:
+            $ref: '#/components/schemas/Patterns'
+    PermissionListResponse:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              uri:
+                type: string
+        cursor:
+          type: string
+x-readme:
+  explorer-enabled: false

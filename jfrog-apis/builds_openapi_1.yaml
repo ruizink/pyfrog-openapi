@@ -1,0 +1,1101 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Build API
+  description: REST API for managing builds in JFrog Artifactory
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Builds
+  description: Build management operations
+paths:
+  /build:
+    get:
+      tags:
+      - Builds
+      summary: All Builds
+      description: 'Provides information on all builds.
+
+
+        **Since**: 2.2.0
+
+
+        **Security**: Requires a privileged user (can be anonymous). From version
+        6.6, requires read permission for the build or basic read.
+
+        '
+      operationId: getAllBuilds
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: projectKey
+        in: query
+        description: Limits the response to the builds contained in the specified
+          project.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successfully retrieved builds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllBuildsResponse'
+              example:
+                uri: http://localhost:8081/artifactory/api/build
+                builds:
+                - uri: /my-build
+                  lastStarted: '2024-01-15T10:30:00.000Z'
+                - uri: /jackrabbit
+                  lastStarted: '2024-01-14T09:20:00.000Z'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+    put:
+      tags:
+      - Builds
+      summary: Build Upload
+      description: 'Uploads a build by providing a buildinfo JSON file. All build
+        modules must have the build.name and build.number properties set as well as
+        the correct SHA1 and MD5 to be properly linked in the build info.
+
+
+        **Security**: Requires a privileged user. From version 6.6, requires deploy
+        permission for the build, and delete permission for overriding existing build
+        info artifact.
+
+        '
+      operationId: uploadBuild
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: project
+        in: query
+        description: Limits the response to builds contained in the specified project.
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: Build info JSON file
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildInfo'
+      responses:
+        '200':
+          description: Build uploaded successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have deploy permission
+            for the build, and delete permission for overriding existing build info
+            artifact.
+  /build/{buildName}:
+    get:
+      tags:
+      - Builds
+      summary: Build Runs
+      description: 'Provides information about the build runs for the given build
+        name.
+
+
+        **Since**: 2.2.0
+
+
+        **Security**: Requires a privileged user (can be anonymous). From version
+        6.6, requires read permission for the build or basic read.
+
+        '
+      operationId: getBuildRuns
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: buildName
+        in: path
+        description: Build name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: projectKey
+        in: query
+        description: Limits the response to builds contained in the specified project.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successfully retrieved build runs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildRunsResponse'
+              example:
+                uri: http://localhost:8081/artifactory/api/build/my-build
+                buildsNumbers:
+                - uri: /51
+                  started: '2024-01-15T10:30:00.000Z'
+                - uri: /52
+                  started: '2024-01-16T11:20:00.000Z'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+        '404':
+          description: Not Found - The specified build does not exist.
+    delete:
+      tags:
+      - Builds
+      summary: Delete Builds
+      description: 'Removes builds stored in Artifactory. Useful for cleaning up old
+        build info data. Requires Artifactory Pro.
+
+
+        **Since**: 2.2.4
+
+
+        **Security**: Requires a privileged user. From version 6.6, requires delete
+        permission for the Build.
+
+        '
+      operationId: deleteBuilds
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: buildName
+        in: path
+        description: Build name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: buildNumbers
+        in: query
+        description: Comma-separated list of build numbers to delete
+        required: false
+        schema:
+          type: string
+      - name: artifacts
+        in: query
+        description: Whether to delete artifacts (0 or 1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+      - name: deleteAll
+        in: query
+        description: Whether to delete all builds (0 or 1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+      responses:
+        '200':
+          description: Builds deleted successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: 'The following builds has been deleted successfully: ''my-build#51'',
+                ''my-build#52'', ''my-build#55''.'
+        '400':
+          description: Bad Request - No build numbers provided or the request is malformed.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have delete permission
+            for the build.
+        '404':
+          description: Not Found - The specified build does not exist.
+  /build/append/{buildName}/{buildNumber}:
+    post:
+      tags:
+      - Builds
+      summary: Build Append
+      description: 'Modifies an existing build by appending one or more new modules
+        to it.
+
+
+        **Security**: Requires Deploy and Delete permissions for the specified build.
+
+        '
+      operationId: appendBuild
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: buildName
+        in: path
+        description: The name of the parent build that will receive the module.
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: buildNumber
+        in: path
+        description: The number of the parent build that will receive the module.
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: started
+        in: query
+        description: The start date & time of the parent build that will receive the
+          module (ISO 8601 format).
+        required: false
+        schema:
+          type: string
+          description: ISO 8601 format without timezone Z suffix (e.g. 2024-01-01T00:00:00.000+0000)
+      - name: buildRepo
+        in: query
+        description: The repository key of the parent build.
+        required: false
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: The project key of the parent build.
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: Array of build modules to append
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BuildModule'
+      responses:
+        '204':
+          description: Appended successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have Deploy and Delete
+            permissions for the specified build.
+        '404':
+          description: Build-Info not found
+  /build/{buildName}/{buildNumber}:
+    get:
+      tags:
+      - Builds
+      summary: Build Info
+      description: 'Returns information about the specified build. Requires JFrog
+        Container Registry or Artifactory Pro.
+
+
+        **Since**: 2.2.0
+
+
+        **Security**: Requires a privileged user with deploy permissions. From version
+        6.6, requires read permission for the build.
+
+        '
+      operationId: getBuildInfo
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: buildName
+        in: path
+        description: Build name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: buildNumber
+        in: path
+        description: Build number
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: started
+        in: query
+        description: 'The timestamp of when the build started. Should be in the format:
+          ''yyyy-MM-dd''T''HH:mm:ss.SSSZ'''
+        required: false
+        schema:
+          type: string
+      - name: diff
+        in: query
+        description: The number of an older build to which you want to compare contents.
+          For more information, see Builds Diff.
+        required: false
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: The project associated with the build. If a project is not specified,
+          or if you are not working with projects, the default build-info repository
+          associated with your Artifactory instance is used.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successfully retrieved build info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildInfoResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have read permission
+            for the build.
+        '404':
+          description: Not Found - The specified build does not exist.
+  /build/promote/{buildName}/{buildNumber}:
+    post:
+      tags:
+      - Builds
+      summary: Build Promotion
+      description: 'Change the status of a build, optionally moving or copying the
+        build''s artifacts and its dependencies to a target repository and setting
+        properties on promoted artifacts. All artifacts from all scopes are included
+        by default while dependencies are not. Scopes are additive (or). From version
+        5.7, the target repository can be a virtual repository.
+
+
+        **Security**: Requires Deploy permission for the build.
+
+        '
+      operationId: promoteBuild
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: buildName
+        in: path
+        description: Build name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: buildNumber
+        in: path
+        description: Build number
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: project
+        in: query
+        description: The name of the project that contains the build to be promoted.
+          If not defined, Artifactory uses the default build-info repo.
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: Build promotion request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildPromotionRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildPromotionResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have Deploy permission
+            for the build.
+        '404':
+          description: Not Found - The specified build does not exist.
+  /build/delete:
+    post:
+      tags:
+      - Builds
+      summary: Delete Builds (Multiple)
+      description: 'Removes builds stored in Artifactory. Useful for cleaning up old
+        build info data. Requires Artifactory Pro. This endpoint allows deleting multiple
+        build numbers of a certain build, including build numbers containing special
+        characters.
+
+
+        **Since**: 6.13
+
+
+        **Security**: Requires a privileged user. From version 6.6, requires delete
+        permission for the Build.
+
+        '
+      operationId: deleteBuildsMultiple
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      requestBody:
+        required: true
+        description: Delete builds request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteBuildsRequest'
+      responses:
+        '200':
+          description: Builds deleted successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have delete permission
+            for the build.
+  /build/rename/{buildName}:
+    post:
+      tags:
+      - Builds
+      summary: Build Rename
+      description: 'Renames a build stored in Artifactory. Typically used to keep
+        the build info in sync with a renamed build on the CI server. Requires Artifactory
+        Pro.
+
+
+        **Security**: Requires deploy and delete permission for the build.
+
+        '
+      operationId: renameBuild
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: buildName
+        in: path
+        description: Current build name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: to
+        in: query
+        description: The new name for the build. This parameter is required.
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: project
+        in: query
+        description: The name of the project associated with the build. This parameter
+          is required if the build is part of a project.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Build renamed successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Build renaming of 'myJobName' to 'myNewJobName' was successfully
+                started.
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have deploy and delete
+            permission for the build.
+        '404':
+          description: Not Found - The specified build does not exist.
+  /build/retention/{buildName}:
+    post:
+      tags:
+      - Builds
+      summary: Control Build Retention
+      description: 'Specifies retention parameters for build info. Note that setting
+        build retention does not immediately delete any builds. Requires Artifactory
+        Pro.
+
+
+        **Security**: Requires delete permission for the build.
+
+        '
+      operationId: controlBuildRetention
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: buildName
+        in: path
+        description: Build name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: async
+        in: query
+        description: Controls how the endpoint responds. When true, returns immediately
+          and operation proceeds in background. When false, waits for completion unless
+          build.retention.always.async is set to true.
+        required: false
+        schema:
+          type: boolean
+          default: true
+      requestBody:
+        required: true
+        description: Build retention parameters
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildRetentionRequest'
+      responses:
+        '200':
+          description: Build retention configured successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have delete permission
+            for the build.
+        '404':
+          description: Not Found - The specified build does not exist.
+  /docker/{repoKey}/v2/promote:
+    post:
+      tags:
+      - Builds
+      summary: Promote Docker Image
+      description: 'Promotes a Docker image from one repository to another. Supports
+        local and federated repositories. This REST API also supports promoting Helm
+        OCI images. Requires JFrog Container Registry or Artifactory Pro.
+
+
+        **Since**: 3.7
+
+
+        **Security**: Requires a privileged user
+
+        '
+      operationId: promoteDockerImage
+      security:
+      - bearerAuth: []
+      - basicAuth: []
+      parameters:
+      - name: repoKey
+        in: path
+        description: Source repository key
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: Docker promotion request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DockerPromotionRequest'
+      responses:
+        '200':
+          description: Docker image promoted successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+        '404':
+          description: Not Found - The specified repository or Docker image does not
+            exist.
+components:
+  schemas:
+    AllBuildsResponse:
+      type: object
+      properties:
+        uri:
+          type: string
+          description: URI of the builds endpoint
+        builds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildSummary'
+    BuildSummary:
+      type: object
+      properties:
+        uri:
+          type: string
+          description: URI of the build
+        lastStarted:
+          type: string
+          format: date-time
+          description: Last started timestamp in ISO8601 format (yyyy-MM-dd'T'HH:mm:ss.SSSZ)
+    BuildRunsResponse:
+      type: object
+      properties:
+        uri:
+          type: string
+          description: URI of the build
+        buildsNumbers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildNumber'
+    BuildNumber:
+      type: object
+      properties:
+        uri:
+          type: string
+          description: URI of the build number
+        started:
+          type: string
+          format: date-time
+          description: Started timestamp in ISO8601 format (yyyy-MM-dd'T'HH:mm:ss.SSSZ)
+    BuildInfo:
+      type: object
+      description: Build info JSON structure
+      properties:
+        version:
+          type: string
+          description: Build Info schema version
+        name:
+          type: string
+          description: Build name
+        number:
+          type: string
+          description: Build number
+        type:
+          type: string
+          enum:
+          - MAVEN
+          - GRADLE
+          - ANT
+          - IVY
+          - GENERIC
+          description: Build type
+        buildAgent:
+          $ref: '#/components/schemas/BuildAgent'
+        agent:
+          $ref: '#/components/schemas/Agent'
+        started:
+          type: string
+          format: date-time
+          description: Build start time in the format of yyyy-MM-dd'T'HH:mm:ss.SSSZ
+        artifactoryPluginVersion:
+          type: string
+        durationMillis:
+          type: integer
+          format: int64
+          description: Build duration in milliseconds
+        artifactoryPrincipal:
+          type: string
+          description: Artifactory principal (the Artifactory user used for deployment)
+        url:
+          type: string
+          description: CI server URL
+        vcs:
+          type: array
+          items:
+            $ref: '#/components/schemas/VcsInfo'
+        licenseControl:
+          $ref: '#/components/schemas/LicenseControl'
+        buildRetention:
+          $ref: '#/components/schemas/BuildRetention'
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildModule'
+        issues:
+          $ref: '#/components/schemas/Issues'
+        properties:
+          type: object
+          additionalProperties: true
+          description: Environment variables and properties collected from the CI
+            server
+    BuildAgent:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Build tool type
+        version:
+          type: string
+          description: Build tool version
+    Agent:
+      type: object
+      properties:
+        name:
+          type: string
+          description: CI server type
+        version:
+          type: string
+          description: CI server version
+    VcsInfo:
+      type: object
+      properties:
+        revision:
+          type: string
+        message:
+          type: string
+        branch:
+          type: string
+        url:
+          type: string
+    LicenseControl:
+      type: object
+      properties:
+        runChecks:
+          type: boolean
+          description: Artifactory will run automatic license scanning after the build
+            is complete
+        includePublishedArtifacts:
+          type: boolean
+          description: Should Artifactory run license checks on the build artifacts,
+            in addition to the build dependencies
+        autoDiscover:
+          type: boolean
+          description: Should Artifactory auto discover licenses
+        scopesList:
+          type: string
+          description: A space-separated list of dependency scopes/configurations
+            to run license violation checks on
+        licenseViolationsRecipientsList:
+          type: string
+          description: Emails of recipients that should be notified of license violations
+            in the build info (space-separated list)
+    BuildRetention:
+      type: object
+      properties:
+        deleteBuildArtifacts:
+          type: boolean
+          description: Automatically remove build artifacts stored in Artifactory
+        count:
+          type: integer
+          description: The maximum number of builds to store in Artifactory
+        minimumBuildDate:
+          type: integer
+          format: int64
+          description: Earliest build date to store in Artifactory
+        buildNumbersNotToBeDiscarded:
+          type: array
+          items:
+            type: string
+          description: List of build numbers that should not be removed from Artifactory
+    BuildModule:
+      type: object
+      properties:
+        properties:
+          type: object
+          additionalProperties: true
+          description: Module properties
+        id:
+          type: string
+          description: Module ID
+        type:
+          type: string
+          description: Module type
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Artifact'
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dependency'
+    Artifact:
+      type: object
+      properties:
+        type:
+          type: string
+        sha1:
+          type: string
+        sha256:
+          type: string
+        md5:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        originalDeploymentRepo:
+          type: string
+    Dependency:
+      type: object
+      properties:
+        type:
+          type: string
+        sha1:
+          type: string
+        sha256:
+          type: string
+        md5:
+          type: string
+        id:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        requestedBy:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+    Issues:
+      type: object
+      properties:
+        tracker:
+          $ref: '#/components/schemas/Tracker'
+        aggregateBuildIssues:
+          type: boolean
+          description: Whether or not there are issues that already appeared in previous
+            builds
+        aggregationBuildStatus:
+          type: string
+        affectedIssues:
+          type: array
+          items:
+            $ref: '#/components/schemas/AffectedIssue'
+    Tracker:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+    AffectedIssue:
+      type: object
+      properties:
+        key:
+          type: string
+        url:
+          type: string
+        summary:
+          type: string
+        aggregated:
+          type: boolean
+          description: Whether or not this specific issue already appeared in previous
+            builds
+    BuildInfoResponse:
+      type: object
+      properties:
+        uri:
+          type: string
+        buildInfo:
+          $ref: '#/components/schemas/BuildInfo'
+    BuildPromotionRequest:
+      type: object
+      required:
+      - ciUser
+      - timestamp
+      - copy
+      - artifacts
+      - dependencies
+      - failFast
+      properties:
+        status:
+          type: string
+          description: The new status of the build. This is especially important when
+            performing a promotion that only changes the status of the build without
+            copying or moving artifacts and dependencies.
+        comment:
+          type: string
+          description: An optional comment describing the reason for the promotion.
+        ciUser:
+          type: string
+          description: The user that invoked promotion from the CI server.
+        timestamp:
+          type: string
+          format: date-time
+          description: The time when the promotion command was received by Artifactory
+            (ISO8601 format). The format is yyyy-MM-dd'T'HH:mm:ss.SSSZ.
+        dryRun:
+          type: boolean
+          default: false
+          description: When set to true, performs a dry run of the promotion without
+            executing any operation in Artifactory.
+        sourceRepo:
+          type: string
+          description: The repository from which the build contents will be copied
+            or moved. If this property is not defined, the source repository is resolved
+            automatically.
+        targetRepo:
+          type: string
+          description: The target repository to which the build contents will be copied
+            or moved. This property does not need to defined if the promotion involves
+            a change of status only.
+        copy:
+          type: boolean
+          default: false
+          description: Determines how to perform the build promotion. true Copies
+            the artifacts (and optionally, the dependencies) to the targetRepo. false
+        artifacts:
+          type: boolean
+          default: true
+          description: Determines whether to move/copy the build's artifacts.
+        dependencies:
+          type: boolean
+          default: false
+          description: Determines whether to move/copy the build's dependencies.
+        scopes:
+          type: array
+          items:
+            type: string
+          description: An array of dependency scopes that indicate the circumstances
+            under which a dependency is available. Relevant when dependencies is set
+            to true. Common examples include compile and runtime.
+        properties:
+          type: object
+          additionalProperties: true
+          description: A list of properties to attach to the build's artifacts (regardless
+            of whether a targetRepo is defined).
+        failFast:
+          type: boolean
+          default: true
+          description: When set to true, fails and aborts the promotion operation
+            upon receiving an error.
+    BuildPromotionResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionMessage'
+    PromotionMessage:
+      type: object
+      properties:
+        level:
+          type: string
+          enum:
+          - error
+          - warning
+          - info
+        message:
+          type: string
+    DeleteBuildsRequest:
+      type: object
+      required:
+      - buildName
+      properties:
+        project:
+          type: string
+          description: The project to which the build belongs. If a project is not
+            specified, the default project is used.
+        buildName:
+          type: string
+          description: The build name.
+        buildNumbers:
+          type: array
+          items:
+            type: string
+          description: The build numbers to delete. This property can be left undefined
+            if deleteAll is set to true.
+        deleteArtifacts:
+          type: boolean
+          default: false
+          description: When set to true, deletes the artifacts associated with the
+            builds in addition to the metadata.
+        deleteAll:
+          type: boolean
+          default: false
+          description: When set to true, deletes all build numbers of the defined
+            build.
+    BuildRetentionRequest:
+      type: object
+      properties:
+        deleteBuildArtifacts:
+          type: boolean
+          description: When true, automatically removes build artifacts stored in
+            Artifactory
+        count:
+          type: integer
+          description: The maximum number of builds to store in Artifactory
+        minimumBuildDate:
+          type: string
+          format: date-time
+          description: Earliest build date to store in Artifactory - ISO8601 (yyyy-MM-dd'T'HH:mm:ss.SSSZ)
+        buildNumbersNotToBeDiscarded:
+          type: array
+          items:
+            type: string
+          description: List of build numbers that should not be removed from Artifactory
+    DockerPromotionRequest:
+      type: object
+      required:
+      - targetRepo
+      - dockerRepository
+      properties:
+        targetRepo:
+          type: string
+          description: The target repository for the move or copy
+        dockerRepository:
+          type: string
+          description: The image name to promote
+        targetDockerRepository:
+          type: string
+          description: An optional docker repository name, if null, will use the same
+            name as 'dockerRepository'
+        tag:
+          type: string
+          description: An optional tag name to promote, if null - the entire docker
+            repository will be promoted. Available from v4.10.
+        targetTag:
+          type: string
+          description: An optional target tag to assign the image after promotion,
+            if null - will use the same tag
+        copy:
+          type: boolean
+          default: false
+          description: An optional value to set whether to copy instead of move. Default
+            false
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication
+security:
+- bearerAuth: []
+- basicAuth: []

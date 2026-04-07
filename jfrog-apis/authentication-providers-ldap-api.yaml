@@ -1,0 +1,663 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - LDAP API
+  description: 'LDAP configuration APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** All APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: LDAP
+  description: APIs for creating, updating, deleting, and managing LDAP settings and
+    LDAP group settings in the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/ldap/settings:
+    get:
+      tags:
+      - LDAP
+      summary: Get All LDAP Settings
+      description: 'Get all LDAP settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getAllLdapSettings
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LdapSettings'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - LDAP
+      summary: Create LDAP Settings
+      description: 'Create new LDAP settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createLdapSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LdapSettingsCreate'
+      responses:
+        '201':
+          description: LDAP settings created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LdapSettings'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - LDAP
+      summary: Update LDAP Settings
+      description: 'Update LDAP settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateLdapSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LdapSettings'
+      responses:
+        '200':
+          description: LDAP settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LdapSettings'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/ldap/settings/{key}:
+    get:
+      tags:
+      - LDAP
+      summary: Get LDAP Settings by Key
+      description: 'Get LDAP settings by key.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getLdapSettingsByKey
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The LDAP settings key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LdapSettings'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - LDAP settings not found
+    delete:
+      tags:
+      - LDAP
+      summary: Delete LDAP Settings
+      description: 'Delete LDAP settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteLdapSettings
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The LDAP settings key
+      responses:
+        '204':
+          description: LDAP settings deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - LDAP settings not found
+  /access/api/v1/ldap/settings/test:
+    post:
+      tags:
+      - LDAP
+      summary: Test LDAP Connection
+      description: 'Test LDAP connection by providing a full LDAP settings object.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: testLdapConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LdapSettings'
+      responses:
+        '204':
+          description: Test successful
+        '400':
+          description: Bad Request - Test failed
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/ldap/groups:
+    get:
+      tags:
+      - LDAP
+      summary: Get All LDAP Group Settings
+      description: 'Get all LDAP group settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getAllLdapGroupSettings
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LdapGroupSettings'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - LDAP
+      summary: Create LDAP Group Settings
+      description: 'Create new LDAP group settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createLdapGroupSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LdapGroupSettingsCreate'
+      responses:
+        '201':
+          description: LDAP group settings created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LdapGroupSettings'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - LDAP
+      summary: Update LDAP Group Settings
+      description: 'Update LDAP group settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateLdapGroupSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LdapGroupSettings'
+      responses:
+        '200':
+          description: LDAP group settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LdapGroupSettings'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/ldap/groups/{name}:
+    get:
+      tags:
+      - LDAP
+      summary: Get LDAP Group Settings by Name
+      description: 'Get LDAP group settings by name.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getLdapGroupSettingsByName
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The LDAP group settings name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LdapGroupSettings'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - LDAP group settings not found
+    delete:
+      tags:
+      - LDAP
+      summary: Delete LDAP Group Settings
+      description: 'Delete LDAP group settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteLdapGroupSettings
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The LDAP group settings name
+      responses:
+        '204':
+          description: LDAP group settings deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - LDAP group settings not found
+  /access/api/v1/ldap/groups/{name}/refresh:
+    post:
+      tags:
+      - LDAP
+      summary: Refresh LDAP Group Settings
+      description: 'Can update, import, or update and import LDAP groups using the
+        name of
+
+        the LDAP group settings.
+
+
+        Returns a plain text message with the number of groups that were
+
+        imported.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: refreshLdapGroupSettings
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: LdapGroupSettings name for LDAP groups to be updated or imported
+      - name: operation
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - UPDATE
+          - IMPORT
+          - UPDATE_AND_IMPORT
+          default: UPDATE_AND_IMPORT
+        description: The operation to be performed. If not provided, UPDATE_AND_IMPORT
+          is performed.
+      - name: username
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Name of user. If not provided, the operation is performed for
+          all users.
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - LDAP group settings not found
+  /access/api/v1/ldap/groups/search:
+    post:
+      tags:
+      - LDAP
+      summary: Search LDAP Groups
+      description: 'Search for LDAP groups using group settings.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: searchLdapGroups
+      parameters:
+      - name: username
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Username to search groups for
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LdapGroupSettings'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LdapGroup'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/ldap/groups/strategy:
+    get:
+      tags:
+      - LDAP
+      summary: Get LDAP Group Mapping Strategy
+      description: 'Get LDAP group mapping strategy details.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getLdapGroupMappingStrategy
+      parameters:
+      - name: strategy
+        in: query
+        required: false
+        schema:
+          type: string
+        description: The strategy name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMappingStrategy'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/ldap/groups/import:
+    post:
+      tags:
+      - LDAP
+      summary: Import LDAP Groups
+      description: 'Import LDAP groups.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: importLdapGroups
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LdapImport'
+      responses:
+        '204':
+          description: LDAP groups imported
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    LdapSettings:
+      type: object
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+        ldap_url:
+          type: string
+        user_dn_pattern:
+          type: string
+        search:
+          $ref: '#/components/schemas/LdapSearchPattern'
+        auto_create_user:
+          type: boolean
+        email_attribute:
+          type: string
+        ldap_poisoning_protection:
+          type: boolean
+        allow_user_to_access_profile:
+          type: boolean
+        paging_support_enabled:
+          type: boolean
+    LdapSettingsCreate:
+      type: object
+      required:
+      - key
+      - ldap_url
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+        ldap_url:
+          type: string
+        user_dn_pattern:
+          type: string
+        search:
+          $ref: '#/components/schemas/LdapSearchPattern'
+        auto_create_user:
+          type: boolean
+        email_attribute:
+          type: string
+        ldap_poisoning_protection:
+          type: boolean
+        allow_user_to_access_profile:
+          type: boolean
+        paging_support_enabled:
+          type: boolean
+    LdapSearchPattern:
+      type: object
+      properties:
+        search_filter:
+          type: string
+        search_base:
+          type: string
+        search_sub_tree:
+          type: boolean
+        manager_dn:
+          type: string
+        manager_password:
+          type: string
+    LdapGroupSettings:
+      type: object
+      properties:
+        name:
+          type: string
+        enabled_ldap:
+          type: string
+        group_base_dn:
+          type: string
+        group_name_attribute:
+          type: string
+        group_member_attribute:
+          type: string
+        sub_tree:
+          type: boolean
+        force_attribute_search:
+          type: boolean
+        filter:
+          type: string
+        description_attribute:
+          type: string
+        strategy:
+          type: string
+    LdapGroupSettingsCreate:
+      type: object
+      required:
+      - name
+      - enabled_ldap
+      properties:
+        name:
+          type: string
+        enabled_ldap:
+          type: string
+        group_base_dn:
+          type: string
+        group_name_attribute:
+          type: string
+        group_member_attribute:
+          type: string
+        sub_tree:
+          type: boolean
+        force_attribute_search:
+          type: boolean
+        filter:
+          type: string
+        description_attribute:
+          type: string
+        strategy:
+          type: string
+    LdapGroup:
+      type: object
+      properties:
+        group_name:
+          type: string
+        description:
+          type: string
+        group_dn:
+          type: string
+        required_update:
+          type: string
+    GroupMappingStrategy:
+      type: object
+      properties:
+        groupKeyMember:
+          type: string
+        filter:
+          type: string
+        groupNameAttribute:
+          type: string
+        description:
+          type: string
+    LdapImport:
+      type: object
+      properties:
+        ldap_group_settings:
+          $ref: '#/components/schemas/LdapGroupSettings'
+        import_groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/LdapGroup'
+x-readme:
+  explorer-enabled: false

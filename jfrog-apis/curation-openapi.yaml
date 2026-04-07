@@ -1,0 +1,1582 @@
+openapi: 3.1.0
+info:
+  title: JFrog Curation API
+  description: 'Public REST API for JFrog Curation — policy-based governance of open-source
+
+    packages flowing through JFrog Artifactory remote repositories.
+
+
+    Curation lets you define **conditions** (e.g. "package has a critical CVE")
+
+    and attach them to **policies** that either block or audit (dry-run)
+
+    non-compliant packages. **Waiver requests** allow users to request
+
+    unblocking of a package, and the **audit** endpoint provides full export of
+
+    all approved/blocked events.
+
+    '
+  version: 1.0.0
+  license:
+    name: Proprietary
+  contact:
+    name: JFrog
+servers:
+- url: '{protocol}://{host}:{port}/xray'
+  description: JFrog Platform (Xray service)
+  variables:
+    protocol:
+      default: https
+      enum:
+      - http
+      - https
+    host:
+      default: localhost
+    port:
+      default: '8046'
+security: []
+tags:
+- name: Policies
+  description: CRUD operations for curation policies.
+- name: Conditions
+  description: Condition templates and custom conditions used by policies.
+- name: Waiver Requests
+  description: Request and list waivers for blocked packages.
+- name: Audit
+  description: Export approved/blocked audit events.
+paths:
+  /api/v1/curation/policies:
+    get:
+      operationId: listPolicies
+      tags:
+      - Policies
+      summary: List curation policies
+      description: Get policies with pagination and filtering. The condition of each
+        policy is inlined in the response for convenience.
+      parameters:
+      - $ref: '#/components/parameters/OrderBy'
+      - $ref: '#/components/parameters/Direction'
+      - $ref: '#/components/parameters/NumOfRows'
+      - $ref: '#/components/parameters/PageNum'
+      - $ref: '#/components/parameters/Offset'
+      - name: name
+        in: query
+        description: Filter by policy name.
+        schema:
+          type: string
+      - name: policy_action
+        in: query
+        description: 'Filter by action. One of: `block`, `dry_run`.'
+        schema:
+          $ref: '#/components/schemas/PolicyAction'
+      - name: enabled
+        in: query
+        description: Filter by enabled state.
+        schema:
+          type: boolean
+      - name: condition_id
+        in: query
+        description: Filter by the condition ID used by the policy.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Policy'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              example:
+                data:
+                - id: '11'
+                  created_by: admin
+                  updated_by: admin
+                  created_at: '2025-03-12T16:26:10+02:00'
+                  updated_at: '2025-03-12T16:26:10+02:00'
+                  enabled: true
+                  name: no mal all repos
+                  scope: all_repos
+                  policy_action: block
+                  condition_id: '1'
+                  condition:
+                    id: '1'
+                    is_custom: false
+                    created_at: '2023-08-01T03:00:00+03:00'
+                    updated_at: '2023-08-01T03:00:00+03:00'
+                    risk_type: security
+                    supported_pkg_types:
+                    - npm
+                    - PyPI
+                    - Maven
+                    - Go
+                    - NuGet
+                    - Conan
+                    - Gems
+                    - Gradle
+                    - HuggingFaceML
+                    - Docker
+                    name: Malicious package
+                  waivers:
+                  - id: '1'
+                    pkg_type: npm
+                    pkg_name: jquery
+                    all_versions: false
+                    pkg_versions:
+                    - 3.7.1
+                    justification: this is just an example
+                    created_by: admin
+                    created_at: '2025-03-12T16:34:16+02:00'
+                  label_waivers:
+                  - id: '1'
+                    label: Manual
+                    justification: because it's manually approved
+                    created_by: admin
+                    created_at: '2025-03-12T16:44:48+02:00'
+                  notify_emails:
+                  - someone@example.com
+                  decision_owners:
+                  - deciders
+                  waiver_request_config: manual
+                  block_from_cache: false
+                  share_with_federation: false
+                meta:
+                  total_count: 1
+                  result_count: 1
+                  order_by: updated_at
+                  direction: asc
+                  num_of_rows: 100
+                  page_num: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      operationId: createPolicy
+      tags:
+      - Policies
+      summary: Create a curation policy
+      description: 'Create a policy that associates a condition with a repository
+        scope and an action (block or dry_run).
+
+        **Note:** Do not send read-only properties (`id`, `created_by`, `updated_by`,
+        `created_at`, `updated_at`) — they will cause an error.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditablePolicy'
+            example:
+              name: critical vulns only
+              condition_id: '3'
+              scope: all_repos
+              policy_action: block
+              waiver_request_config: forbidden
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/curation/policies/{policy_id}:
+    parameters:
+    - $ref: '#/components/parameters/PolicyId'
+    get:
+      operationId: getPolicyById
+      tags:
+      - Policies
+      summary: Get a curation policy by ID
+      description: Get the full definition of a policy. The condition is inlined for
+        convenience.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updatePolicy
+      tags:
+      - Policies
+      summary: Update a curation policy
+      description: 'Update an existing policy.
+
+
+        **Note about editable properties:** Do not send the entire object
+
+        returned by GET. Properties like `id`, `created_by`, `updated_by`,
+
+        `created_at`, `updated_at` cannot be set via the API and sending them
+
+        will cause an error.
+
+
+        **Note about waivers:** Waivers and label waivers cannot be edited
+
+        in place. They can be:
+
+        - **added** — send an object without an `id` but with the content fields
+
+        - **retained** — send an object with the `id` of an existing waiver
+
+        - **removed** — omit the object
+
+
+        To edit a waiver, remove it and add a new one with the desired values.
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditablePolicy'
+            example:
+              name: no malicious
+              condition_id: '1'
+              scope: all_repos
+              policy_action: block
+              waiver_request_config: forbidden
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deletePolicy
+      tags:
+      - Policies
+      summary: Delete a curation policy
+      responses:
+        '200':
+          description: OK
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/curation/condition_templates:
+    get:
+      operationId: listConditionTemplates
+      tags:
+      - Conditions
+      summary: List condition templates
+      description: Get the available condition templates with their parameters. Every
+        custom condition is built from a single template identified by `condition_template_id`
+        and a set of parameter values.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - total_count
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConditionTemplate'
+                  total_count:
+                    type: integer
+                    description: Total number of available templates.
+              example:
+                data:
+                - condition_template_id: CVECVSSRange
+                  name: Package has vulnerability with CVSS score in range {range}
+                  risk_type: security
+                  supported_pkg_types:
+                  - npm
+                  - PyPI
+                  - Maven
+                  - Go
+                  - NuGet
+                  - Conan
+                  - Gems
+                  - Gradle
+                  params:
+                  - param_id: vulnerability_cvss_score_range
+                  - param_id: epss
+                    is_optional: true
+                  - param_id: apply_only_if_fix_is_available
+                    is_optional: true
+                  - param_id: do_not_apply_for_already_existing_vulnerabilities
+                    is_optional: true
+                - condition_template_id: isImmature
+                  name: Package version is immature
+                  risk_type: operational
+                  supported_pkg_types:
+                  - npm
+                  - PyPI
+                  - Maven
+                  - Go
+                  - NuGet
+                  - Conan
+                  - Gems
+                  - Gradle
+                  params:
+                  - param_id: package_age_days
+                  - param_id: vulnerability_cvss_score
+                    is_optional: true
+                total_count: 2
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/curation/conditions:
+    get:
+      operationId: listConditions
+      tags:
+      - Conditions
+      summary: List conditions
+      description: Get both built-in and custom conditions with pagination and filtering.
+      parameters:
+      - $ref: '#/components/parameters/OrderBy'
+      - $ref: '#/components/parameters/Direction'
+      - $ref: '#/components/parameters/NumOfRows'
+      - $ref: '#/components/parameters/PageNum'
+      - $ref: '#/components/parameters/Offset'
+      - name: name
+        in: query
+        description: Filter by condition name.
+        schema:
+          type: string
+      - name: is_custom
+        in: query
+        description: Filter by built-in (`false`) or custom (`true`) conditions.
+        schema:
+          type: boolean
+      - name: condition_template_id
+        in: query
+        description: Filter by the template used to create the condition.
+        schema:
+          type: string
+      - name: risk_type
+        in: query
+        description: 'Filter by risk type. One of: `security`, `legal`, `operational`.'
+        schema:
+          $ref: '#/components/schemas/RiskType'
+      - name: supported_pkg_types
+        in: query
+        description: Filter by supported package type.
+        schema:
+          $ref: '#/components/schemas/PackageType'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Condition'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              example:
+                data:
+                - id: '14'
+                  is_custom: false
+                  created_at: '2023-08-01T03:00:00+03:00'
+                  updated_at: '2023-08-01T03:00:00+03:00'
+                  risk_type: operational
+                  supported_pkg_types:
+                  - npm
+                  - PyPI
+                  - Maven
+                  - Go
+                  - NuGet
+                  - Conan
+                  - Gems
+                  - Gradle
+                  on_demand: false
+                  condition_template_id: isImmature
+                  name: Package version is immature (permissive)
+                  param_values:
+                  - param_id: package_age_days
+                    value: 2
+                meta:
+                  total_count: 1
+                  result_count: 1
+                  order_by: updated_at
+                  direction: desc
+                  num_of_rows: 15
+                  page_num: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      operationId: createCondition
+      tags:
+      - Conditions
+      summary: Create a custom condition
+      description: Create a custom condition from a condition template. The `condition_template_id`
+        determines which parameters are required or optional (see the List Condition
+        Templates endpoint).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditableCondition'
+            example:
+              condition_template_id: CVECVSSRange
+              name: Block critical CVEs (CVSS >= 9)
+              param_values:
+              - param_id: vulnerability_cvss_score_range
+                value:
+                - 9
+                - 10
+              - param_id: apply_only_if_fix_is_available
+                value: false
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Condition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/curation/conditions/{condition_id}:
+    parameters:
+    - $ref: '#/components/parameters/ConditionId'
+    get:
+      operationId: getConditionById
+      tags:
+      - Conditions
+      summary: Get a condition by ID
+      description: Get the full details of a condition, including its parameter values.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Condition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateCondition
+      tags:
+      - Conditions
+      summary: Update a custom condition
+      description: Update an existing custom condition's name or parameter values.
+        Built-in conditions cannot be updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditableCondition'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Condition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteCondition
+      tags:
+      - Conditions
+      summary: Delete a custom condition
+      description: Delete a custom condition. Built-in conditions cannot be deleted.
+      responses:
+        '200':
+          description: OK
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/curation/waiver_requests:
+    post:
+      operationId: createWaiverRequest
+      tags:
+      - Waiver Requests
+      summary: Create a waiver request
+      description: Create a waiver request to unblock a package that was blocked by
+        a curation policy. The policy must have `waiver_request_config` set to `manual`
+        or `auto_approved`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WaiverRequestCreate'
+            example:
+              pkg_name: lodash
+              pkg_version: 4.17.21
+              pkg_type: npm
+              repo_key: remote-npm-repo
+              reason: Required for backward compatibility
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - message
+                - id
+                properties:
+                  message:
+                    type: string
+                    description: Success message.
+                  id:
+                    type: integer
+                    format: int64
+                    description: Unique identifier of the newly created waiver request.
+              example:
+                message: Successfully created waiver request
+                id: 42
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Permission denied.
+    get:
+      operationId: listWaiverRequests
+      tags:
+      - Waiver Requests
+      summary: List waiver requests
+      description: Get waiver requests for packages that were requested to be unblocked.
+      parameters:
+      - name: status
+        in: query
+        description: 'Filter by status. One of: `approved`, `rejected`, `pending`.'
+        schema:
+          type: string
+          enum:
+          - approved
+          - rejected
+          - pending
+          default: pending
+      - name: pkg_type
+        in: query
+        description: Filter by package type (e.g. `npm`, `pypi`).
+        schema:
+          type: string
+      - name: pkg_name
+        in: query
+        description: Filter by package name.
+        schema:
+          type: string
+      - name: pkg_version
+        in: query
+        description: Filter by package version.
+        schema:
+          type: string
+      - name: can_approve
+        in: query
+        description: When `true`, returns only waiver requests that the current user
+          has permission to approve.
+        schema:
+          type: boolean
+          default: false
+      - name: decision_owners
+        in: query
+        description: Comma-separated list of owner groups.
+        schema:
+          type: string
+      - $ref: '#/components/parameters/OrderBy'
+      - $ref: '#/components/parameters/Direction'
+      - $ref: '#/components/parameters/NumOfRows'
+      - $ref: '#/components/parameters/PageNum'
+      - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WaiverResponse'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              example:
+                data:
+                - id: 23
+                  status: approved
+                  created_at: '2025-12-26T14:05:57+05:30'
+                  closed_at: '2025-12-26T17:55:38+05:30'
+                  requesters:
+                  - user: admin
+                    email: admin@example.com
+                    requested_at: '2025-12-26T14:05:57+05:30'
+                    justification: needed for RND
+                meta:
+                  total_count: 1
+                  result_count: 1
+                  num_of_rows: 25
+                  page_num: 1
+        '403':
+          description: Permission denied.
+        '500':
+          description: Internal server error.
+  /api/v1/curation/audit/packages:
+    get:
+      operationId: getAuditPackages
+      tags:
+      - Audit
+      summary: Get approved/blocked audit logs
+      description: 'Export approved/blocked audit events for packages.
+
+
+        When `dry_run=false` (default), outputs real audit events. Each event
+
+        includes the non-dry-run policies that affected it (blocking, bypassed,
+
+        waived). This is what the UI shows on the *Blocked/Approved* tab.
+
+
+        When `dry_run=true`, outputs dry-run events — one per dry-run policy.
+
+        This is what the UI shows on the *Dry Run* tab.
+
+
+        When `format=csv`, the response is a ZIP file containing a CSV.
+
+        Pagination counts audit events, not CSV rows — each event may produce
+
+        multiple rows (one per policy).
+
+        '
+      parameters:
+      - name: order_by
+        in: query
+        description: 'Column to sort by. Default: `id`.'
+        schema:
+          type: string
+          default: id
+      - $ref: '#/components/parameters/Direction'
+      - name: num_of_rows
+        in: query
+        description: 'Maximum number of rows. Valid range: 1–2000 (JSON) or up to
+          500 000 (CSV).'
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+          maximum: 2000
+      - name: offset
+        in: query
+        description: Pagination offset.
+        schema:
+          type: integer
+          default: 0
+      - name: created_at_start
+        in: query
+        description: Start of the time range (RFC 3339). Defaults to 7 days ago.
+        schema:
+          type: string
+          format: date-time
+      - name: created_at_end
+        in: query
+        description: End of the time range (RFC 3339). Defaults to now.
+        schema:
+          type: string
+          format: date-time
+      - name: include_total
+        in: query
+        description: Include `total_count` in the response metadata. Not allowed when
+          `format=csv`.
+        schema:
+          type: boolean
+          default: false
+      - name: dry_run
+        in: query
+        description: When `false`, returns real (non-dry-run) audit events. When `true`,
+          returns dry-run events.
+        schema:
+          type: boolean
+          default: false
+      - name: format
+        in: query
+        description: Response format. `json` returns JSON; `csv` returns a ZIP file
+          containing a CSV.
+        schema:
+          type: string
+          enum:
+          - json
+          - csv
+          default: json
+      responses:
+        '200':
+          description: OK. When `format=json`, returns JSON. When `format=csv`, returns
+            a ZIP archive (`application/zip`).
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditPackageRecord'
+                  meta:
+                    $ref: '#/components/schemas/AuditPaginationMeta'
+              example:
+                data:
+                - id: 174
+                  created_at: '2023-08-30T05:45:52Z'
+                  action: blocked
+                  package_type: Docker
+                  package_name: pumevnezdiroorg/drupal
+                  package_version: latest
+                  package_url: https://registry-1.docker.io/v2/pumevnezdiroorg/drupal/manifests/latest
+                  reason: Policy violations
+                  event_origin: ''
+                  curated_repository_server_name: ''
+                  curated_repository_name: aviv-docker1
+                  curated_project: default
+                  username: admin
+                  user_mail: ''
+                  origin_repository_server_name: z0curdocktest
+                  origin_repository_name: aviv-docker1
+                  origin_project: default
+                  public_repo_url: https://registry-1.docker.io
+                  public_repo_name: Docker Hub
+                  policies:
+                  - policy_name: onlyOffical
+                    policy_id: 3
+                    dry_run: false
+                    condition_name: Image is not Docker Hub official
+                    condition_category: operational
+                meta:
+                  total_count: 174
+                  result_count: 1
+                  next_offset: 1
+                  order_by: id
+                  direction: desc
+                  num_of_rows: 1
+                  offset: 0
+                  include_total: true
+                  include_explanation_and_recommendation: false
+                  created_at_start: '2023-08-23T05:48:32Z'
+                  created_at_end: '2023-08-30T05:48:32Z'
+            application/zip:
+              schema:
+                type: string
+                format: binary
+                description: ZIP archive containing `audit_packages.csv` (or `audit_packages_incomplete.csv`
+                  if the data exceeds 500 000 events).
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    PolicyId:
+      name: policy_id
+      in: path
+      required: true
+      description: Unique identifier of the policy.
+      schema:
+        type: string
+    ConditionId:
+      name: condition_id
+      in: path
+      required: true
+      description: Unique identifier of the condition.
+      schema:
+        type: string
+    OrderBy:
+      name: order_by
+      in: query
+      description: Field used for sorting. Supported values depend on the endpoint;
+        common values are `id` and `updated_at`.
+      schema:
+        type: string
+        default: updated_at
+    Direction:
+      name: direction
+      in: query
+      description: 'Sorting direction: `asc` or `desc`.'
+      schema:
+        type: string
+        enum:
+        - asc
+        - desc
+        default: desc
+    NumOfRows:
+      name: num_of_rows
+      in: query
+      description: Number of rows per page.
+      schema:
+        type: integer
+        default: 15
+    PageNum:
+      name: page_num
+      in: query
+      description: Page number (1-based).
+      schema:
+        type: integer
+        default: 1
+    Offset:
+      name: offset
+      in: query
+      description: Alternative to `page_num` — pagination offset (0-based).
+      schema:
+        type: integer
+        default: 0
+  responses:
+    BadRequest:
+      description: Bad request — validation error or invalid parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    PolicyAction:
+      type: string
+      enum:
+      - block
+      - dry_run
+      description: '`block` — non-compliant packages are blocked from download. `dry_run`
+        — only audit logs are accumulated; packages are not blocked.'
+    WaiverRequestConfig:
+      type: string
+      enum:
+      - forbidden
+      - manual
+      - auto_approved
+      description: "Controls waiver request behaviour for the policy:\n- `forbidden`\
+        \ — waiver requests cannot be created.\n- `manual` — waiver requests require\
+        \ approval by one of the\n  `decision_owners` groups.\n- `auto_approved` —\
+        \ waiver requests are automatically approved on\n  creation.\n"
+    PolicyScope:
+      type: string
+      enum:
+      - all_repos
+      - specific_repos
+      - pkg_types
+      description: "Determines which repositories the policy applies to:\n- `all_repos`\
+        \ — all curated repositories, optionally excluding those\n  in `repo_exclude`.\n\
+        - `specific_repos` — only the repositories listed in `repo_include`.\n- `pkg_types`\
+        \ — all curated repositories whose package type is in\n  `pkg_types_include`.\n"
+    RiskType:
+      type: string
+      enum:
+      - security
+      - legal
+      - operational
+    PackageType:
+      type: string
+      enum:
+      - npm
+      - PyPI
+      - Maven
+      - Go
+      - NuGet
+      - Conan
+      - Gems
+      - Gradle
+      - HuggingFaceML
+      - Docker
+      description: Supported package types. Additional types may be added in the future.
+    EditablePolicy:
+      type: object
+      required:
+      - name
+      - scope
+      - policy_action
+      - condition_id
+      - waiver_request_config
+      description: Mutable fields of a policy, used for create and update operations.
+      properties:
+        enabled:
+          type: boolean
+          description: Automatically `true` on creation. Automatically set to `false`
+            if the policy's effective scope becomes empty (e.g. the only covered repo
+            is deleted). Can be set to `true` on update if the effective scope is
+            non-empty.
+        name:
+          type: string
+          description: Name of the policy.
+        scope:
+          $ref: '#/components/schemas/PolicyScope'
+        policy_action:
+          $ref: '#/components/schemas/PolicyAction'
+        condition_id:
+          type: string
+          description: ID of the condition used by this policy.
+        pkg_types_include:
+          type: array
+          items:
+            $ref: '#/components/schemas/PackageType'
+          description: 'Used with `scope: pkg_types`. Lists the package types the
+            policy applies to.'
+        repo_include:
+          type: array
+          items:
+            type: string
+          description: 'Used with `scope: specific_repos`. Lists repository keys the
+            policy applies to.'
+        repo_exclude:
+          type: array
+          items:
+            type: string
+          description: 'Used with `scope: all_repos`. Lists repository keys to exclude.'
+        group_include:
+          type: array
+          items:
+            type: string
+          description: Groups to include in the policy scope.
+        group_exclude:
+          type: array
+          items:
+            type: string
+          description: Groups to exclude from the policy scope.
+        waivers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PackageWaiver'
+          description: List of package-level waivers.
+        label_waivers:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabelWaiver'
+          description: List of label-based waivers.
+        notify_emails:
+          type: array
+          items:
+            type: string
+            format: email
+          description: Email addresses notified when the policy blocks a package.
+        decision_owners:
+          type: array
+          items:
+            type: string
+          description: 'JFrog Access groups whose members can approve waiver requests.
+            Used with `waiver_request_config: manual`.'
+        waiver_request_config:
+          $ref: '#/components/schemas/WaiverRequestConfig'
+        block_from_cache:
+          type: boolean
+          description: When `true`, the policy also blocks packages served from Artifactory's
+            cache.
+        share_with_federation:
+          type: boolean
+          description: When `true`, the policy is shared across federated instances.
+            Only allowed for `all_repos` or `pkg_types` scopes.
+    Policy:
+      description: A curation policy with all read-only metadata and the inlined condition.
+      allOf:
+      - type: object
+        required:
+        - id
+        - created_by
+        - updated_by
+        - created_at
+        - updated_at
+        properties:
+          id:
+            type: string
+            description: Unique policy identifier.
+          created_by:
+            type: string
+            description: Username of the user who created the policy.
+          updated_by:
+            type: string
+            description: Username of the user who last updated the policy.
+          created_at:
+            type: string
+            format: date-time
+            description: Timestamp when the policy was created.
+          updated_at:
+            type: string
+            format: date-time
+            description: Timestamp when the policy was last updated.
+          condition:
+            $ref: '#/components/schemas/Condition'
+            description: The condition used by the policy, inlined for convenience.
+      - $ref: '#/components/schemas/EditablePolicy'
+    PackageWaiver:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Waiver ID. Must be sent in PUT requests to retain an existing
+            waiver. Omit when creating a new waiver.
+        pkg_type:
+          $ref: '#/components/schemas/PackageType'
+        pkg_name:
+          type: string
+          description: Package name from Catalog.
+        all_versions:
+          type: boolean
+          description: Set to `true` to waive all versions of the package.
+        pkg_versions:
+          type: array
+          items:
+            type: string
+          description: Specific versions to waive. Used when `all_versions` is `false`.
+        justification:
+          type: string
+          description: Reason for creating the waiver.
+        created_by:
+          type: string
+          readOnly: true
+          description: Username of the creator.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the waiver was created.
+    LabelWaiver:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Label waiver ID. Must be sent in PUT requests to retain an
+            existing waiver. Omit when creating a new waiver.
+        label:
+          type: string
+          description: A label from the Catalog.
+        justification:
+          type: string
+          description: Reason for creating the waiver.
+        created_by:
+          type: string
+          readOnly: true
+          description: Username of the creator.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the waiver was created.
+    EditableCondition:
+      type: object
+      required:
+      - name
+      description: Mutable fields for creating or updating a custom condition. `condition_template_id`
+        is required when creating a new condition but absent on built-in conditions.
+      properties:
+        condition_template_id:
+          type: string
+          description: Template ID from the List Condition Templates endpoint.
+        name:
+          type: string
+          description: Display name for the condition.
+        param_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParamValue'
+          description: Parameter values required by the condition template.
+    Condition:
+      description: A condition (built-in or custom).
+      allOf:
+      - type: object
+        required:
+        - id
+        - is_custom
+        - risk_type
+        - supported_pkg_types
+        properties:
+          id:
+            type: string
+            description: Unique condition identifier.
+          is_custom:
+            type: boolean
+            description: '`false` for built-in immutable conditions, `true` for user-created
+              custom conditions.'
+          created_by:
+            type: string
+            description: Username of the creator (custom conditions only).
+          created_at:
+            type: string
+            format: date-time
+          updated_by:
+            type: string
+            description: Username of the last updater (custom conditions only).
+          updated_at:
+            type: string
+            format: date-time
+          risk_type:
+            $ref: '#/components/schemas/RiskType'
+          supported_pkg_types:
+            type: array
+            items:
+              $ref: '#/components/schemas/PackageType'
+          on_demand:
+            type: boolean
+            description: Whether the condition is evaluated on-demand rather than
+              proactively.
+      - $ref: '#/components/schemas/EditableCondition'
+    ConditionTemplate:
+      type: object
+      required:
+      - condition_template_id
+      - name
+      - risk_type
+      - supported_pkg_types
+      - params
+      properties:
+        condition_template_id:
+          type: string
+          description: Unique template identifier (e.g. `CVECVSSRange`, `isImmature`).
+        name:
+          type: string
+          description: Human-readable template name.
+        risk_type:
+          $ref: '#/components/schemas/RiskType'
+        supported_pkg_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/PackageType'
+          description: Package types that conditions created from this template can
+            support. A custom condition may use a subset.
+        params:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConditionTemplateParam'
+    ConditionTemplateParam:
+      type: object
+      required:
+      - param_id
+      properties:
+        param_id:
+          type: string
+          description: Parameter identifier.
+        is_optional:
+          type: boolean
+          description: If `true`, the parameter is optional when creating a condition
+            from this template. If absent, the parameter is required.
+    ParamValue:
+      type: object
+      required:
+      - param_id
+      - value
+      properties:
+        param_id:
+          type: string
+          description: A `param_id` that is valid for the condition's `condition_template_id`.
+        value:
+          $ref: '#/components/schemas/ParamValueVariant'
+    ParamValueVariant:
+      description: 'The value type depends on the `param_id`:
+
+
+        | param_id | Type | Example |
+
+        |----------|------|---------|
+
+        | `vulnerability_cvss_score_range` | array of 2 numbers (0–10) | `[7.0, 10]`
+        |
+
+        | `vulnerability_cvss_score` | number (0–10) | `7.0` |
+
+        | `package_age_days` | integer (0–100) | `14` |
+
+        | `cve_name` | string | `"CVE-2025-12345"` |
+
+        | `apply_only_if_fix_is_available` | boolean | `true` |
+
+        | `do_not_apply_for_already_existing_vulnerabilities` | boolean | `false`
+        |
+
+        | `block_in_case_check_value_is_missing` | boolean | `true` |
+
+        | `multiple_license_permissive_approach` | boolean | `true` |
+
+        | `list_of_package_licenses` | array of strings | `["MIT", "Apache-2.0"]`
+        |
+
+        | `list_of_labels` | array of strings | `["Manual", "Approved"]` |
+
+        | `list_of_scorecard_checks` | array of objects | `[{"checkName": "Maintained",
+        "checkValue": 5}]` |
+
+        | `epss` | object | `{"field_name": "score", "value": 0.5}` |
+
+        | `package_versions` | object (version range) | `{"gte": "3.6.1", "lt": "3.7.1"}`
+        |
+
+        | `package_type` | string | `"npm"` |
+
+        | `package_name` | string | `"lodash"` |
+
+        '
+      oneOf:
+      - type: number
+        title: NumericValue
+        description: Used for `vulnerability_cvss_score`, `package_age_days`, `vulnerability_cvss_score_range`
+          element.
+      - type: boolean
+        title: BooleanValue
+        description: Used for `apply_only_if_fix_is_available`, `do_not_apply_for_already_existing_vulnerabilities`,
+          `block_in_case_check_value_is_missing`, `multiple_license_permissive_approach`.
+      - type: string
+        title: StringValue
+        description: Used for `cve_name`, `package_type`, `package_name`.
+      - type: array
+        title: NumberArrayValue
+        description: Used for `vulnerability_cvss_score_range`. Array of exactly two
+          numbers, each between 0 and 10.
+        items:
+          type: number
+      - type: array
+        title: StringArrayValue
+        description: Used for `list_of_package_licenses`, `list_of_labels`.
+        items:
+          type: string
+      - type: array
+        title: ScorecardChecksArray
+        description: Used for `list_of_scorecard_checks`.
+        items:
+          $ref: '#/components/schemas/ScorecardCheck'
+      - $ref: '#/components/schemas/EpssValue'
+      - $ref: '#/components/schemas/PackageVersionRange'
+    ScorecardCheck:
+      type: object
+      required:
+      - checkName
+      - checkValue
+      properties:
+        checkName:
+          type: string
+          description: 'One of the OpenSSF scorecard checks: `Aggregated score`, `Binary-Artifacts`,
+            `Branch-Protection`, `CII-Best-Practices`, `Code-Review`, `Dangerous-Workflow`,
+            `Fuzzing`, `License`, `Maintained`, `Packaging`, `Pinned-Dependencies`,
+            `SAST`, `Security-Policy`, `Signed-Releases`, `Token-Permissions`, `Vulnerabilities`.'
+          enum:
+          - Aggregated score
+          - Binary-Artifacts
+          - Branch-Protection
+          - CII-Best-Practices
+          - Code-Review
+          - Dangerous-Workflow
+          - Fuzzing
+          - License
+          - Maintained
+          - Packaging
+          - Pinned-Dependencies
+          - SAST
+          - Security-Policy
+          - Signed-Releases
+          - Token-Permissions
+          - Vulnerabilities
+        checkValue:
+          type: number
+          description: Score threshold (0–10, exclusive). Integer for individual checks;
+            one decimal place allowed for `Aggregated score`.
+    EpssValue:
+      type: object
+      title: EpssValue
+      description: Used for the `epss` parameter. Filters by EPSS score or percentile.
+      required:
+      - field_name
+      - value
+      properties:
+        field_name:
+          type: string
+          enum:
+          - score
+          - percentile
+          description: '`score` (0–1, exclusive) or `percentile` (0–100, exclusive).'
+        value:
+          type: number
+          description: Threshold value. Range depends on `field_name`.
+    PackageVersionRange:
+      type: object
+      title: PackageVersionRange
+      description: 'Used for the `package_versions` parameter. Specifies which versions
+
+        to match. Exactly one of the following patterns:
+
+        - `{"in": ["3.6.1", "3.7.1"]}` — exact list
+
+        - `{"gt": "3.6.1"}` or `{"gte": "3.6.1"}` — greater than
+
+        - `{"lt": "3.7.1"}` or `{"lte": "3.7.1"}` — less than
+
+        - Combinations of `gt`/`gte` with `lt`/`lte` — range
+
+        - `{"any": ""}` — all versions
+
+        '
+      properties:
+        in:
+          type: array
+          items:
+            type: string
+          description: Exact list of versions.
+        gt:
+          type: string
+          description: Greater than (exclusive).
+        gte:
+          type: string
+          description: Greater than or equal.
+        lt:
+          type: string
+          description: Less than (exclusive).
+        lte:
+          type: string
+          description: Less than or equal.
+        any:
+          type: string
+          description: Set to empty string `""` to match all versions.
+    WaiverRequestCreate:
+      type: object
+      required:
+      - pkg_type
+      - pkg_name
+      - pkg_version
+      - reason
+      properties:
+        pkg_type:
+          type: string
+          description: Package type (e.g. `npm`, `pypi`, `maven`).
+        pkg_name:
+          type: string
+          description: Name of the package.
+        pkg_version:
+          type: string
+          description: Version of the package.
+        repo_key:
+          type: string
+          description: Repository key where the package was blocked.
+        reason:
+          type: string
+          description: Justification for the waiver request.
+    WaiverResponse:
+      type: object
+      required:
+      - id
+      - status
+      - created_at
+      - requesters
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique waiver request identifier.
+        status:
+          type: string
+          enum:
+          - pending
+          - approved
+          - rejected
+          description: Current status of the waiver request.
+        created_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+          description: Timestamp when the request was approved or rejected. Absent
+            while pending.
+        requesters:
+          type: array
+          description: Users who requested this waiver.
+          items:
+            $ref: '#/components/schemas/WaiverRequester'
+    WaiverRequester:
+      type: object
+      required:
+      - user
+      - requested_at
+      - justification
+      properties:
+        user:
+          type: string
+          description: Username.
+        email:
+          type: string
+          format: email
+        requested_at:
+          type: string
+          format: date-time
+        justification:
+          type: string
+    AuditPackageRecord:
+      type: object
+      required:
+      - id
+      - created_at
+      - action
+      properties:
+        id:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+        action:
+          type: string
+          enum:
+          - blocked
+          - approved
+          description: Whether the package was blocked or approved.
+        package_type:
+          type: string
+        package_name:
+          type: string
+        package_version:
+          type: string
+        package_url:
+          type: string
+          format: uri
+        reason:
+          type: string
+          description: Human-readable reason (e.g. `Policy violations`).
+        event_origin:
+          type: string
+        curated_repository_server_name:
+          type: string
+        curated_repository_name:
+          type: string
+        curated_project:
+          type: string
+        username:
+          type: string
+          description: User who triggered the download.
+        user_mail:
+          type: string
+        origin_repository_server_name:
+          type: string
+        origin_repository_name:
+          type: string
+        origin_project:
+          type: string
+        public_repo_url:
+          type: string
+          format: uri
+        public_repo_name:
+          type: string
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditPackagePolicy'
+    AuditPackagePolicy:
+      type: object
+      properties:
+        policy_name:
+          type: string
+        policy_id:
+          type: integer
+          format: int64
+        dry_run:
+          type: boolean
+        result:
+          type: string
+        condition_name:
+          type: string
+        condition_category:
+          type: string
+          description: Risk type of the condition (e.g. `security`, `operational`).
+        policy_reason:
+          type: string
+          description: Detailed reason for the policy decision.
+        explanation:
+          type: string
+          description: Additional explanation (when available).
+        remediation:
+          type: string
+          description: Suggested remediation steps (may contain HTML).
+    PaginationMeta:
+      type: object
+      properties:
+        total_count:
+          type: integer
+          description: Total objects matching the filter. May be absent if not requested.
+        result_count:
+          type: integer
+          description: Number of objects in this page.
+        order_by:
+          type: string
+        direction:
+          type: string
+          enum:
+          - asc
+          - desc
+        num_of_rows:
+          type: integer
+        page_num:
+          type: integer
+    AuditPaginationMeta:
+      type: object
+      description: Extended pagination metadata for audit endpoints.
+      properties:
+        total_count:
+          type: integer
+          description: Total matching events. Only present when `include_total=true`.
+        result_count:
+          type: integer
+        next_offset:
+          type:
+          - integer
+          - 'null'
+          description: Offset for the next page, or `null` if no more results.
+        order_by:
+          type: string
+        direction:
+          type: string
+          enum:
+          - asc
+          - desc
+        num_of_rows:
+          type: integer
+        offset:
+          type: integer
+        include_total:
+          type: boolean
+        include_explanation_and_recommendation:
+          type: boolean
+        created_at_start:
+          type: string
+          format: date-time
+        created_at_end:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message.

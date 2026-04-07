@@ -1,0 +1,275 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Global Roles API
+  description: 'Custom global role management APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** Unless otherwise specified, all APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Global Roles
+  description: APIs for creating, editing, deleting, and listing global roles in the
+    JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/roles:
+    post:
+      tags:
+      - Global Roles
+      summary: Create a Custom Global Role
+      description: 'Create a new custom global role.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createGlobalRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalRoleCreate'
+      responses:
+        '201':
+          description: Role created. The response body is JSON with `code` (e.g. OK),
+            `message`, and optionally `detail`.
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '409':
+          description: Conflict - Role already exists
+    get:
+      tags:
+      - Global Roles
+      summary: Get All Global Roles
+      description: 'Get all global roles. The response includes predefined roles and
+        custom
+
+        global roles.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: getAllGlobalRoles
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GlobalRole'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/roles/{role}:
+    get:
+      tags:
+      - Global Roles
+      summary: Get a Global Role
+      description: 'Get a specific global role by name. Roles may be predefined or
+        custom.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getGlobalRole
+      parameters:
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The role name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalRole'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Role not found
+    put:
+      tags:
+      - Global Roles
+      summary: Edit a Global Role
+      description: 'Update an existing global role.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateGlobalRole
+      parameters:
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The role name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalRoleUpdate'
+      responses:
+        '200':
+          description: Role updated successfully.
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Role not found
+    delete:
+      tags:
+      - Global Roles
+      summary: Delete a Custom Global Role
+      description: 'Delete a custom global role.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteGlobalRole
+      parameters:
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The role name
+      responses:
+        '204':
+          description: Role deleted
+        '400':
+          description: Bad Request - Invalid request
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Role not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    GlobalRoleType:
+      type: string
+      description: Type for roles returned by this API. ADMIN is the Project Admin
+        role; PREDEFINED is other built-in roles (e.g. Viewer); CUSTOM_GLOBAL is a
+        user-defined global role. On PUT, the value must match the role's current
+        type (the server rejects type changes).
+      enum:
+      - ADMIN
+      - PREDEFINED
+      - CUSTOM_GLOBAL
+    GlobalRole:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Role name
+        description:
+          type: string
+          description: Role description
+        type:
+          $ref: '#/components/schemas/GlobalRoleType'
+        environments:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          description: Permission actions as enum constant names (e.g. READ_REPOSITORY,
+            MANAGE_MEMBERS).
+          items:
+            type: string
+    GlobalRoleCreate:
+      type: object
+      required:
+      - name
+      - type
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+          - CUSTOM_GLOBAL
+          description: Must be CUSTOM_GLOBAL. This endpoint creates custom global
+            roles only.
+        environments:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          items:
+            type: string
+    GlobalRoleUpdate:
+      type: object
+      description: Request body matches the Role resource model. `name` must match
+        the `{role}` path segment. `type` must match the role's current type (unchanged
+        on edit). Other fields are optional; send `description`, `environments`, and
+        `actions` only when updating those aspects.
+      required:
+      - name
+      - type
+      properties:
+        name:
+          type: string
+          description: Role name; typically matches the `{role}` path parameter.
+        description:
+          type: string
+        type:
+          $ref: '#/components/schemas/GlobalRoleType'
+        environments:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          description: Permission actions as enum constant names (e.g. READ_REPOSITORY,
+            MANAGE_MEMBERS).
+          items:
+            type: string
+x-readme:
+  explorer-enabled: false

@@ -1,0 +1,2757 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Security API
+  description: "REST API for managing security settings in JFrog Artifactory, including\
+    \ users, permissions, API keys, GPG keys, certificates, and encryption. \n\nNote\
+    \ - From Artifactory release 7.49.3, the security APIs are being decoupled from\
+    \ Artifactory and moving to JFrog Platform Access. This means that the security\
+    \ APIs below are planned to be deprecated at a later stage. We recommend using\
+    \ the available new APIs for all your security and access needs moving forward.\n"
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Users
+  description: User management operations
+- name: Permissions
+  description: Permission target management operations
+- name: API Keys
+  description: API key management operations
+- name: GPG Keys
+  description: Basic GPG key management operations
+- name: GPG Trusted Keys
+  description: Distribution GPG trusted key management operations
+- name: GPG Key Pairs
+  description: GPG key pair management for signing operations
+- name: Certificates
+  description: Certificate management operations
+- name: Encryption
+  description: Encryption management operations
+- name: User Lock Policy
+  description: User lock policy management operations
+- name: Password Management
+  description: Password management operations
+paths:
+  /security/users/{userName}:
+    get:
+      tags:
+      - Users
+      summary: Get User Details
+      description: "Get the details of an Artifactory user.\n\nSince: 2.4.0\n\nNotes:\
+        \ Requires Artifactory Pro. \n\nSecurity: Requires an admin user"
+      operationId: getUserDetails
+      parameters:
+      - name: userName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the user
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserConfiguration'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/encryptedPassword:
+    get:
+      tags:
+      - Password Management
+      summary: Get User Encrypted Password
+      description: "Get the encrypted password of the authenticated requestor. \n\n\
+        The request needs to be authenticated using a clear-text password. If you\
+        \ authenticate with an API key, the encrypted API key will be returned in\
+        \ the response.\n\nSince: 3.3.0\n\nSecurity: Requires a privileged user"
+      operationId: getUserEncryptedPassword
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/users/authorization/expirePassword:
+    post:
+      tags:
+      - Password Management
+      summary: Expire Password for Multiple Users
+      description: 'Expires password for a list of users
+
+
+        Since: 4.4.2
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires an admin user'
+      operationId: expirePasswordForMultipleUsers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+              description: List of user names
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/users/authorization/unexpirePassword/{userName}:
+    post:
+      tags:
+      - Password Management
+      summary: Unexpire Password for a Single User
+      description: "Unexpires a user's password. \n\nArtifactory REST API Future Breaking\
+        \ Change: In an upcoming release of Artifactory, JFrog will expire the \"\
+        Unexpire Password for a Single User\" endpoint from the Artifactory REST APIs\
+        \ and the UI that goes with it (once API v1 is fully deprecated). This means\
+        \ this API will not available in Artifactory REST API V2.\n\nSince: 4.4.2\n\
+        \nNotes: Requires Artifactory Pro\n\nSecurity: Requires an admin user"
+      operationId: unexpirePasswordForSingleUser
+      parameters:
+      - name: userName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the user
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/userLockPolicy:
+    get:
+      tags:
+      - User Lock Policy
+      summary: Retrieve User Lock Policy
+      description: 'Returns the currently configured user lock policy.
+
+
+        Since: 4.4
+
+
+        Security: Requires a valid admin user'
+      operationId: getUserLockPolicy
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  loginAttempts:
+                    type: integer
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - User Lock Policy
+      summary: Configure User Lock Policy
+      description: 'Configures the user lock policy that locks users out of their
+        account if the number of repeated incorrect login attempts exceeds the configured
+        maximum allowed.
+
+
+        Since: 4.4
+
+
+        Security: Requires a valid admin user'
+      operationId: configureUserLockPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - enabled
+              - loginAttempts
+              properties:
+                enabled:
+                  type: boolean
+                  description: Enable or disable the user lock policy
+                loginAttempts:
+                  type: integer
+                  description: The maximum number of login attempts allowed
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/lockedUsers:
+    get:
+      tags:
+      - User Lock Policy
+      summary: Get Locked Out Users
+      description: 'If locking out users is enabled, lists all users that were locked
+        out due to recurrent incorrect login attempts.
+
+
+        Since: 4.4
+
+
+        Security: Requires a valid admin user'
+      operationId: getLockedOutUsers
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/unlockUsers:
+    post:
+      tags:
+      - User Lock Policy
+      summary: Unlock Locked-Out Users
+      description: 'Unlocks a list of users that were locked out due to recurrent
+        incorrect login attempts.
+
+
+        Since: 4.4
+
+
+        Security: Requires a valid admin user'
+      operationId: unlockLockedOutUsers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+              description: List of user names
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/unlockAllUsers:
+    post:
+      tags:
+      - User Lock Policy
+      summary: Unlock All Locked Out Users
+      description: 'Unlocks all users that were locked out due to recurrent incorrect
+        login attempts.
+
+
+        Since: 4.4
+
+
+        Security: Requires a valid admin user'
+      operationId: unlockAllLockedOutUsers
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/configuration/passwordExpirationPolicy:
+    get:
+      tags:
+      - Password Management
+      summary: Get Password Expiration Policy
+      description: 'Returns the password expiration policy
+
+
+        Since: 4.4.2
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires an admin user'
+      operationId: getPasswordExpirationPolicy
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: string
+                  passwordMaxAge:
+                    type: string
+                  notifyByEmail:
+                    type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - Password Management
+      summary: Set Password Expiration Policy
+      description: 'Sets the password expiration policy
+
+
+        Since: 4.4.2
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires an admin user'
+      operationId: setPasswordExpirationPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: string
+                  enum:
+                  - 'true'
+                  - 'false'
+                passwordMaxAge:
+                  type: string
+                  description: Password max age (1-999)
+                notifyByEmail:
+                  type: string
+                  enum:
+                  - 'true'
+                  - 'false'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/apiKey:
+    post:
+      tags:
+      - API Keys
+      summary: Create API Key
+      description: 'Create an API key for the current user. Returns an error if API
+        key already exists - use regenerate API key instead.
+
+
+        Since: 4.3.0'
+      operationId: createApiKey
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey:
+                    type: string
+        '400':
+          description: Bad Request - API key already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - API Keys
+      summary: Regenerate API Key
+      description: 'Regenerate an API key for the current user
+
+
+        Since: 4.3.0'
+      operationId: regenerateApiKey
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey:
+                    type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - API Keys
+      summary: Get API Key
+      description: 'Get the current user''s own API key
+
+
+        Since: 4.3.0'
+      operationId: getApiKey
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey:
+                    type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - API key does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - API Keys
+      summary: Revoke API Key
+      description: 'Revokes the current user''s API key or all API keys currently
+        defined in the system.
+
+
+        Since: 4.3.0'
+      operationId: revokeApiKey
+      parameters:
+      - name: deleteAll
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: When set to 1, revokes all API keys currently defined in the
+          system. Requires admin privileges.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/apiKey/{username}:
+    delete:
+      tags:
+      - API Keys
+      summary: Revoke User API Key
+      description: 'Revokes the API key of another user.
+
+
+        Since: 4.3.0
+
+
+        Security: Requires a privileged user (Admin only)'
+      operationId: revokeUserApiKey
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the user
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/permissions:
+    get:
+      tags:
+      - Permissions
+      summary: Get Permission Targets
+      description: 'Get the permission targets list
+
+
+        Since: 2.4.0
+
+
+        Notes: Requires Artifactory Pro. To support spaces in the User or Group or
+        Permission names, a Plus symbol (+) is automatically placed when there is
+        a space. This is set by default as the artifactory.
+
+
+        Security: Requires an admin user'
+      operationId: getPermissionTargets
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    uri:
+                      type: string
+                      format: uri
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/permissions/{permissionTargetName}:
+    get:
+      tags:
+      - Permissions
+      summary: Get Permission Target Details
+      description: "Returns the details of an Artifactory Permission Target\n\nSince:\
+        \ 2.4.0\n\nNotes: Requires Artifactory Pro. \n\nSecurity: Requires an admin\
+        \ user"
+      operationId: getPermissionTargetDetails
+      parameters:
+      - name: permissionTargetName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the permission target
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - Permissions
+      summary: Create or Replace Permission Target
+      description: "Creates a new permission target in the JFrog Unified Platform\
+        \ or replaces an existing permission target\n\nSince: 2.4.0\n\nNotes: Requires\
+        \ Artifactory Pro. \n\n- Missing values will be set to the default values\
+        \ as defined by the consumed type.\n\n- Please note when adding Release Bundles\
+        \ permission targets\n\n- Requires an Edge/Enterprise+ license\n\nOn Edge\
+        \ nodes, the repositories section in the request body can be left empty or\
+        \ contain the ‘release-bundles’ default repository. No other repositories\
+        \ are allowed. An Enterprise+ license allows you to add any repository\n\n\
+        The default repository in the repository section is “release-bundles” for\
+        \ both Edge/EntPlus licenses. (if user create permission target with empty\
+        \ repositories section the repository that we put is “release bundles”)\n\n\
+        - To support spaces in the User or Group or Permission names, a Plus symbol\
+        \ (+) is automatically placed when there is a space. This is set by default\
+        \ as the artifactory.\n\nsecurity.api.plus.insteadof.space property is set\
+        \ to true. If you want to use the + (plus) symbol, set the artifactory.security.api.plus.insteadof.space\
+        \ to false.\n\nSecurity: Requires an admin user"
+      operationId: createOrReplacePermissionTarget
+      parameters:
+      - name: permissionTargetName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the permission target
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - repositories
+              properties:
+                name:
+                  type: string
+                  description: The name of the permission target
+                includesPattern:
+                  type: string
+                  description: A regex pattern that defines which repositories to
+                    include in this permission. The default is "**" (all).
+                excludesPattern:
+                  type: string
+                  description: A regex pattern that defines which repositories to
+                    explicitly exclude from this permission. The default is "" (none).
+                repositories:
+                  type: array
+                  items:
+                    type: string
+                  description: Defines the local and remote repositories included
+                    as resources for this permission. Note - Virtual repositories
+                    are not supported.
+                principals:
+                  type: object
+                  properties:
+                    users:
+                      type: object
+                      additionalProperties:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                          - m
+                          - d
+                          - w
+                          - n
+                          - r
+                          - mxm
+                          - x
+                      description: Permissions are set/returned according to the following
+                        conventions m=admin; d=delete; w=deploy; n=annotate; r=read;
+                        mxm=managedXrayMeta; x=distribute
+                    groups:
+                      type: object
+                      additionalProperties:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                          - m
+                          - d
+                          - w
+                          - n
+                          - r
+                          - mxm
+                          - x
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Permissions
+      summary: Delete Permission Target
+      description: "Deletes an Artifactory permission target.\n\nSince: 2.4.0\n\n\
+        Notes: Requires Artifactory Pro. \n\n- To support spaces in the User or Group\
+        \ or Permission names, a Plus symbol (+) is automatically placed when there\
+        \ is a space. This is set by default as the artifactory.security.api.plus.insteadof.space\
+        \ property is set to true. If you want to use the + (plus) symbol, set the\
+        \ artifactory.security.api.plus.insteadof.space to false.\n\nSecurity: Requires\
+        \ an admin user"
+      operationId: deletePermissionTarget
+      parameters:
+      - name: permissionTargetName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the permission target
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /gpg/key/public:
+    put:
+      tags:
+      - GPG Keys
+      summary: Set GPG Public Key
+      description: "Sets the default public GPG key that Artifactory provides to Debian,\
+        \ RPM, and Opkg clients to verify packages.\n\nSince: 3.3\n\nNotes: Requires\
+        \ Artifactory Pro. \n\nNote that when the GPG key is provided as part of the\
+        \ JSON payload and not in the request header, you need to add the --data-binary\
+        \ flag to the call.\n\nSecurity: Requires an admin user"
+      operationId: setGpgPublicKey
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: The GPG public key content
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - GPG Keys
+      summary: Get GPG Public Key
+      description: 'Returns the public key that Artifactory provides to Debian and
+        Opkg clients to verify packages
+
+
+        Since: 3.3
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires an authenticated user, or anonymous (if "Anonymous Access"
+        is globally enabled)'
+      operationId: getGpgPublicKey
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /gpg/key/private:
+    put:
+      tags:
+      - GPG Keys
+      summary: Set GPG Private Key
+      description: 'Sets the default private GPG key that Artifactory uses to sign
+        Debian, RPM, and ipk (Opkg) packages.
+
+
+        Since: 3.3
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Note that when the GPG key is provided as part of the JSON payload and not
+        in the request header, you need to add the --data-binary flag to the call.
+
+
+        Security: Requires an admin user'
+      operationId: setGpgPrivateKey
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: The GPG private key content
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /gpg/passphrase:
+    put:
+      tags:
+      - GPG Keys
+      summary: Set GPG Pass Phrase
+      description: 'Sets the pass phrase required signing Debian and ipk packages
+        using the private key
+
+
+        Since: 3.3
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires an admin user'
+      operationId: setGpgPassPhrase
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: The pass phrase for the GPG private key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /gpg/keys/trusted:
+    post:
+      tags:
+      - GPG Trusted Keys
+      summary: Set Distribution Public GPG Key
+      description: 'Sets the public preconfigured GPG key of a JFrog Distribution
+        service that needs to upload Release Bundles to a source Artifactory and Edge
+        node. The GPG public key will be uploaded under Trusted Keys in the source
+        Artifactory and Edge node.
+
+
+        Since: 6.0
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Note that when the public GPG key is provided as part of the JSON payload
+        and not in the request header, you need to add the --data-binary flag to the
+        call.
+
+
+        Security: Requires an admin user'
+      operationId: setDistributionPublicGpgKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - alias
+              - public_key
+              properties:
+                alias:
+                  type: string
+                  description: The alias for the key
+                public_key:
+                  type: string
+                  description: The GPG public key in PGP format
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kid:
+                    type: string
+                  fingerprint:
+                    type: string
+                  key:
+                    type: string
+                  issued_on:
+                    type: string
+                    format: date-time
+                  issued_by:
+                    type: string
+                  valid_until:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/keypair:
+    post:
+      tags:
+      - GPG Key Pairs
+      summary: Create Key Pair
+      description: 'Creates a new key pair in Artifactory or replaces an existing
+        pair.
+
+
+        Since: 7.6.0
+
+
+        Notes: Requires Artifactory Pro
+
+
+        You need to add the --data-binary flag to the call when the keys are provided
+        as part of the JSON payload.
+
+
+        Security: Requires an admin user'
+      operationId: createKeyPair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - pairName
+              - pairType
+              - alias
+              - privateKey
+              - publicKey
+              properties:
+                pairName:
+                  type: string
+                  description: The name of the key pair (mandatory)
+                pairType:
+                  type: string
+                  enum:
+                  - RSA
+                  - GPG
+                  description: The type of key pair (mandatory)
+                alias:
+                  type: string
+                  description: The alias for the key pair (mandatory)
+                privateKey:
+                  type: string
+                  description: The private key in PEM format (mandatory)
+                publicKey:
+                  type: string
+                  description: The public key in PEM format (mandatory)
+                passphrase:
+                  type: string
+                  description: The passphrase for the private key
+                vaultKey:
+                  type: string
+                  description: Vault key identifier
+                vaultPublicKey:
+                  type: object
+                  description: Vault public key configuration
+                  properties:
+                    path:
+                      type: string
+                    key:
+                      type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - GPG Key Pairs
+      summary: Get All Key Pairs
+      description: 'Returns details of all the key pairs.
+
+
+        Since: 7.19
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires an admin user'
+      operationId: getAllKeyPairs
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    alias:
+                      type: string
+                    pairName:
+                      type: string
+                    publicKey:
+                      type: string
+                    pairType:
+                      type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - GPG Key Pairs
+      summary: Update Key Pair
+      description: 'Updates a key pair with new key pairs.
+
+
+        Since: 7.19
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires a valid admin user'
+      operationId: updateKeyPair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - pairName
+              - pairType
+              - alias
+              - privateKey
+              - publicKey
+              properties:
+                pairName:
+                  type: string
+                pairType:
+                  type: string
+                  enum:
+                  - RSA
+                  - GPG
+                alias:
+                  type: string
+                privateKey:
+                  type: string
+                publicKey:
+                  type: string
+                passphrase:
+                  type: string
+                vaultKey:
+                  type: string
+                vaultPublicKey:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                    key:
+                      type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/keypair/{keyPairName}:
+    get:
+      tags:
+      - GPG Key Pairs
+      summary: Get Key Pair
+      description: 'Returns the details of a key pair.
+
+
+        Since: 7.6.0
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires an authenticated user, or anonymous (if "Anonymous Access"
+        is globally enabled).'
+      operationId: getKeyPair
+      parameters:
+      - name: keyPairName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the key pair
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairName:
+                    type: string
+                  pairType:
+                    type: string
+                  alias:
+                    type: string
+                  publicKey:
+                    type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - GPG Key Pairs
+      summary: Delete Key Pair
+      description: 'Deletes a key pair.
+
+
+        Since: 7.6.0
+
+
+        Security: Requires a valid admin user'
+      operationId: deleteKeyPair
+      parameters:
+      - name: keyPairName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the key pair
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/keypair/verify:
+    post:
+      tags:
+      - GPG Key Pairs
+      summary: Verify Key Pair
+      description: 'Verifies the validity of the key pair.
+
+
+        Since: 7.19
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Security: Requires a valid admin user'
+      operationId: verifyKeyPair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - pairName
+              - pairType
+              - alias
+              - privateKey
+              - publicKey
+              properties:
+                pairName:
+                  type: string
+                pairType:
+                  type: string
+                  enum:
+                  - RSA
+                  - GPG
+                alias:
+                  type: string
+                privateKey:
+                  type: string
+                publicKey:
+                  type: string
+                passphrase:
+                  type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /security/keypair/public/repositories/{repoKey}:
+    get:
+      tags:
+      - GPG Key Pairs
+      summary: Get Key Pair Public Key Per Repository
+      description: "Returns the public key assigned to a repository. \n\nNote - To\
+        \ retrieve the key with its appropriate filename, run cURL request with flags\
+        \ -O -J.\n\nSince: 7.6.0\n\nNotes: Requires Artifactory Pro\n\nSecurity: Requires\
+        \ an authenticated user, or anonymous (if \"Anonymous Access\" is globally\
+        \ enabled)."
+      operationId: getKeyPairPublicKeyPerRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v2/repositories/{repoName}/keyPairs:
+    post:
+      tags:
+      - GPG Key Pairs
+      summary: Set Key for Repository
+      description: 'Sets the GPG keys for the repository.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: setRepositoryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: The key name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v2/repositories/{repoName}/keyPairs/{keyName}:
+    delete:
+      tags:
+      - GPG Key Pairs
+      summary: Delete Key from Repository
+      description: 'Removes the key pair from the repository.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: deleteRepositoryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: keyName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The key name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v2/repositories/{repoName}/keyPairs/primary/public:
+    get:
+      tags:
+      - GPG Key Pairs
+      summary: Download Primary Key
+      description: 'Downloads the primary key.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: downloadPrimaryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: PGP public key block
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v2/repositories/{repoName}/keyPairs/secondary/public:
+    get:
+      tags:
+      - GPG Key Pairs
+      summary: Download Secondary Public Key
+      description: 'Downloads the secondary key.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: downloadSecondaryPublicKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: PGP public key block
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v2/repositories/{repoName}/keyPairs/primary:
+    post:
+      tags:
+      - GPG Key Pairs
+      summary: Set Primary Key
+      description: 'Sets the Primary Key for the repository.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: setPrimaryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: The key name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - GPG Key Pairs
+      summary: Delete Primary Key
+      description: 'Deletes the primary key from the repository.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: deletePrimaryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v2/repositories/{repoName}/keyPairs/secondary:
+    post:
+      tags:
+      - GPG Key Pairs
+      summary: Set Secondary Key
+      description: 'Sets the secondary key for the repository that will be used as
+        a backup key, in case the primary key has been removed.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: setSecondaryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: The key name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - GPG Key Pairs
+      summary: Delete Secondary Key
+      description: 'Deletes the secondary key from the repository.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: deleteSecondaryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v2/repositories/{repoName}/keyPairs/promote:
+    post:
+      tags:
+      - GPG Key Pairs
+      summary: Promote Secondary to Primary Key
+      description: 'Promotes the secondary key to be the primary key for the repository.
+
+
+        Since: 7.19
+
+
+        Security: Requires a valid admin user'
+      operationId: promoteSecondaryKey
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/encrypt:
+    post:
+      tags:
+      - Encryption
+      summary: Activate Artifactory Key Encryption
+      description: 'Creates a new Artifactory encryption key and activates Artifactory
+        key encryption. This is an advanced feature intended for administrators.
+
+
+        Since: 3.2.2
+
+
+        Security: Requires an admin user'
+      operationId: activateArtifactoryKeyEncryption
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: DONE
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/decrypt:
+    post:
+      tags:
+      - Encryption
+      summary: Deactivate Artifactory Key Encryption
+      description: 'Removes the current Artifactory encryption key and deactivates
+        Artifactory key encryption. This is an advanced feature intended for administrators.
+        The decrypted state is temporary and will be reactivated following config
+        descriptor updates.
+
+
+        Since: 3.2.2
+
+
+        Security: Requires an admin user'
+      operationId: deactivateArtifactoryKeyEncryption
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: DONE
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/service_id:
+    get:
+      tags:
+      - System
+      summary: Get Service ID
+      description: 'Provides the service ID of an Artifactory instance or cluster.
+        Up to version 5.5.1, the Artifactory service ID is formatted jf-artifactory@[id].
+        From version 5.5.2 the service ID is formatted jfrt@[id].
+
+
+        Since: 5.0.0
+
+
+        Security: Requires an admin user'
+      operationId: getServiceId
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/security/certificates:
+    get:
+      tags:
+      - Certificates
+      summary: Get Certificates
+      description: 'Returns a list of installed SSL certificates.
+
+
+        Since: 5.4.0
+
+
+        Security: Requires an admin user'
+      operationId: getCertificates
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    certificateAlias:
+                      type: string
+                    issuedTo:
+                      type: string
+                    issuedBy:
+                      type: string
+                    issuedOn:
+                      type: string
+                      format: date-time
+                    validUntil:
+                      type: string
+                      format: date-time
+                    fingerPrint:
+                      type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/security/certificates/{certificateAlias}:
+    post:
+      tags:
+      - Certificates
+      summary: Add Certificate
+      description: 'Adds an SSL certificate.
+
+
+        Since: 5.4.0
+
+
+        Security: Requires an admin user'
+      operationId: addCertificate
+      parameters:
+      - name: certificateAlias
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The certificate alias
+      requestBody:
+        required: true
+        content:
+          application/text:
+            schema:
+              type: string
+              format: binary
+              description: Certificate PEM file
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  message:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Certificates
+      summary: Delete Certificate
+      description: 'Deletes an SSL certificate.
+
+
+        Since: 5.4.0
+
+
+        Security: Requires an admin user'
+      operationId: deleteCertificate
+      parameters:
+      - name: certificateAlias
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The certificate alias
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  message:
+                    type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+                description: HTTP status code
+              message:
+                type: string
+                description: Error message
+    UserConfiguration:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The username
+        email:
+          type: string
+          description: The user's email address
+        lastLoggedIn:
+          type: string
+          format: date-time
+          description: Last login timestamp in ISO8601 format
+        realm:
+          type: string
+          description: The user's authentication realm
+        admin:
+          type: boolean
+          description: Whether the user is an administrator
+        profileUpdatable:
+          type: boolean
+          description: Whether the user can update their own profile
+        internalPasswordDisabled:
+          type: boolean
+          description: Whether internal password authentication is disabled
+        groups:
+          type: array
+          items:
+            type: string
+          description: List of groups the user belongs to
+        disableUIAccess:
+          type: boolean
+          description: Whether UI access is disabled for this user
+        policyViewer:
+          type: boolean
+          description: Whether the user has policy viewer permissions
+        policyManager:
+          type: boolean
+          description: Whether the user has policy manager permissions
+        watchManager:
+          type: boolean
+          description: Whether the user has watch manager permissions
+        reportsManager:
+          type: boolean
+          description: Whether the user has reports manager permissions
+        mfaStatus:
+          type: string
+          description: Multi-factor authentication status
+          enum:
+          - NONE
+          - ENABLED
+          - DISABLED
+        status:
+          type: string
+          description: User account status
+          enum:
+          - ENABLED
+          - DISABLED
+          - LOCKED

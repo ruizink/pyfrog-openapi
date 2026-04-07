@@ -1,0 +1,587 @@
+openapi: 3.1.0
+info:
+  title: JFrog REST APIs - Stages & Lifecycles
+  description: 'This section includes the following stage and lifecycle APIs: Create
+    Lifecycle Stage, Update Stage, Get Lifecycle Stages, Get Lifecycle Stage Details,
+    Delete Lifecycle Stage, Get Lifecycle, Update Lifecycle.
+
+    '
+  version: 1.0.0
+servers:
+- url: https://{jfrog_url}/access/api/v2
+tags:
+- name: Stages
+- name: Lifecycle
+paths:
+  /stages:
+    post:
+      tags:
+      - Stages
+      summary: Create Lifecycle Stage
+      description: 'Creates a new global or project-level lifecycle stage.
+
+        Since: 7.125.4
+
+        '
+      operationId: createLifecycleStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStageRequest'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stage'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    get:
+      tags:
+      - Stages
+      summary: Get Lifecycle Stages
+      description: 'Returns a list of all stages with optional filtering.
+
+        When no project_key is defined, this endpoint returns all global stages and
+        is available to platform administrators only.
+
+        When a specific project_key is defined, this endpoint returns both global
+        stages and the relevant project stages, and is available to project administrators
+        for that project.
+
+        Since: 7.125.4
+
+        '
+      operationId: getLifecycleStages
+      parameters:
+      - name: project_key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filters the list of stages defined for a specific project.
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - global
+          - project
+        description: Filters the list by stage scope (global or project).
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - code
+          - promote
+        description: Filters the list by stage category (code or promote).
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stage'
+        '401':
+          description: Bad Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /stages/{stageName}:
+    get:
+      tags:
+      - Stages
+      summary: Get Lifecycle Stage Details
+      description: 'Returns the details of a selected lifecycle stage, such as its
+        scope and associated repositories.
+
+        Since: 7.125.4
+
+        '
+      operationId: getLifecycleStageDetails
+      parameters:
+      - name: stageName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The stage name (must be unique within its scope).
+      - name: project_key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filters the list for a specific project.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stage'
+        '401':
+          description: Bad Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    patch:
+      tags:
+      - Stages
+      summary: Update Stage
+      description: 'Updates the definition of the specified stage with new data, including
+        the name, category, and associated repositories (for project stages).
+
+        The category can be modified only if the stage is not in use by a lifecycle.
+        The repositories field is relevant only when the category is promote.
+
+        Since: 7.125.4
+
+        '
+      operationId: updateStage
+      parameters:
+      - name: stageName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The unique name of the stage (for example, DEV, QA, PROD).
+      - name: project_key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: The name of the project that contains the defined stage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStageRequest'
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stage'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    delete:
+      tags:
+      - Stages
+      summary: Delete Lifecycle Stage
+      description: 'Deletes the specified lifecycle stage from the JFrog platform.
+
+        Important: You cannot delete a stage that is in use by a lifecycle.
+
+        Since: 7.125.4
+
+        '
+      operationId: deleteLifecycleStage
+      parameters:
+      - name: stageName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The stage name (must be unique within its scope).
+      - name: project_key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: The project key with which the stage is associated.
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          description: Bad Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /lifecycle:
+    get:
+      tags:
+      - Lifecycle
+      summary: Get Lifecycle
+      description: 'Returns the global lifecycle definition, or optionally, the lifecycle
+        definition for a specific project.
+
+        Since: 7.125.4
+
+        '
+      operationId: getLifecycle
+      parameters:
+      - name: project_key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filters the list for a specific project.
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lifecycle'
+        '401':
+          description: Bad Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    patch:
+      tags:
+      - Lifecycle
+      summary: Update Lifecycle
+      description: 'Adds, removes, and reorders the stages of a project lifecycle.
+
+        Note: Global stages, such as PR, COMMIT, and PROD, cannot be modified and
+        should not be included in the request.
+
+        Since: 7.125.4
+
+        '
+      operationId: updateLifecycle
+      parameters:
+      - name: project_key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filters the list for a specific project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLifecycleRequest'
+      responses:
+        '202':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LifecycleCategory'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+security:
+- BearerAuth: []
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    CreateStageRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: The unique name of the stage (for example, DEV, QA, PROD).
+        project_key:
+          type: string
+          description: 'The project key associated with the stage.
+
+            If left undefined, the stage is defined as a global stage that can be
+            used by all projects.
+
+            '
+        category:
+          type: string
+          enum:
+          - none
+          - promote
+          default: promote
+          description: The category of the stage (none or promote).
+        repositories:
+          type: array
+          items:
+            type: string
+          description: A list of repository keys assigned to this stage. This field
+            is relevant only when the category is promote.
+    UpdateStageRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The unique name of the stage (for example, DEV, QA, PROD).
+        category:
+          type: string
+          enum:
+          - code
+          - promote
+          description: 'The category of the stage (code or promote).
+
+            The category can be modified only if the stage is not in use by a lifecycle.
+
+            '
+        repositories:
+          type: array
+          items:
+            type: string
+          description: A list of repository keys assigned to this stage. This field
+            is relevant only when the category is promote.
+    Stage:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The stage name (must be unique within its scope).
+        scope:
+          type: string
+          enum:
+          - global
+          - project
+          description: The scope of the stage (global or project).
+        project_key:
+          type: string
+          description: The project key (relevant when the scope is project).
+        category:
+          type: string
+          enum:
+          - code
+          - promote
+          description: The stage category (code or promote).
+        repositories:
+          type: array
+          items:
+            type: string
+          description: The list of repository keys assigned to this stage (scoped
+            to the given project key when relevant).
+        used_in_lifecycle:
+          oneOf:
+          - type: boolean
+            description: Lists the project keys that use this stage as part of its
+              lifecycle.
+          - type: array
+            items:
+              type: string
+            description: The list of project keys where the stage is being used in
+              its lifecycle (scoped to the given project key when relevant).
+        created_by:
+          type: string
+          description: The user ID who created the stage.
+        created_at:
+          type: string
+          format: date-time
+          description: The date and time when the stage was created (ISO 8601 format).
+        modified_at:
+          type: string
+          format: date-time
+          description: The date and time when the stage was last modified (ISO 8601
+            format).
+    UpdateLifecycleRequest:
+      type: object
+      required:
+      - promote_stages
+      properties:
+        promote_stages:
+          type: array
+          items:
+            type: string
+          description: The new, ordered list of stage names that comprise the lifecycle.
+    LifecycleCategory:
+      type: object
+      properties:
+        category:
+          type: string
+          enum:
+          - CODE
+          - PROMOTE
+          description: The category name (CODE or PROMOTE).
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifecycleStageRef'
+          description: An ordered list of stages within a particular category.
+    LifecycleStageRef:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The stage name (for example, DEV or QA).
+        scope:
+          type: string
+          enum:
+          - global
+          - project
+          description: The level at which the stage exists (global or project).
+    Lifecycle:
+      type: object
+      properties:
+        release_stage:
+          type: string
+          description: Name of the release stage (for example, PROD).
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/LifecycleCategory'
+          description: An ordered list of lifecycle categories and stages.
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error message.
+      additionalProperties: false
+x-readme:
+  explorer-enabled: false

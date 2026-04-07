@@ -1,0 +1,461 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Access Tokens API
+  description: 'Manage access tokens for the JFrog Platform, including creating, refreshing,
+    listing, and revoking tokens.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (`Authorization:
+    Bearer <token>`). Basic authentication is also supported for the Create Token
+    API when enabled in the platform configuration.
+
+
+    **Security:** Security requirements vary per operation. See individual operation
+    descriptions for details.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Access Tokens
+  description: Create, retrieve, refresh, and revoke access tokens for JFrog Platform
+    services.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/tokens:
+    post:
+      tags:
+      - Access Tokens
+      summary: Create Token / Refresh Token
+      description: 'Creates an access token for the JFrog Platform, or refreshes an
+        existing access token. Only internal Artifactory users can generate a token
+        using basic credentials via REST API.
+
+
+
+        **Create Token Notes:**
+
+        - You can create tokens at the project level if you are a Project Admin.
+
+        - You cannot create a token using basic credentials if you enabled multi-factor
+        authentication.
+
+        - If you use basic credentials, you must enable creation of tokens in the
+        JFrog Platform UI.
+
+
+
+        **Refresh Token:**
+
+        To refresh an existing access token, set `grant_type` to `refresh_token` and
+        provide the `refresh_token` parameter. The authenticated user must match the
+        user of the access token being refreshed (identified by the refresh token).
+
+
+
+        **Security:** Requires a valid token or user credentials. Basic authentication
+        is supported when enabled in the platform configuration.
+
+        '
+      operationId: createToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenCreateRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenCreateRequest'
+      responses:
+        '200':
+          description: Token created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid input, e.g., `expires_in` value is not a number, non-positive
+            number, etc.
+        '401':
+          description: Unauthenticated
+        '403':
+          description: The requested token details are forbidden, e.g., `expires_in`
+            provided but is higher than the limit defined by the admin, the user does
+            not have the permissions on the scope requested, etc.
+    get:
+      tags:
+      - Access Tokens
+      summary: Get Tokens
+      description: 'Returns token information based on the authenticated principal
+        and optional filters. Admin users can view all tokens; non-admin users can
+        only view their own tokens.
+
+
+
+        **Security:** Requires a valid token.
+
+        '
+      operationId: getTokens
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenListResponse'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/tokens/{tokenId}:
+    get:
+      tags:
+      - Access Tokens
+      summary: Get Token by ID
+      description: 'Returns token details by token ID. You can also use `me` instead
+        of a token ID to get details of the currently used token.
+
+
+
+        **Note:** Admin users can view any token. Non-admin users can only view tokens
+        where the subject matches their username.
+
+
+
+        **Security:** Requires a valid token.
+
+        '
+      operationId: getTokenById
+      parameters:
+      - name: tokenId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The token ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenDetails'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Token not found
+    delete:
+      tags:
+      - Access Tokens
+      summary: Revoke Token by ID
+      description: 'Revokes an access token by specifying the token ID. You can also
+        use `me` instead of a token ID to revoke the currently used token.
+
+
+
+        **Note:** Users can only revoke their own tokens. Admin users can revoke any
+        token.
+
+
+
+        **Security:** Requires a valid token.
+
+        '
+      operationId: revokeTokenById
+      parameters:
+      - name: tokenId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The token ID to revoke
+      responses:
+        '200':
+          description: Token revoked successfully
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Token not found
+  /access/api/v1/tokens/revoke:
+    delete:
+      tags:
+      - Access Tokens
+      summary: Revoke Token by Value
+      description: 'Revokes an access token by providing a JSON web token (JWT) or
+        reference token.
+
+
+
+        **Note:** The token must be revocable for this operation to succeed.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: revokeTokenByValue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - token
+              properties:
+                token:
+                  type: string
+                  description: 'The token value to revoke. Can be either a reference
+                    token or a JWT access token. The token must have been created
+                    with `force_revocable: true` or `refreshable: true` for JWT tokens
+                    to be revocable.'
+      responses:
+        '200':
+          description: Token revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked_token_id:
+                    type: string
+                    description: The ID of the revoked token
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Token not found or not revocable
+  /access/api/v1/config/token/default_expiry:
+    get:
+      tags:
+      - Access Tokens
+      summary: Get Token Default Expiry Value
+      description: 'Returns the system''s token default expiry value.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getTokenDefaultExpiry
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  default_token_expiration:
+                    type: integer
+                    description: Default token expiration in seconds
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - Access Tokens
+      summary: Put Token Default Expiry Value
+      description: 'Sets the system''s token default expiry value.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: setTokenDefaultExpiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - default_token_expiration
+              properties:
+                default_token_expiration:
+                  type: integer
+                  description: Default token expiration in seconds
+      responses:
+        '200':
+          description: Success
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/service_trust/pairing/{useCase}:
+    post:
+      tags:
+      - Access Tokens
+      summary: Create Pairing Token
+      description: 'Creates a pairing token for a specific use case. The pairing token
+        is used to securely establish trust between services.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createPairingToken
+      parameters:
+      - name: useCase
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - mission-control
+          - bridge
+          - platform-federation
+        description: 'The use case for the pairing token. Supported values:
+
+          - `mission-control` - For Mission Control JPD registration
+
+          - `bridge` - For Bridge pairing
+
+          - `platform-federation` - For Platform Federation
+
+
+          Note: Available use cases depend on your JFrog Platform configuration and
+          enabled services.
+
+          '
+      responses:
+        '200':
+          description: Pairing token created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairing_token:
+                    type: string
+                    description: JWT pairing token
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Use case not found or not supported
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication using username and password
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    TokenCreateRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          default: client_credentials
+          description: The grant type. Use "client_credentials" to create a new token
+            or "refresh_token" to refresh an existing token.
+          enum:
+          - client_credentials
+          - refresh_token
+        refresh_token:
+          type: string
+          description: The refresh token value of the access token to be refreshed.
+            Required when grant_type is "refresh_token".
+        username:
+          type: string
+          maxLength: 255
+          description: The username for which to create the token
+        scope:
+          type: string
+          maxLength: 500
+          default: applied-permissions/user
+          description: The scope of access. See documentation for supported scopes.
+        expires_in:
+          type: integer
+          minimum: 0
+          description: Token expiry in seconds. 0 for non-expirable (admin only).
+        refreshable:
+          type: boolean
+          default: false
+          description: Whether the token is refreshable
+        description:
+          type: string
+          maxLength: 1024
+          description: Token description
+        audience:
+          type: string
+          maxLength: 255
+          default: '*@*'
+          description: Space-separated list of service IDs that should accept this
+            token
+        include_reference_token:
+          type: boolean
+          default: false
+          description: Generate a reference token in addition to the full token. Since
+            7.38.10.
+        force_revocable:
+          type: boolean
+          default: false
+          description: Add force_revocable flag to token. Since 7.50.3.
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: The access token
+        token_type:
+          type: string
+          description: Token type (usually "Bearer")
+        expires_in:
+          type: integer
+          description: Expiry time in seconds
+        scope:
+          type: string
+          description: The scope of the token
+        refresh_token:
+          type: string
+          description: The refresh token (if refreshable)
+        reference_token:
+          type: string
+          description: The reference token (if include_reference_token was true)
+    TokenDetails:
+      type: object
+      properties:
+        token_id:
+          type: string
+        subject:
+          type: string
+        expiry:
+          type: integer
+        issued_at:
+          type: integer
+        issuer:
+          type: string
+        description:
+          type: string
+        refreshable:
+          type: boolean
+        scope:
+          type: string
+    TokenListResponse:
+      type: object
+      properties:
+        tokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/TokenDetails'
+x-readme:
+  explorer-enabled: false

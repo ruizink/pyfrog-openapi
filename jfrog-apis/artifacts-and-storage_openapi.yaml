@@ -1,0 +1,2669 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Artifacts & Storage API
+  description: REST API for managing artifacts, storage, and related operations in
+    JFrog Artifactory
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Pruning Unreferenced Data
+  description: Pruning Unreferenced Data (PUD) operations
+- name: Item Management APIs
+  description: Item management operations including properties, deployment, and deletion
+- name: Deploy Artifact APIs
+  description: Deploy artifact operations including standard deployment, checksum
+    deployment, and archive deployment
+- name: Storage Info
+  description: Storage information operations
+- name: Artifact Retrieval
+  description: Artifact retrieval operations
+- name: Artifact Management
+  description: Artifact management operations (copy, move, delete)
+- name: Signed URLs
+  description: Signed URL operations
+- name: Distribution
+  description: Artifact distribution operations
+- name: System Operations
+  description: System-level operations
+- name: Metrics
+  description: Metrics and monitoring operations
+paths:
+  /system/storage/prune/start:
+    post:
+      tags:
+      - Pruning Unreferenced Data
+      summary: Start PUD Process
+      description: This REST API is called to start a new PUD process, or resume a
+        PUD process that was stopped before completion. The Pruning Unreferenced Data
+        (PUD) APIs are used to delete randomly existing binaries in the filestore
+        that are not referenced in Artifactory.
+      operationId: startPudProcess
+      requestBody:
+        required: false
+        description: PUD process parameters
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartPudProcessRequest'
+      responses:
+        '202':
+          description: Accepted - PUD process has been submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PudProcessResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '412':
+          description: Precondition Failed - PUD process is already running or cannot
+            be started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PudProcessResponse'
+  /system/storage/prune/status:
+    get:
+      tags:
+      - Pruning Unreferenced Data
+      summary: Get Status of the PUD Process
+      description: Get the current status of the PUD process (i.e., running, stopped,
+        finished, or error) along with relevant data on the process such as total
+        binaries deleted, total size of disk space cleaned, information on the last
+        handled directory, and other information.
+      operationId: getPudProcessStatus
+      responses:
+        '200':
+          description: Successfully retrieved PUD process status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PudProcessStatus'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '412':
+          description: Precondition Failed - No Prune task found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PudProcessResponse'
+  /system/storage/prune/stop:
+    post:
+      tags:
+      - Pruning Unreferenced Data
+      summary: Stop PUD Process
+      description: This REST API is called to stop the PUD process.
+      operationId: stopPudProcess
+      responses:
+        '202':
+          description: Accepted - Prune task stop request submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PudProcessResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '412':
+          description: Precondition Failed - No running Prune task found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PudProcessResponse'
+  /storage/{repoKey}/{itemPath}:
+    get:
+      tags:
+      - Item Management APIs
+      summary: Get Storage Item Information
+      description: "Returns different types of information about an item based on\
+        \ query parameters.\n\n**Query parameters are mutually exclusive** - only\
+        \ one operation type can be requested at a time:\n- list - Get file/folder\
+        \ listing (flat or deep)\n- stats - Get file statistics (download count, last\
+        \ download info)\n- lastModified - Get last modified timestamp\n- properties\
+        \ - Get item properties\n- permissions - Get item permissions\n- No parameters\
+        \ - Get folder or file info\n\nSince: 2.2.1  \nSecurity: Requires a privileged\
+        \ user (can be anonymous)\n"
+      operationId: getStorageItem
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: itemPath
+        in: path
+        description: Item path within the repository
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: properties
+        in: query
+        description: Comma-separated list of property keys to retrieve. **Mutually
+          exclusive with other query parameters.**
+        required: false
+        schema:
+          type: string
+      - name: lastModified
+        in: query
+        description: Returns the last modified item at the given path. If the given
+          path is a folder, the latest last modified item is searched for recursively.
+          **Mutually exclusive with other query parameters.**
+        required: false
+        schema:
+          type: boolean
+      - name: stats
+        in: query
+        description: Returns item statistics (download count, last download date,
+          last downloader). **Mutually exclusive with other query parameters.**
+        required: false
+        schema:
+          type: boolean
+      - name: permissions
+        in: query
+        description: Returns item permissions. **Mutually exclusive with other query
+          parameters.**
+        required: false
+        schema:
+          type: boolean
+      - name: list
+        in: query
+        description: Get a flat (the default) or deep listing of the files and folders.
+          **Mutually exclusive with other query parameters except listing-related
+          parameters (deep, depth, listFolders, etc.).**
+        required: false
+        schema:
+          type: boolean
+      - name: deep
+        in: query
+        description: Deep listing (0 or 1). Used with list parameter only.
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      - name: depth
+        in: query
+        description: Optional depth to limit the results for deep listing. Used with
+          list parameter only.
+        required: false
+        schema:
+          type: integer
+      - name: listFolders
+        in: query
+        description: Include folders in listing (0 or 1). Used with list parameter
+          only.
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      - name: mdTimestamps
+        in: query
+        description: Include metadata timestamp values (0 or 1). Used with list parameter
+          only.
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      - name: includeRootPath
+        in: query
+        description: Include folder root path (0 or 1). Used with list parameter only.
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      responses:
+        '200':
+          description: Successfully retrieved item information
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/FileList'
+                - $ref: '#/components/schemas/FileStatistics'
+                - $ref: '#/components/schemas/ItemLastModified'
+                - $ref: '#/components/schemas/ItemProperties'
+                - $ref: '#/components/schemas/ItemPermissions'
+                - $ref: '#/components/schemas/FolderInfo'
+                - $ref: '#/components/schemas/FileInfo'
+        '400':
+          description: Bad Request - Invalid query parameter combination or malformed
+            path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified item does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - Item Management APIs
+      summary: Set Item Properties
+      operationId: setItemProperties
+      description: "Attach properties to an existing item (file, folder, repository,\
+        \ or Release Bundle v2).\n\nTo supply special characters (comma (,), backslash(\\\
+        ), pipe(|), equals(=)) as a key/value you must add an encoded backslash (%5C)\
+        \ before them. For example: ..?properties=a=1%5C=1 will attach key a with\
+        \ 1=1 as value.\n\nRequires Artifactory Pro, supported by local and local-cached\
+        \ repositories only.\n\nSince: 2.3.0  \nSecurity: Requires a privileged user\
+        \ (can be anonymous)\n\nTip: Starting with Artifactory 7.104.x, it is possible\
+        \ to define an upper limit on the number of artifacts on which property updates\
+        \ can be performed at one time. For example, if you revise a folder property\
+        \ and the folder contains more items than the limit defined in this system\
+        \ parameter, the operation will fail. This feature is useful for preventing\
+        \ heavy loads on the database. The limit is defined using the system parameter,\
+        \ artifactory.max.artifacts.set.properties.recursive. By default, this feature\
+        \ is off. There is no default value when turned on.\n"
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: itemPath
+        in: path
+        description: Item path within the repository
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: properties
+        in: query
+        description: 'Properties to set in format: properties=key1=value1[,value2][|key2=value3].
+          Multiple properties can be separated by semicolon (;) or pipe (|).'
+        required: true
+        schema:
+          type: string
+      - name: recursive
+        in: query
+        description: Apply properties recursively to all items in folder (0 or 1).
+          For folders, , property attachment is recursive by default.
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 1
+      responses:
+        '204':
+          description: Properties set successfully (no content)
+        '400':
+          description: Bad Request - The properties parameter is missing or malformed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have annotate permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified item or repository does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Item Management APIs
+      summary: Delete Item Properties
+      operationId: deleteItemProperties
+      description: "Deletes the specified properties from an item (file, folder, or\
+        \ repository).\n \nRequires Artifactory Pro, supported by local and local-cached\
+        \ repositories only.\n\nSince: 2.3.2  \nSecurity: Requires a privileged user\
+        \ (can be anonymous)\n"
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: itemPath
+        in: path
+        description: Item path within the repository
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: properties
+        in: query
+        description: Comma-separated list of property keys to delete. Required.
+        required: true
+        schema:
+          type: string
+      - name: recursive
+        in: query
+        description: 'Delete properties recursively from all items in folder (0 or
+          1). Default: 1 (recursive) for folders.'
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 1
+      responses:
+        '204':
+          description: Properties deleted successfully (no content)
+        '400':
+          description: Bad Request - The properties parameter is missing or malformed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified item or repository does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /metadata/{repoKey}/{itemPath}:
+    patch:
+      tags:
+      - Item Management APIs
+      summary: Update Item Properties
+      operationId: updateItemProperties
+      description: 'Attach and modify properties to an item - file, folder, or repository.
+
+        Requires Artifactory Pro, supported by local and local-cached repositories
+        only.
+
+        Since: 6.1.0
+
+        Security: Requires a privileged user (Annotate authorization required)
+
+        '
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: itemPath
+        in: path
+        description: Item path within the repository
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: recursiveProperties
+        in: query
+        description: Apply properties recursively (0 or 1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      - name: atomicProperties
+        in: query
+        description: Atomic properties update (0 or 1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      requestBody:
+        required: true
+        description: Properties to update
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePropertiesRequest'
+      responses:
+        '204':
+          description: Properties updated successfully (no content)
+        '400':
+          description: Bad Request - The request body is malformed or invalid, or
+            props/stats fields are missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have Annotate authorization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified item or repository does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /checksum/sha256:
+    post:
+      tags:
+      - Item Management APIs
+      summary: Set Item SHA256 Checksum
+      operationId: setItemSha256Checksum
+      description: 'Calculates an artifact''s SHA256 checksum and attaches it as a
+        property (with key "sha256"). If the artifact is a folder, then recursively
+        calculates the SHA256 of each item in the folder and attaches the property
+        to each item.
+
+        Since: 4.2.1
+
+        Security: Requires an admin user
+
+        Note: Artifactory natively supports SHA-256 since version 5.5. This API has
+        been maintained to provide backward compatibility for users of older Artifactory
+        versions.
+
+        '
+      requestBody:
+        required: true
+        description: Repository and path information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Sha256ChecksumRequest'
+      responses:
+        '200':
+          description: SHA256 checksum calculated and attached successfully
+        '400':
+          description: Bad Request - The request body is malformed or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{repoKey}/{filePath}:
+    put:
+      tags:
+      - Deploy Artifact APIs
+      summary: Deploy Artifact or Create Directory
+      operationId: deployArtifact
+      description: '**Deploy Artifact**: Deploy an artifact to the specified destination.
+
+
+        **Create Directory**: Create a new directory by specifying a path that ends
+        with `/` and omitting the request body.
+
+
+        You can also attach properties as part of deploying artifacts or creating
+        directories.
+
+
+        Important: In certain cases (particularly when working with large artifacts),
+        the Created timestamp might be later than the Last Modified timestamp. This
+        can occur because the Last Modified timestamp records when the upload began,
+        whereas the Created timestamp is set only when the upload is complete and
+        committed to the database.
+
+
+        Security: Requires a user with ''deploy'' permissions (can be anonymous)
+
+        '
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: filePath
+        in: path
+        description: Path to the artifact or directory within the repository. For
+          directories, the path must end with `/`.
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: X-Checksum-Sha1
+        in: header
+        description: SHA1 checksum to verify the integrity of the deployment. Artifactory
+          rejects the deployment if the checksum does not match. Only applicable for
+          artifact deployment.
+        required: false
+        schema:
+          type: string
+      - name: X-Checksum-Sha256
+        in: header
+        description: SHA256 checksum to verify the integrity of the deployment. Artifactory
+          rejects the deployment if the checksum does not match. Only applicable for
+          artifact deployment.
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: false
+        description: Binary content of the artifact to deploy. Omit for directory
+          creation.
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Created - Artifact deployed or directory created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemCreated'
+        '400':
+          description: Bad Request - Invalid path, invalid checksum header, or malformed
+            request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have deploy permissions
+            on this repository.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Repository not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method Not Allowed - The target path resolves to a repository
+            that does not accept PUT (e.g., a virtual repository).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - Duplicate artifact or checksum mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - Artifact Retrieval
+      summary: Retrieve Artifact
+      operationId: retrieveArtifact
+      description: 'Returns an artifact from the specified destination.
+
+
+        You can also use properties in deployment and resolution as part of retrieving
+        artifacts.
+
+
+        Special tokens for retrieving latest versions:
+
+        - **Latest Maven Release/Integration**: Specify SNAPSHOT or [RELEASE] for
+        the version in the requested path to get the latest Maven integration or release
+        artifact.
+
+        - **Latest Non-Maven Release/Integration**: Specify [INTEGRATION] and [RELEASE]
+        for the version in the requested path (replacing [folderItegRev] and [fileItegRev],
+        as defined by the repository''s Repository Layouts) to get the latest integration
+        version or latest release version artifact accordingly based on alphabetical
+        sorting.
+
+
+        Notes:
+
+        - Integration and release tokens cannot be mixed together.
+
+        - Only local, cache and virtual repositories will be used for latest version
+        resolution.
+
+        - To change the retrieve latest behavior to retrieve the latest version based
+        on the created date, add `artifactory.request.searchLatestReleaseByDateCreated=true`
+        to `artifactory.system.properties` and restart Artifactory.
+
+        - Both [folderItegRev] and [fileItegRev] have to be defined in the repository
+        layout.
+
+        - Latest version resolution requires Artifactory Pro.
+
+
+        Since: Latest Maven: 2.6.0; Latest non-Maven: 2.6.2
+
+        Security: Requires a user with ''read'' permission (can be anonymous)
+
+        '
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: filePath
+        in: path
+        description: 'Path to the artifact within the repository. Can include special
+          tokens: SNAPSHOT, [RELEASE], [INTEGRATION] for latest version resolution.'
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: skipUpdateStats
+        in: query
+        description: Skip updating download statistics for this artifact
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - name: trace
+        in: query
+        description: Simulates an artifact retrieval request and returns verbose output
+          about the resolution process. Useful for debugging artifact retrieval issues.
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Successfully retrieved artifact or trace output
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+                description: Trace output when trace parameter is used
+        '401':
+          description: Bad Credentials - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - User does not have read permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Artifact does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Artifact Management
+      summary: Delete Item
+      operationId: deleteItem
+      description: 'Deletes a file or a folder from the specified local repository
+        or remote repository cache.
+
+
+        Security: Requires a user with ''delete'' permission (can be anonymous)
+
+        '
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: filePath
+        in: path
+        description: Path to the file or folder within the repository
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '204':
+          description: No Content - Item deleted successfully
+        '401':
+          description: Bad Credentials - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - User does not have delete permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Item does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method Not Allowed - The target path resolves to a repository
+            that does not support DELETE (e.g., a remote or virtual repository).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{repoKey}/{archivePath}!/{entryPath}:
+    get:
+      tags:
+      - Artifact Retrieval
+      summary: Archive Entry Download
+      operationId: archiveEntryDownload
+      description: 'Returns an archived resource from the specified archive destination.
+
+
+        The `!` must be between the archive file name and the archive entry path,
+        and will not work without the `/` after the `!`.
+
+
+        Security: Requires a user with ''read'' permission (can be anonymous)
+
+        '
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: archivePath
+        in: path
+        description: Path to the archive file
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: entryPath
+        in: path
+        description: Path to the resource within the archive (e.g., META-INF/MANIFEST.MF)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Successfully retrieved archived resource
+          content:
+            text/plain:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request - Invalid path, non-existent archive, or malformed
+            entry path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - User does not have read permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Archive or entry does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{repoKey}/{filePath}/checksum:
+    put:
+      tags:
+      - Deploy Artifact APIs
+      summary: Deploy Artifact by Checksum
+      operationId: deployArtifactByChecksum
+      description: "Deploy an artifact to the specified destination by checking if\
+        \ the artifact content already exists in Artifactory.\n\nIf Artifactory already\
+        \ contains a user-readable artifact with the same checksum, the artifact content\
+        \ is copied to the new location and returns a response without requiring content\
+        \ transfer.\n\nOtherwise, a 404 error is returned to indicate that content\
+        \ upload is expected to deploy the artifact.\n\nIf the X-Checksum-Deploy header\
+        \ is set to false, the artifact will be uploaded successfully with a 201 response,\
+        \ even if it didn't exist before, and submitted checksums will have the status\
+        \ Uploaded: Identical.\n\nYou can also attach properties when deploying artifacts.\n\
+        \nSince: 2.5.1  \nSecurity: Requires a user with Deploy permissions (can be\
+        \ anonymous)\n"
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: filePath
+        in: path
+        description: Path to the artifact within the repository
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: X-Checksum-Deploy
+        in: header
+        description: Must be set to true for checksum-based deployment
+        required: true
+        schema:
+          type: boolean
+          enum:
+          - true
+      - name: X-Checksum-Sha1
+        in: header
+        description: SHA1 checksum value. At least one checksum header (X-Checksum-Sha1,
+          X-Checksum-Sha256, or X-Checksum) must be provided.
+        required: false
+        schema:
+          type: string
+      - name: X-Checksum-Sha256
+        in: header
+        description: SHA256 checksum value. At least one checksum header (X-Checksum-Sha1,
+          X-Checksum-Sha256, or X-Checksum) must be provided.
+        required: false
+        schema:
+          type: string
+      - name: X-Checksum
+        in: header
+        description: 'Generic checksum value (type resolved by length: 32 chars=MD5,
+          40 chars=SHA1, 64 chars=SHA256). At least one checksum header (X-Checksum-Sha1,
+          X-Checksum-Sha256, or X-Checksum) must be provided.'
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: false
+        description: Binary content of the artifact (not needed if artifact exists)
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Created - Artifact deployed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemCreated'
+        '400':
+          description: Bad Request - Missing required checksum header or invalid checksum
+            value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have deploy permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Artifact with checksum not found, content upload
+            required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /{repoKey}/{archivePath}:
+    put:
+      tags:
+      - Deploy Artifact APIs
+      summary: Deploy Artifacts from Archive
+      operationId: deployArtifactsFromArchive
+      description: "Deploys an archive containing multiple artifacts and extracts\
+        \ it at the specified destination while maintaining the archive's file structure.\n\
+        \nDeployment is performed in a single HTTP request. Only the extracted content\
+        \ is deployed, not the archive file itself.\n\nBy default, the deployment\
+        \ of artifacts is performed sequentially. However, starting from Artifactory\
+        \ 7.96.3, artifact deployment can be performed in multiple parallel threads\
+        \ using the system parameter artifactory.explode.archive.threads. For example,\
+        \ if you set artifactory.explode.archive.threads = 10, the deployment of the\
+        \ artifacts contained in the archive will be performed in 10 parallel threads\
+        \ per archive file, which can save considerable time for large archive files.\n\
+        \nSupported archive types: zip, tar, tar.gz, tgz\n\nNote: Requires Artifactory\
+        \ Pro. Deployment of compressed archives (unlike tar) may incur considerable\
+        \ CPU overhead.\n\nSince: 2.6.3  \nSecurity: Requires a user with 'deploy'\
+        \ permissions (can be anonymous)\n"
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: archivePath
+        in: path
+        description: Path where the archive should be extracted (must end with archive
+          filename)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: X-Explode-Archive
+        in: header
+        description: Must be set to true to explode the archive upon deployment
+        required: true
+        schema:
+          type: boolean
+          enum:
+          - true
+      - name: X-Explode-Archive-Atomic
+        in: header
+        description: If true, archive will be exploded in an atomic operation upon
+          deployment
+        required: false
+        schema:
+          type: boolean
+      requestBody:
+        required: true
+        description: Binary content of the archive file (zip, tar, tar.gz, or tgz)
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+          application/x-tar:
+            schema:
+              type: string
+              format: binary
+          application/gzip:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Created - Archive deployed and extracted successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Invalid archive or missing required headers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - User does not have deploy permissions or
+            Artifactory Pro required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /storageinfo:
+    get:
+      tags:
+      - Storage Info
+      summary: Get Storage Summary Info
+      description: 'Returns storage summary information regarding binaries, file store
+        and repositories.
+
+        Since: 4.2.0
+
+        Security: Requires authentication using Access Tokens, either as admin or
+        using a scoped token with the system:info/storage:r scope.
+
+        '
+      operationId: getStorageSummaryInfo
+      responses:
+        '200':
+          description: Successfully retrieved storage summary information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageSummaryInfo'
+        '401':
+          description: Bad Credentials - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /storageinfo/calculate:
+    post:
+      tags:
+      - Storage Info
+      summary: Refresh Storage Summary Info
+      description: 'Refreshes storage summary information regarding binaries, file
+        store and repositories.
+
+        Security: Requires a valid admin user
+
+        '
+      operationId: refreshStorageSummaryInfo
+      responses:
+        '202':
+          description: Storage summary information refresh initiated successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Informational message confirming the scheduled refresh
+        '401':
+          description: Bad Credentials - Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /zap/{repoPath}:
+    post:
+      tags:
+      - System Operations
+      summary: Zap Cache
+      description: 'Zapping cache invalidates all cached metadata artifacts downloaded
+        from central registries like pypi.org, repo1.maven.org, registry.npmjs.org
+        and stored in remote repo cache to speed up remote repo actions. The zapping
+        action does not invalidate immutable artifacts (like software binaries).
+
+
+        After Zapping, whenever an invalidated metadata artifact is needed, Artifactory
+        refreshes it from the central registry first. If unavailable, it falls back
+        to the stale version.
+
+
+        Zapping the cache may slow down for clients who download packages requiring
+        stale metadata updates.
+
+
+        Zapping cache solves:
+
+        - Resolving Cache Issues: If there are problems with the cached packages artifacts,
+        such as corruption or inconsistencies with the central repository, zapping
+        the cache fixes these issues.
+
+
+        Since: 7.49.3
+
+
+        Security: Requires a privileged user, Manage or Delete permissions on the
+        Remote Repository.
+
+        '
+      operationId: zapCache
+      parameters:
+      - name: repoPath
+        in: path
+        description: Repository path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Cache zapped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Message:
+                    type: string
+        '400':
+          description: Bad Request - The repoPath does not resolve to a valid remote
+            repository or cache.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have Manage or Delete
+            permissions on the Remote Repository.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /archive/buildArtifacts:
+    post:
+      tags:
+      - Artifact Retrieval
+      summary: Retrieve Build Artifacts Archive
+      description: "Returns an archive file (supports zip/tar/tar.gz/tgz) containing\
+        \ all the artifacts related to a specific build, you can optionally provide\
+        \ mappings to filter the results; the mappings support regexp capturing groups\
+        \ which enables you to dynamically construct the target path inside the result\
+        \ archive file. \n\nRequires Artifactory Pro.\n\nSince: 2.6.5\n\nSecurity:\
+        \ Requires a privileged user (can be anonymous)\n"
+      operationId: retrieveBuildArtifactsArchive
+      requestBody:
+        required: true
+        description: Build artifacts archive request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildArtifactsRequest'
+      responses:
+        '200':
+          description: Successfully retrieved build artifacts archive
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            application/x-tar:
+              schema:
+                type: string
+                format: binary
+            application/x-gzip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request - The request body is malformed or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /archive/download/{repoKey}/{path}:
+    get:
+      tags:
+      - Artifact Retrieval
+      summary: Retrieve Folder or Repository Archive
+      description: "Returns an archive file (supports zip/tar/tar.gz/tgz) containing\
+        \ all the artifacts that reside under the specified path (folder or repository\
+        \ root). Requires Enable Folder Download to be set. \n\nRequires Artifactory\
+        \ Pro. \n\nSince: 4.1.0\n\nSecurity: Requires a privileged user with read\
+        \ permissions on the path.\n\nDownloading a folder or a repository's root\
+        \ is only supported for local (or cache) repositories.\n"
+      operationId: retrieveFolderOrRepositoryArchive
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: path
+        in: path
+        description: Path within the repository (use empty string for repository root)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: archiveType
+        in: query
+        description: Archive type
+        required: true
+        schema:
+          type: string
+          enum:
+          - zip
+          - tar
+          - tar.gz
+          - tgz
+      - name: includeChecksumFiles
+        in: query
+        description: Include checksum files in the archive
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Successfully retrieved folder or repository archive
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            application/x-tar:
+              schema:
+                type: string
+                format: binary
+            application/x-gzip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request - Invalid path characters or malformed archive
+            type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have read permissions
+            on the path, or folder download is blocked by Xray.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified repository or path does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /copy/{srcRepoKey}/{srcFilePath}:
+    post:
+      tags:
+      - Artifact Management
+      summary: Copy Item
+      description: "Copy an artifact or a folder to the specified destination. Supported\
+        \ for local, remote and Federated repositories only. Optionally suppress cross-layout\
+        \ module path translation during copy. You can test the copy using a dry run.\
+        \ \n\nNotes: Requires Artifactory Pro.\n\nSince: 2.2.2\n\nSecurity: Requires\
+        \ a privileged user (can be anonymous)\n"
+      operationId: copyItem
+      parameters:
+      - name: srcRepoKey
+        in: path
+        description: Source repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: srcFilePath
+        in: path
+        description: Source file path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: to
+        in: query
+        description: Target path (format - /{targetRepoKey}/{targetFilePath})
+        required: true
+        schema:
+          type: string
+      - name: dry
+        in: query
+        description: Dry run mode (1 for dry run, 0 for actual copy)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+      - name: suppressLayouts
+        in: query
+        description: Suppress cross-layout module path translation (0 or 1, default
+          1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 1
+      - name: failFast
+        in: query
+        description: Fail fast on errors (0 or 1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      responses:
+        '200':
+          description: Item copied successfully
+          content:
+            application/vnd.org.jfrog.artifactory.storage.CopyOrMoveResult+json:
+              schema:
+                $ref: '#/components/schemas/CopyOrMoveResult'
+        '400':
+          description: Bad Request - The request parameters are invalid or the source
+            path does not exist.
+          content:
+            application/vnd.org.jfrog.artifactory.storage.CopyOrMoveResult+json:
+              schema:
+                $ref: '#/components/schemas/CopyOrMoveResult'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /move/{srcRepoKey}/{srcFilePath}:
+    post:
+      tags:
+      - Artifact Management
+      summary: Move Item
+      description: "Moves an artifact or a folder to the specified destination. Supported\
+        \ by local repositories only. Optionally suppress cross-layout module path\
+        \ translation during move. You can test the move using dry run. \n\nNotes:\
+        \ Requires Artifactory Pro.\n\nSince: 2.2.2\n\nSecurity: Requires a privileged\
+        \ user (can be anonymous)\n"
+      operationId: moveItem
+      parameters:
+      - name: srcRepoKey
+        in: path
+        description: Source repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: srcFilePath
+        in: path
+        description: Source file path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: to
+        in: query
+        description: Target path (format - /{targetRepoKey}/{targetFilePath})
+        required: true
+        schema:
+          type: string
+      - name: dry
+        in: query
+        description: Dry run mode (1 for dry run, 0 for actual move)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+      - name: suppressLayouts
+        in: query
+        description: Suppress cross-layout module path translation (0 or 1, default
+          1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 1
+      - name: failFast
+        in: query
+        description: Fail fast on errors (0 or 1)
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+      responses:
+        '200':
+          description: Item moved successfully
+          content:
+            application/vnd.org.jfrog.artifactory.storage.CopyOrMoveResult+json:
+              schema:
+                $ref: '#/components/schemas/CopyOrMoveResult'
+        '400':
+          description: Bad Request - The request parameters are invalid or the source
+            path does not exist.
+          content:
+            application/vnd.org.jfrog.artifactory.storage.CopyOrMoveResult+json:
+              schema:
+                $ref: '#/components/schemas/CopyOrMoveResult'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /download/{repoKey}/{filePath}:
+    get:
+      tags:
+      - Artifact Retrieval
+      summary: Artifact Sync Download
+      description: "Downloads an artifact with or without returning the actual content\
+        \ to the client. When tracking the progress marks are printed (by default\
+        \ every 1024 bytes). This is extremely useful if you want to trigger downloads\
+        \ on a remote Artifactory server, for example to force eager cache population\
+        \ of large artifacts, but want to avoid the bandwidth consumption involved\
+        \ in transferring the artifacts to the triggering client. \n\nNotes: Requires\
+        \ Artifactory Pro.\n\nSince: 2.2.2\n\nSecurity: Requires a privileged user\
+        \ (can be anonymous)\n"
+      operationId: artifactSyncDownload
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: filePath
+        in: path
+        description: File path within the repository
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: content
+        in: query
+        description: Content mode (none, progress, or omit for full content)
+        required: false
+        schema:
+          type: string
+          enum:
+          - none
+          - progress
+      - name: mark
+        in: query
+        description: Number of bytes to print a new progress mark
+        required: false
+        schema:
+          type: integer
+          default: 1024
+      responses:
+        '200':
+          description: Download completed successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Invalid path or non-printable characters in the
+            repo/file path.
+          content:
+            text/html:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified file does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /signed/url:
+    post:
+      tags:
+      - Signed URLs
+      summary: Create Signed URL
+      description: 'Generates a signed url for the provided repository path, providing
+        temporary access to download artifacts. User may provide expiry or valid_for_secs
+        optional parameter. With a maximum timeframe of one year (365 days). Default
+        expiry is 24 hours. Note - This API is available only to Artifactory Cloud
+        Enterprise and Cloud Enterprise+ users. The JSON included in the request URL
+        cannot include %20.
+
+
+        Since: Artifactory 7.5.0
+
+
+        Security: Requires a privileged user (admin or manage permission type)
+
+        '
+      operationId: createSignedUrl
+      requestBody:
+        required: true
+        description: Signed URL request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSignedUrlRequest'
+      responses:
+        '200':
+          description: Signed URL created successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - The request body is malformed or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin or manage
+            permission type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /signed/url/key:
+    post:
+      tags:
+      - Signed URLs
+      summary: Replace Signed URL Key
+      description: 'Replaces the key for signing and validating signed URLs. This
+        will invalidate any signed URLs previously created. Note - This feature is
+        available only for Artifactory Cloud Enterprise and Enterprise+ users.
+
+
+        Note: This feature is available only for Artifactory Cloud Enterprise and
+        Enterprise+ users.
+
+
+        Since: Artifactory 7.5.0
+
+
+        Security: Requires a privileged user (admin)
+
+        '
+      operationId: replaceSignedUrlKey
+      responses:
+        '201':
+          description: Signed URL key replaced successfully
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /distribute:
+    post:
+      tags:
+      - Distribution
+      summary: Distribute Artifact
+      description: Deploys artifacts from Artifactory to Bintray, and creates an entry
+        in the corresponding Artifactory distribution repository specified. Requires
+        Artifactory Pro.
+      operationId: distributeArtifact
+      requestBody:
+        required: true
+        description: Distribution request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DistributeArtifactRequest'
+      responses:
+        '200':
+          description: Artifact distributed successfully
+        '400':
+          description: Bad Request - The request body is malformed or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified artifact or distribution repository
+            does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /tasks:
+    get:
+      tags:
+      - System Operations
+      summary: Get Background Tasks
+      description: 'Returns list of background tasks currently scheduled or running
+        in Artifactory. In HA, the nodeId is added to each task. Task can be in one
+        of few states - scheduled, running, stopped, cancelled. Running task also
+        shows the task start time.
+
+
+        Since: 4.4.0
+
+
+        Security: Requires a valid admin user
+
+        '
+      operationId: getBackgroundTasks
+      responses:
+        '200':
+          description: Successfully retrieved background tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackgroundTasks'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /gems/{repoName}/api/v1/versions/{gemName}:
+    get:
+      tags:
+      - Artifact Retrieval
+      summary: Get RubyGem Version List
+      description: Returns the list of versions and other metadata associated with
+        a specific Ruby gem.
+      operationId: getRubyGemVersionList
+      parameters:
+      - name: repoName
+        in: path
+        description: Repository name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: gemName
+        in: path
+        description: Gem name
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Successfully retrieved RubyGem version list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RubyGemVersion'
+            application/yaml:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified gem does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/metrics/application:
+    get:
+      tags:
+      - Metrics
+      summary: Get Artifactory Application Metrics
+      description: 'Returns application-related metrics for Cloud (SaaS) users in
+        OpenMetrics/Prometheus exposition text format (`text/plain`). This feature
+        is supported on the Cloud (SaaS) platform for all licenses.
+
+
+        **Security**: Requires a valid admin user.
+
+
+        Use `Accept: text/plain` or `Accept: */*` in the request header.
+
+        '
+      operationId: getArtifactoryApplicationMetrics
+      responses:
+        '200':
+          description: Successfully retrieved application metrics in OpenMetrics text
+            format.
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Metrics in OpenMetrics/Prometheus exposition text format.
+                example: '# HELP app_disk_free_bytes Free disk space in bytes
+
+                  # TYPE app_disk_free_bytes gauge
+
+                  app_disk_free_bytes 1.073741824e+09
+
+                  '
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+        '406':
+          description: 'Not Acceptable - The server cannot produce a response matching
+            the Accept header. This endpoint only serves text/plain. Ensure your request
+            uses `Accept: text/plain` or `Accept: */*`.'
+  /v1/metrics:
+    get:
+      tags:
+      - Metrics
+      summary: Get the Open Metrics for Artifactory
+      description: 'Returns all open metrics collected for Artifactory in OpenMetrics/Prometheus
+        exposition text format (`text/plain`). This feature is supported on the Self-Hosted
+        platform, with a Pro, Pro X, Enterprise X, or Enterprise+ license.
+
+
+        **Security**: Requires a valid admin user.
+
+
+        Use `Accept: text/plain` or `Accept: */*` in the request header.
+
+        '
+      operationId: getOpenMetricsForArtifactory
+      parameters:
+      - name: Accept
+        in: header
+        required: true
+        description: Must be `text/plain; version=0.0.4` (Prometheus exposition format).
+        schema:
+          type: string
+          enum:
+          - text/plain; version=0.0.4
+      responses:
+        '200':
+          description: Successfully retrieved open metrics in OpenMetrics text format.
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Metrics in OpenMetrics/Prometheus exposition text format.
+                example: '# HELP jfrt_runtime_heap_freememory_bytes Free heap memory
+                  in bytes
+
+                  # TYPE jfrt_runtime_heap_freememory_bytes gauge
+
+                  jfrt_runtime_heap_freememory_bytes 5.36870912e+08
+
+                  '
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+        '406':
+          description: 'Not Acceptable - The server cannot produce a response matching
+            the Accept header. This endpoint only serves text/plain. Ensure your request
+            uses `Accept: text/plain` or `Accept: */*`.'
+  /system/storage/optimize:
+    post:
+      tags:
+      - System Operations
+      summary: Optimize System Storage
+      description: From Artifactory Self-Hosted 4.6.0 to 7.98.x - Raises a flag to
+        invoke balancing between redundant storage units of a shared filestore following
+        the next full garbage collection. From Artifactory Self-Hosted 7.104.5 and
+        later - Immediately triggers balancing between redundant storage units of
+        a sharded filestore. If balancing is already running, the process is skipped.
+        This is an advanced feature intended for administrators.
+      operationId: optimizeSystemStorage
+      responses:
+        '202':
+          description: Successfully started system storage optimization
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Sharing balancer is already running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '412':
+          description: Sharing balancer failed to run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    StartPudProcessRequest:
+      type: object
+      properties:
+        dryRun:
+          type: boolean
+          default: false
+          description: If false then unreferenced binaries will be actually removed
+            from the filestore. If true then unreferenced binaries will not be removed
+            from the filestore. This mode may be useful to estimate the number of
+            unreferenced binaries in each directory without actually removing them.
+        startFromDirectory:
+          type: string
+          description: If present, the PUD process will continue from the directory
+            identified here. If this parameter is omitted, the PUD process starts
+            to prune from the beginning of the directories list.
+        startFromBinary:
+          type: integer
+          format: int32
+          default: 0
+          description: If present, the PUD process continues from this position in
+            the last directory that the previous PUD process stopped at. This parameter
+            can be found in the response of the Get Status API at lastHandledDirectory>binariesProcessed.
+            If omitted, the PUD process starts to prune from the first binary in the
+            directory.
+        binaryOlderThanDays:
+          type: integer
+          format: int32
+          default: 1
+          description: If present, unreferenced binaries that are newer than binaryOlderThanDays
+            are ignored by the PUD process. If binaryOlderThanDays = 0, the PUD process
+            does not relate to the binary creation date.
+    PudProcessResponse:
+      type: object
+      properties:
+        info:
+          type: string
+          description: Information message about the PUD process
+    PudProcessStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - running
+          - stopped
+          - finished
+          - error
+          description: The status of the PUD process
+        dryRun:
+          type: boolean
+          description: Whether the PUD process is actually deleting binaries
+        timing:
+          $ref: '#/components/schemas/PudTiming'
+        progress:
+          type: string
+          description: The number of directories that have been processed thus far
+        report:
+          $ref: '#/components/schemas/PudReport'
+        lastHandledDirectory:
+          $ref: '#/components/schemas/PudDirectoryInfo'
+        error:
+          type: string
+          description: Error details (only appears when an error occurs)
+    PudTiming:
+      type: object
+      properties:
+        startedAtMillis:
+          type: integer
+          format: int64
+          description: The time in milliseconds when the PUD process started
+        startedAt:
+          type: string
+          description: 'The time when the PUD process started. Artifactory returns
+            this without a
+
+            timezone offset (e.g., "2024-06-09T15:07:01"), so the format is a
+
+            local ISO 8601 datetime string rather than strict RFC 3339.
+
+            '
+        durationMillis:
+          type: integer
+          format: int64
+          description: The duration of the PUD process in milliseconds up until the
+            point when this report was issued
+        duration:
+          type: string
+          description: The duration of the PUD process up until the point when this
+            report was issued
+        lastUpdatedMillis:
+          type: integer
+          format: int64
+          description: The time in milliseconds at which this report was issued
+        lastUpdated:
+          type: string
+          description: 'The time at which this report was issued. Artifactory returns
+            this without a
+
+            timezone offset (e.g., "2024-06-09T15:07:15"), so the format is a
+
+            local ISO 8601 datetime string rather than strict RFC 3339.
+
+            '
+    PudReport:
+      type: object
+      properties:
+        totalBinariesProcessed:
+          type: integer
+          format: int64
+          description: The total number of binaries processed thus far
+        totalBinariesCleaned:
+          type: integer
+          format: int64
+          description: The total number of binaries removed thus far
+        totalBytesCleaned:
+          type: integer
+          format: int64
+          description: The total number of bytes reclaimed by the PUD process
+    PudDirectoryInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the directory that was being processed when this
+            report was issued
+        status:
+          type: string
+          enum:
+          - running
+          - stopped
+          - finished
+          - error
+          description: Status relating to this directory only
+        binariesProcessed:
+          type: integer
+          format: int64
+          description: The number of binaries processed in this directory
+        binariesCleaned:
+          type: integer
+          format: int64
+          description: The number of binaries removed in this directory
+        bytesCleaned:
+          type: integer
+          format: int64
+          description: The number of bytes reclaimed in this directory
+        timing:
+          $ref: '#/components/schemas/PudTiming'
+    ItemProperties:
+      type: object
+      properties:
+        uri:
+          type: string
+        properties:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    ItemPermissions:
+      type: object
+      properties:
+        uri:
+          type: string
+        principals:
+          type: object
+          properties:
+            users:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+            groups:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+    FolderInfo:
+      type: object
+      properties:
+        uri:
+          type: string
+        repo:
+          type: string
+        path:
+          type: string
+        created:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        lastModified:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/FolderChild'
+    FolderChild:
+      type: object
+      properties:
+        uri:
+          type: string
+        folder:
+          type: boolean
+    FileInfo:
+      type: object
+      properties:
+        uri:
+          type: string
+        downloadUri:
+          type: string
+        repo:
+          type: string
+        path:
+          type: string
+        remoteUrl:
+          type: string
+        created:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        lastModified:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+        size:
+          type: string
+          description: Size in bytes
+        mimeType:
+          type: string
+        checksums:
+          $ref: '#/components/schemas/Checksums'
+        originalChecksums:
+          $ref: '#/components/schemas/Checksums'
+    Checksums:
+      type: object
+      properties:
+        md5:
+          type: string
+        sha1:
+          type: string
+        sha256:
+          type: string
+    ItemLastModified:
+      type: object
+      properties:
+        uri:
+          type: string
+        lastModified:
+          type: string
+          format: date-time
+    FileStatistics:
+      type: object
+      properties:
+        uri:
+          type: string
+        lastDownloaded:
+          type: integer
+          format: int64
+          description: Timestamp in milliseconds
+        downloadCount:
+          type: integer
+          format: int64
+        lastDownloadedBy:
+          type: string
+    FileList:
+      type: object
+      properties:
+        uri:
+          type: string
+        created:
+          type: string
+          format: date-time
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileListItem'
+    FileListItem:
+      type: object
+      properties:
+        uri:
+          type: string
+        size:
+          type: string
+          description: Size in bytes, or "-1" for folders
+        lastModified:
+          type: string
+          format: date-time
+        folder:
+          type: boolean
+        sha1:
+          type: string
+        mdTimestamps:
+          type: object
+          additionalProperties:
+            type: string
+            format: date-time
+    ItemCreated:
+      type: object
+      properties:
+        repo:
+          type: string
+        path:
+          type: string
+        created:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        downloadUri:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: string
+          description: Size in bytes
+        checksums:
+          $ref: '#/components/schemas/Checksums'
+        originalChecksums:
+          $ref: '#/components/schemas/Checksums'
+        uri:
+          type: string
+    UpdatePropertiesRequest:
+      type: object
+      properties:
+        props:
+          type: object
+          additionalProperties:
+            oneOf:
+            - type: string
+              description: Single property value
+            - type: array
+              items:
+                type: string
+              description: Multiple property values
+            - type: 'null'
+              description: Set to null to remove the property
+          description: 'Properties to update. Each property can be:
+
+            - A single string value: "value1"
+
+            - An array of strings: ["value1", "value2"]
+
+            - null to remove the property
+
+            '
+      example:
+        props:
+          singleValue: myValue
+          multiValue:
+          - value1
+          - value2
+          toBeRemoved: null
+    Sha256ChecksumRequest:
+      type: object
+      required:
+      - repoKey
+      - path
+      properties:
+        repoKey:
+          type: string
+          minLength: 1
+          description: Repository key
+        path:
+          type: string
+          minLength: 1
+          description: Path to the artifact or folder
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+                description: HTTP status code
+              message:
+                type: string
+                description: Error message
+    StorageSummaryInfo:
+      type: object
+      properties:
+        binariesSummary:
+          $ref: '#/components/schemas/BinariesSummary'
+        fileStoreSummary:
+          $ref: '#/components/schemas/FileStoreSummary'
+        repositoriesSummaryList:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepositorySummary'
+    BinariesSummary:
+      type: object
+      properties:
+        binariesCount:
+          type: string
+        binariesSize:
+          type: string
+        artifactsSize:
+          type: string
+        optimization:
+          type: string
+        itemsCount:
+          type: string
+        artifactsCount:
+          type: string
+    FileStoreSummary:
+      type: object
+      properties:
+        storageType:
+          type: string
+        storageDirectory:
+          type: string
+        totalSpace:
+          type: string
+        usedSpace:
+          type: string
+        freeSpace:
+          type: string
+    RepositorySummary:
+      type: object
+      properties:
+        repoKey:
+          type: string
+        repoType:
+          type: string
+        foldersCount:
+          type: integer
+        filesCount:
+          type: integer
+        usedSpace:
+          type: string
+        usedSpaceInBytes:
+          type: integer
+        itemsCount:
+          type: integer
+        packageType:
+          type: string
+        projectKey:
+          type: string
+        percentage:
+          type: string
+    BuildArtifactsRequest:
+      type: object
+      required:
+      - buildName
+      - buildNumber
+      - archiveType
+      properties:
+        buildName:
+          type: string
+          minLength: 1
+          description: The build name for search by
+        buildNumber:
+          type: string
+          minLength: 1
+          description: The build number to search by, can be LATEST to search for
+            the latest build number
+        buildStatus:
+          type: string
+          description: Optionally search by latest build status (e.g "Released")
+        repos:
+          type: array
+          items:
+            type: string
+          description: Optionally refine search for specific repos, omit to search
+            within all repositories
+        archiveType:
+          type: string
+          enum:
+          - tar
+          - zip
+          - tar.gz
+          - tgz
+          description: The archive file type to return
+        mappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchiveMapping'
+          description: Optionally refine the search by providing a list of regexp
+            patterns to search by
+    ArchiveMapping:
+      type: object
+      properties:
+        input:
+          type: string
+          description: Regexp pattern to search by
+        output:
+          type: string
+          description: Optionally provide different path of the found artifacts inside
+            the result archive, supports regexp groups tokens
+    CopyOrMoveResult:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/CopyOrMoveMessage'
+    CopyOrMoveMessage:
+      type: object
+      properties:
+        level:
+          type: string
+          enum:
+          - INFO
+          - WARNING
+          - ERROR
+        message:
+          type: string
+    CreateSignedUrlRequest:
+      type: object
+      required:
+      - repo_path
+      properties:
+        repo_path:
+          type: string
+          minLength: 1
+          description: Full path to the artifact
+        valid_for_secs:
+          type: integer
+          format: int32
+          description: Number of seconds since generation before the URL expires
+        expiry:
+          type: integer
+          format: int64
+          description: An expiry date for the URL after which the URL will be invalid,
+            expiry value is in Unix epoch time in milliseconds
+    DistributeArtifactRequest:
+      type: object
+      required:
+      - targetRepo
+      - packagesRepoPaths
+      properties:
+        publish:
+          type: boolean
+          default: true
+          description: If true, artifacts are published when deployed to Bintray.
+            Default true.
+        overrideExistingFiles:
+          type: boolean
+          default: false
+          description: If true, Artifactory overwrites files already existing in the
+            target path in Bintray. Existing version attributes are also overridden
+            if defined in the distribution repository Advanced Configuration. Default
+            false.
+        gpgPassphrase:
+          type: string
+          description: If specified, Artifactory will GPG sign the version deployed
+            to Bintray and apply the specified passphrase
+        async:
+          type: boolean
+          default: false
+          description: If true, the artifact will be distributed asynchronously. Errors
+            and warnings may be viewed in the log file. Default false.
+        targetRepo:
+          type: string
+          description: The Distribution Repository into which artifacts should be
+            deployed
+        packagesRepoPaths:
+          type: array
+          items:
+            type: string
+          description: An array of local or distribution repositories and corresponding
+            paths to artifacts that should be deployed to the specified target repository
+            in Bintray
+        dryRun:
+          type: boolean
+          default: false
+          description: If true, distribution is only simulated. No files are actually
+            moved. Default false.
+    BackgroundTasks:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackgroundTask'
+    BackgroundTask:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        state:
+          type: string
+          enum:
+          - scheduled
+          - running
+          - stopped
+          - cancelled
+        description:
+          type: string
+        nodeId:
+          type: string
+        started:
+          type: string
+          format: date-time
+    RubyGemVersion:
+      type: object
+      properties:
+        authors:
+          type: string
+        built_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        description:
+          type: string
+        downloads_count:
+          type: integer
+        metadata:
+          type: object
+          additionalProperties: true
+        number:
+          type: string
+        summary:
+          type: string
+        platform:
+          type: string
+        ruby_version:
+          type: string
+        prerelease:
+          type: boolean
+        licenses:
+          type: array
+          items:
+            type: string
+        requirements:
+          type: array
+          items:
+            type: string
+        sha:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication
+security:
+- bearerAuth: []
+- basicAuth: []

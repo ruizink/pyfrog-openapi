@@ -1,0 +1,5883 @@
+openapi: 3.0.1
+info:
+  contact: {}
+  description: This is the API documentation for the AppTrust Service.
+  title: AppTrust Service API
+  version: '1.0'
+tags:
+- name: Activity log
+- name: Application
+- name: Application version
+- name: Application version promotion
+- name: Application version release
+- name: Application version rollback
+- name: Bound packages
+- name: Integrations
+- name: Metrics
+- name: Project
+- name: System
+servers:
+- url: http://{jfrog_url}/apptrust/api
+paths:
+  /integrations/config:
+    put:
+      operationId: saveIntegrationConfig
+      description: Saves configuration details (host and authentication token) for
+        ServiceNow integration to JFrog AppTrust or an internal secret store
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.SaveConfigRequest'
+        description: Integration configuration
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.SaveConfigResponse'
+          description: Configuration saved successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Invalid integration type or configuration format
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Internal server error
+      summary: Save integration configuration
+      tags:
+      - Integrations
+      x-codegen-request-body-name: request
+  /v1/activity/log:
+    get:
+      operationId: getActivityLog
+      description: 'Returns activity logs, with optional sorting and filtering parameters.
+
+
+        **Note:** All array parameters can be specified multiple times separated by
+        commas.
+
+        '
+      parameters:
+      - description: Filters by application key.
+        explode: false
+        in: query
+        name: application_key
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filters by project key.
+        explode: false
+        in: query
+        name: project_key
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filter by application name (can be specified multiple times).
+        explode: false
+        in: query
+        name: application_name
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filter by project name (can be specified multiple times).
+        explode: false
+        in: query
+        name: project_name
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filter by timestamp from (UNIX timestamp).
+        in: query
+        name: timestamp_from
+        schema:
+          type: integer
+      - description: Filter by timestamp to (UNIX timestamp).
+        in: query
+        name: timestamp_to
+        schema:
+          type: integer
+      - description: Filters by subject type.
+        explode: false
+        in: query
+        name: subject_type
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filter by subject id.
+        in: query
+        name: subject_id
+        schema:
+          type: string
+      - description: Filters by subject name.
+        in: query
+        name: subject_name
+        schema:
+          type: string
+      - description: Filters by event type.
+        explode: false
+        in: query
+        name: event_type
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filters by event category.
+        explode: false
+        in: query
+        name: event_category
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filters by result (`success`, `failure`, `warning`).
+        explode: false
+        in: query
+        name: result
+        schema:
+          items:
+            type: string
+            enum:
+            - success
+            - failure
+            - warning
+          type: array
+        style: form
+      - description: Filters by prefix.
+        in: query
+        name: prefix
+        schema:
+          type: string
+      - description: 'Defines the field by which to sort results (`timestamp`, `event_id`,
+          `subject_type`, `subject_name`, `event_type`, `event_category`, `project_key`,
+          `created_by`).
+
+          The default is `timestamp`.
+
+          '
+        in: query
+        name: sort_by
+        schema:
+          default: timestamp
+          type: string
+          enum:
+          - timestamp
+          - event_id
+          - subject_type
+          - subject_name
+          - event_type
+          - event_category
+          - project_key
+          - created_by
+      - description: 'Defines the sort direction (`asc`, `desc`).
+
+          The default is `desc`.
+
+          '
+        in: query
+        name: sort
+        schema:
+          default: desc
+          type: string
+          enum:
+          - asc
+          - desc
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.ActivityLogResponse'
+              example:
+                activity_logs:
+                - event_id: 01HN1234567890ABCDEFGHIJK
+                  timestamp: 1672531200000
+                  subject_type: application
+                  subject_name: catalina-app
+                  event_description: Application version 1.2.0 promoted to QA
+                  event_type: promote
+                  event_category: lifecycle
+                  result: success
+                  additional_data:
+                    version: 1.2.0
+                    stage: QA
+                  created_by: admin@example.com
+                  application_key: catalina-app
+                  application_name: Catalina App
+                  project_key: catalina
+                  project_name: Catalina Project
+                - event_id: 01HN0987654321ZYXWVUTSRQP
+                  timestamp: 1672527600000
+                  subject_type: application
+                  subject_name: catalina-app
+                  event_description: Application created successfully
+                  event_type: create
+                  event_category: lifecycle
+                  result: success
+                  additional_data: {}
+                  created_by: admin@example.com
+                  application_key: catalina-app
+                  application_name: Catalina App
+                  project_key: catalina
+                  project_name: Catalina Project
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Internal Server Error
+      summary: Get activity log
+      tags:
+      - Activity log
+  /v1/applications:
+    get:
+      operationId: listApplications
+      description: 'Returns a list of applications, including the latest version and
+        the total number of versions.
+
+        '
+      parameters:
+      - description: The key of the project associated with the application.
+        in: query
+        name: project_key
+        schema:
+          type: string
+      - description: Filters results by the application name.
+        in: query
+        name: name
+        schema:
+          type: string
+      - description: Filters results by application criticality.
+        in: query
+        name: criticality
+        schema:
+          type: string
+      - description: Filters results by application maturity.
+        in: query
+        name: maturity
+        schema:
+          type: string
+      - description: 'Filters by application labels. This filter can be used multiple
+          times (once for each label). Key and Value are separated by a colon (:).
+
+          Labels in the format ''key:value''. You can also search only for the key.
+          If you want to search only for the value use the format '':value''.
+
+          '
+        explode: true
+        in: query
+        name: label
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Filters results by application owners (user or group). This filter
+          can be used multiple times (once for each owner).
+        explode: true
+        in: query
+        name: owner
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: Sets the maximum number of versions to return at one time. Used
+          for pagination purposes.
+        in: query
+        name: limit
+        schema:
+          default: 100
+          type: integer
+      - description: Sets the number of records to skip before returning the query
+          response. Used for pagination purposes.
+        in: query
+        name: offset
+        schema:
+          default: 0
+          type: integer
+      - description: 'Defines whether to order the applications by `name` or `created`.
+
+          The default is `created`.
+
+          '
+        in: query
+        name: order_by
+        schema:
+          default: created
+          enum:
+          - name
+          - created
+          type: string
+      - description: 'Defines whether to list the application in ascending (`true`)
+          or descending (`false`) order.
+
+          The default is `false`.
+
+          '
+        in: query
+        name: order_asc
+        schema:
+          default: false
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.GetApplicationsResponse'
+              example:
+                applications:
+                - project_name: Catalina
+                  project_key: catalina
+                  created: '2024-05-18T11:26:02.912Z'
+                  application_name: Catalina-App
+                  application_key: catalina-app
+                  application_version_latest: 1.0.0
+                  application_version_tag: stable
+                  application_versions_count: 1
+                - project_name: Default
+                  project_key: default
+                  created: '2024-05-18T11:25:35.936Z'
+                  application_name: Commons-App
+                  application_key: commons-app
+                  application_version_latest: 2.1.1
+                  application_version_tag: nightly
+                  application_versions_count: 5
+                total: 2
+                limit: 10
+                offset: 0
+          description: Success
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+      summary: Get applications
+      tags:
+      - Application
+    post:
+      operationId: createApplication
+      description: 'Creates a new application.
+
+
+        **Consumes:** application/json
+
+        '
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.CreateApplicationDto'
+            example:
+              application_name: Catalina-App
+              application_key: catalina_app
+              project_key: catalina
+              description: This application contains enhancements to login performance.
+              maturity_level: production
+              criticality: low
+              labels:
+                environment: production
+                region: us-east
+              user_owners:
+              - JohnD
+              - Dave Rice
+              - Alina Hood
+              group_owners:
+              - DevOps
+              - Platform Admins
+        description: Create Application Request
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.SingleApplicationResponse'
+              example:
+                application_name: Catalina-App
+                application_key: catalina_app
+                project_key: catalina
+                description: This application contains enhancements to login performance.
+                maturity_level: production
+                criticality: low
+                labels:
+                  environment: production
+                  region: us-east
+                user_owners:
+                - JohnD
+                - Dave Rice
+                - Alina Hood
+                group_owners:
+                - DevOps
+                - Platform Admins
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Conflict
+      summary: Create application
+      tags:
+      - Application
+      x-codegen-request-body-name: application
+  /v1/applications/{application_key}:
+    delete:
+      operationId: deleteApplication
+      description: 'Deletes the specified application from the JFrog platform, including
+        all associated versions.
+
+        '
+      parameters:
+      - description: The application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: 'Determines whether the operation should be asynchronous (`true`)
+          or synchronous (`false`).
+
+          The default value is `false`, which means that Artifactory waits for application
+          deletion to complete before allowing you to move on to the next task.
+
+          '
+        in: query
+        name: async
+        schema:
+          default: false
+          type: boolean
+      responses:
+        '202':
+          content: {}
+          description: Deleted (asynchronous)
+        '204':
+          content: {}
+          description: Deleted (synchronous)
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+      summary: Delete application
+      tags:
+      - Application
+    get:
+      operationId: getApplication
+      description: 'Returns the details of a selected application, such as its creation
+        time, owners, defined labels, and so on.
+
+        '
+      parameters:
+      - description: The application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.ApplicationDetailsResponse'
+              example:
+                project_name: Catalina
+                project_key: catalina
+                application_name: Catalina-App
+                application_key: catalina_app
+                signing_key: catalina-key
+                description: This application contains enhancements to login performance.
+                maturity: production
+                criticality: low
+                labels:
+                  environment: production
+                  region: us-east
+                user_owners:
+                - JohnD
+                - Dave Rice
+                - Alina Hood
+                group_owners:
+                - DevOps
+                - Platform Admins
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Application Not Found
+      summary: Get application details
+      tags:
+      - Application
+    patch:
+      operationId: updateApplication
+      description: 'Updates the definition of the specified application with new data.
+        All fields in the body are optional, which means that only the fields included
+        in the request body will be replaced.
+
+
+        **Note:** The `application_key` and `project_key` cannot be modified.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.UpdateApplicationDto'
+            example:
+              application_name: Catalina-App
+              description: This application contains enhancements to login performance.
+              maturity: production
+              criticality: low
+              labels:
+                environment: production
+                region: us-east
+              user_owners:
+              - JohnD
+              - Dave Rice
+              - Alina Hood
+              group_owners:
+              - DevOps
+              - Platform Admins
+        description: Update Application Request
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.SingleApplicationResponse'
+              example:
+                application_name: Catalina-App
+                description: This application contains enhancements to login performance.
+                maturity: production
+                criticality: low
+                labels:
+                  environment: production
+                  region: us-east
+                user_owners:
+                - JohnD
+                - Dave Rice
+                - Alina Hood
+                group_owners:
+                - DevOps
+                - Platform Admins
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+      summary: Update application
+      tags:
+      - Application
+      x-codegen-request-body-name: application
+  /v1/applications/{application_key}/packages:
+    get:
+      operationId: listApplicationPackages
+      description: 'Returns a paginated list of unique packages bound with the specified
+        application, including summary details.
+
+        '
+      parameters:
+      - description: The unique identifier for the application.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: Filters the results according to a specific package type (for
+          example, `maven`, `docker`, `generic`, etc.).
+        in: query
+        name: type
+        schema:
+          type: string
+      - description: Filters the results according to a specific package name.
+        in: query
+        name: name
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.PackageSummariesResponse'
+              example:
+                packages:
+                - name: portal-ui-components
+                  type: npm
+                  latest_version: 2.5.1
+                  num_versions: 5
+                - name: portal-auth-client
+                  type: npm
+                  latest_version: 1.3.0
+                  num_versions: 3
+                pagination:
+                  offset: 0
+                  limit: 10
+                  total_items: 2
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Get application package bindings
+      tags:
+      - Bound packages
+    post:
+      operationId: bindPackageToApplication
+      description: 'Binds a specific package version with the specified application.
+        A specific package version can be bound to only one application.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The unique identifier for the application.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.BindPackageHttpRequest'
+            example:
+              package_type: maven
+              package_name: com.example:common-utils
+              package_version: 1.2.3
+        description: Package binding request
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.BindPackageResponse'
+              example:
+                application_key: my-web-app
+                package_type: maven
+                package_name: com.example:common-utils
+                package_version: 1.2.3
+                bound_at: '2025-06-04T20:30:00Z'
+                bound_by: user@example.com
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Conflict
+      summary: Bind package version
+      tags:
+      - Bound packages
+      x-codegen-request-body-name: package
+  /v1/applications/{application_key}/packages/{type}/{name}:
+    get:
+      operationId: getApplicationPackageVersions
+      description: 'Returns a list of package versions that are bound with the specified
+        application.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The unique identifier for the application.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The package type (for example, `maven`, `docker`).
+        in: path
+        name: type
+        required: true
+        schema:
+          type: string
+      - description: The package name.
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: Sets the number of records to skip for pagination purposes. The
+          default value is `0`.
+        in: query
+        name: offset
+        schema:
+          default: 0
+          type: integer
+      - description: Sets the maximum number of versions to return at one time (up
+          to 250). The default value is `25`.
+        in: query
+        name: limit
+        schema:
+          default: 25
+          type: integer
+      - description: The package version. If not defined, all package versions are
+          returned.
+        in: query
+        name: package_version
+        schema:
+          type: string
+      - description: 'Searches for matching version strings within the bound package
+          versions.
+
+          '
+        in: query
+        name: search
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.PackageVersions'
+              example:
+                versions:
+                - version: 2.5.1
+                  vcs_url: https://github.com/my-org/web-portal.git
+                  vcs_branch: main
+                  vcs_revision: a1b2c3d4e5f67890
+                - version: 2.5.0
+                  vcs_url: https://github.com/my-org/web-portal.git
+                  vcs_branch: feature/new-ui
+                  vcs_revision: f6e5d4c3b2a10987
+                offset: 0
+                limit: 2
+                total: 5
+          description: Success
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Get bound package versions
+      tags:
+      - Bound packages
+  /v1/applications/{application_key}/packages/{type}/{name}/{version}:
+    delete:
+      operationId: unbindPackageFromApplication
+      description: 'Disassociates (unbinds) the specified package version from the
+        specified application. This action removes the ownership link between them,
+        and the package version will no longer be considered as belonging to the application.
+
+        '
+      parameters:
+      - description: The unique application identifier.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The package type (`maven`, `docker`, `npm`, `generic`, etc.)
+        in: path
+        name: type
+        required: true
+        schema:
+          type: string
+      - description: The package name.
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: The package version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          content: {}
+          description: Deleted
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Unbind package version
+      tags:
+      - Bound packages
+  /v1/applications/{application_key}/unsync_integration:
+    post:
+      operationId: unsyncIntegration
+      description: Unsyncs an integration from an application by removing integration-related
+        labels. The integration must be present in the request context.
+      parameters:
+      - description: Application key
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.UnsyncIntegrationResponse'
+          description: OK
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Internal Server Error
+      summary: Unsync integration
+      tags:
+      - Application
+  /v1/applications/{application_key}/versions:
+    get:
+      operationId: listApplicationVersions
+      description: 'Returns a list of application versions associated with the specified
+        application key.
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: Filters by the user who created the application version.
+        in: query
+        name: created_by
+        schema:
+          type: string
+      - description: 'Filters by the release status of the application version:
+
+          - `released`: Versions that have been released to PROD.
+
+          - `pre_release`: Versions at stages prior to PROD.
+
+          - `trusted_release`: Versions that were released to PROD after a successful
+          evaluation at the PROD release gate.
+
+          Supports multiple comma-separated values.
+
+          '
+        in: query
+        name: release_status
+        schema:
+          type: string
+      - description: Filters by the assigned tag. Supports a trailing wildcard (*)
+          and multiple comma-separated values.
+        in: query
+        name: tag
+        schema:
+          type: string
+      - description: Sets the maximum number of versions to return at one time. Used
+          for pagination purposes.
+        in: query
+        name: limit
+        schema:
+          type: integer
+      - description: Sets the number of records to skip before returning the query
+          response. Used for pagination purposes.
+        in: query
+        name: offset
+        schema:
+          type: integer
+      - description: 'Sorts the list of application versions by the specified field.
+
+          The default is `created`.
+
+          '
+        in: query
+        name: order_by
+        schema:
+          default: created
+          type: string
+          enum:
+          - created
+          - created_by
+          - release_bundle_version
+          - release_bundle_semver
+      - description: 'Defines whether to list the promotions in ascending (`true`)
+          or descending (`false`) order.
+
+          The default value is `false`.
+
+          '
+        in: query
+        name: order_asc
+        schema:
+          default: false
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.ApplicationVersionsResponse'
+              example:
+                versions:
+                - version: 1.0.1
+                  tag: release
+                  status: COMPLETED
+                  release_status: pre_release
+                  current_stage: QA
+                  created_by: user@example.com
+                  created: '2025-07-15T09:30:00Z'
+                - version: 1.0.0
+                  tag: stable
+                  status: COMPLETED
+                  release_status: trusted_release
+                  current_stage: PROD
+                  created_by: user@example.com
+                  created: '2025-07-14T11:20:15Z'
+                - version: 0.9.0-beta
+                  tag: beta
+                  status: FAILED
+                  release_status: pre_release
+                  current_stage: ''
+                  created_by: automation-service
+                  created: '2025-07-11T18:05:00Z'
+                total: 3
+                limit: 3
+                offset: 0
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Get application versions
+      tags:
+      - Application version
+    post:
+      operationId: createApplicationVersion
+      description: 'Creates a new version of an application.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The GPG/RSA key-pair name given in Artifactory. If no key is
+          provided, the command creates or uses the default key.
+        in: header
+        name: X-JFrog-Signing-Key-Name
+        schema:
+          type: string
+      - description: 'Determines whether the operation should be asynchronous (`true`)
+          or synchronous (`false`).
+
+          The default value is `true`, which means that Artifactory waits for application
+          version creation to complete before allowing you to move on to the next
+          task.
+
+          '
+        in: query
+        name: async
+        schema:
+          default: true
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.CreateAppVersionRequest'
+            examples:
+              basic:
+                summary: Basic request with sources
+                value:
+                  version: 1.2.3
+                  sources:
+                    artifacts:
+                    - path: my-repo/path/to/artifact.jar
+                      sha256: a1b2c3d4e5f6...
+                    builds:
+                    - name: my-app-build
+                      number: '15'
+                      include_dependencies: true
+                    versions:
+                    - application_key: alpha-app
+                      version: 2.5.0
+                  tag: stable-release
+              with_filters:
+                summary: Request with filters for including/excluding artifacts
+                value:
+                  version: 1.2.3
+                  sources:
+                    builds:
+                    - name: my-app-build
+                      number: '15'
+                  filters:
+                    included:
+                    - package_type: docker
+                      package_name: frontend-*
+                    - package_version: 3.*
+                    - path: libs/*.jar
+                    excluded:
+                    - package_name: '*-dev'
+                    - path: libs/vulnerable-lib-1.2.3.jar
+                      sha256: 123...
+        description: Create Application Version Request
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.CreateAppVersionResponse'
+              example:
+                application_key: my-super-app
+                version: 1.2.3
+                created_by: user@example.com
+                created: '2025-05-30T10:00:00Z'
+                tag: stable-release
+                status: COMPLETED
+          description: Success (synchronous)
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.CreateAppVersionResponse'
+              example:
+                application_key: my-super-app
+                version: 1.2.3
+                created_by: user@example.com
+                created: '2025-05-30T10:00:00Z'
+                tag: stable-release
+                status: IN_PROGRESS
+          description: Success (asynchronous)
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Conflict
+      summary: Create application version
+      tags:
+      - Application version
+      x-codegen-request-body-name: version
+  /v1/applications/{application_key}/versions/{version}:
+    delete:
+      operationId: deleteApplicationVersion
+      description: 'Deletes the specified application version.
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      - description: 'Determines whether the operation should be asynchronous (`true`)
+          or synchronous (`false`).
+
+          The default value is `true`, which means that Artifactory does not wait
+          for application version deletion to complete before allowing you to move
+          on to the next task.
+
+          '
+        in: query
+        name: async
+        schema:
+          default: true
+          type: boolean
+      responses:
+        '202':
+          content: {}
+          description: Deleted (asynchronous)
+        '204':
+          content: {}
+          description: Deleted (synchronous)
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+      summary: Delete application version
+      tags:
+      - Application version
+    patch:
+      operationId: updateApplicationVersion
+      description: 'Updates the tag and/or properties of the specified application
+        version. You can set or replace values for specific property keys.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.UpdateAppVersionRequest'
+            example:
+              tag: release/1.2.3
+              properties:
+                status:
+                - rc
+                - validated
+                deployed_to:
+                - staging-A
+                - staging-B
+                old_feature_flag: []
+              delete_properties:
+              - legacy_param
+              - toBeDeleted
+        description: Update Application Version Request
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.UpdateAppVersionResponse'
+              example:
+                application_key: my-app
+                version: 1.2.3
+                tag: release
+                properties:
+                  status:
+                  - rc
+                  - validated
+                  tested_on:
+                  - ubuntu20.04
+                  old_feature_flag: []
+                  deployed_to:
+                  - staging-A
+                  - staging-B
+                modified_by: user@example.com
+                modified_at: '2025-06-04T10:06:00Z'
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Update application version
+      tags:
+      - Application version
+      x-codegen-request-body-name: UpdateRequest
+  /v1/applications/{application_key}/versions/{version}/content:
+    get:
+      operationId: getApplicationVersionContent
+      description: 'Returns detailed content for a specified application version,
+        including its components (artifacts, packages, builds), sources, and the ownership
+        details for each component.
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      - description: 'The number of records to skip for pagination.
+
+          The default is `0`.
+
+          '
+        in: query
+        name: offset
+        schema:
+          default: 0
+          type: integer
+      - description: 'The maximum number of records to return (up to 250).
+
+          The default is `25`.
+
+          '
+        in: query
+        name: limit
+        schema:
+          default: 25
+          type: integer
+      - description: 'The level of detail in the response. Can be one of the following:
+
+          - `sources`: The source of the content (typically, an application).
+
+          - `releasables`: The package or standalone artifact to be released as part
+          of the version.
+
+          - `releasables_expanded`: Includes expanded details about the releasables.
+
+          '
+        in: query
+        name: include
+        schema:
+          type: string
+          enum:
+          - sources
+          - releasables
+          - releasables_expanded
+      - description: 'The field and order by which to sort the results, using the
+          format `field:order`.
+
+          Supported fields: `name`, `package_type`
+
+          Supported order: `asc`, `desc`
+
+          The default is `name:asc`
+
+          '
+        in: query
+        name: order_by
+        schema:
+          default: name:asc
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.ApplicationVersionContentResponse'
+              examples:
+                basic:
+                  summary: Basic response (include=null)
+                  value:
+                    application_key: my-super-app
+                    version: 1.2.3
+                    project_key: super-proj
+                    status: COMPLETED
+                    created_by: user@example.com
+                    created_at: '2025-07-15T08:58:00Z'
+                    tag: stable-release
+                    release_status: pre_release
+                    releasables_count: 3
+                    artifacts_count: 5
+                    total_size: 15822848
+                with_sources:
+                  summary: Response with sources (include=sources)
+                  value:
+                    application_key: my-super-app
+                    version: 1.2.3
+                    project_key: super-proj
+                    status: COMPLETED
+                    created_by: user@example.com
+                    created_at: '2025-07-15T08:58:00Z'
+                    tag: stable-release
+                    release_status: pre_release
+                    releasables_count: 3
+                    artifacts_count: 5
+                    total_size: 15822848
+                    sources:
+                    - type: build
+                      build:
+                        name: my-super-app-build
+                        number: '15'
+                        timestamp: '2023-10-27T08:00:00.000Z'
+                        repo_key: artifactory-build-info
+                    - type: version
+                      version:
+                        application_key: shared-services-app
+                        version: 2.5.0
+                      child_sources:
+                      - type: build
+                        build:
+                          name: shared-services-build
+                          number: '42'
+                          timestamp: '2023-10-27T08:00:00.000Z'
+                          repo_key: artifactory-build-info
+                    - type: direct
+                with_releasables:
+                  summary: Response with releasables (include=releasables)
+                  value:
+                    application_key: my-super-app
+                    version: 1.2.3
+                    project_key: super-proj
+                    status: COMPLETED
+                    created_by: user@example.com
+                    created_at: '2025-07-15T08:58:00Z'
+                    tag: stable-release
+                    release_status: pre_release
+                    releasables_count: 3
+                    artifacts_count: 5
+                    total_size: 15822848
+                    releasables:
+                    - name: my-super-app-service
+                      version: 1.2.3
+                      sha256: a1b2c3d4e5f6...
+                      releasable_type: package_version
+                      package_type: docker
+                      owning_application_key: my-super-app
+                      connection_level: 1st_party
+                      total_size: 10485760
+                      source:
+                        type: build
+                        build:
+                          name: my-super-app-build
+                          number: '15'
+                    - name: com.my-org:shared-library
+                      version: 2.5.0
+                      sha256: f6e5d4c3b2a1...
+                      releasable_type: package_version
+                      package_type: maven
+                      owning_application_key: shared-services-app
+                      connection_level: 2nd_party
+                      total_size: 5242880
+                      source:
+                        type: version
+                        version:
+                          application_key: shared-services-app
+                          version: 2.5.0
+                    - name: react
+                      version: 18.2.0
+                      sha256: c3d4e5f6a1b2...
+                      releasable_type: package_version
+                      package_type: npm
+                      owning_application_key: null
+                      connection_level: 3rd_party
+                      total_size: 94208
+                      source:
+                        type: direct
+                    offset: 0
+                    limit: 25
+                with_releasables_expanded:
+                  summary: Response with expanded releasables (include=releasables_expanded)
+                  value:
+                    application_key: my-super-app
+                    version: 1.2.3
+                    project_key: super-proj
+                    status: COMPLETED
+                    created_by: user@example.com
+                    created_at: '2025-07-15T08:58:00Z'
+                    tag: stable-release
+                    release_status: pre_release
+                    releasables_count: 3
+                    artifacts_count: 5
+                    total_size: 15822848
+                    releasables:
+                    - name: my-super-app-service
+                      version: 1.2.3
+                      sha256: a1b2c3d4e5f6...
+                      releasable_type: package_version
+                      package_type: docker
+                      owning_application_key: my-super-app
+                      connection_level: 1st_party
+                      total_size: 10485760
+                      source:
+                        type: build
+                        build:
+                          name: my-super-app-build
+                          number: '15'
+                          timestamp: '2023-10-27T08:00:00.000Z'
+                          repo_key: artifactory-build-info
+                      artifacts:
+                      - path: my-super-app-service/1.2.3/manifest.json
+                        sha256: a1b2c3d4e5f6...
+                        size: 5240
+                      - path: my-super-app-service/1.2.3/layer1.tar.gz
+                        sha256: '...'
+                        size: 10480520
+                    - name: com.my-org:shared-library
+                      version: 2.5.0
+                      sha256: f6e5d4c3b2a1...
+                      releasable_type: package_version
+                      package_type: maven
+                      owning_application_key: shared-services-app
+                      connection_level: 2nd_party
+                      total_size: 5242880
+                      source:
+                        type: version
+                        version:
+                          application_key: shared-services-app
+                          version: 2.5.0
+                      artifacts:
+                      - path: com/my-org/shared-library/2.5.0/shared-library-2.5.0.jar
+                        sha256: f6e5d4c3b2a1...
+                        size: 5242880
+                    - name: react
+                      version: 18.2.0
+                      sha256: c3d4e5f6a1b2...
+                      releasable_type: package_version
+                      package_type: npm
+                      owning_application_key: null
+                      connection_level: 3rd_party
+                      total_size: 94208
+                      source:
+                        type: direct
+                      artifacts:
+                      - path: react/-/react-18.2.0.tgz
+                        sha256: c3d4e5f6a1b2...
+                        size: 94208
+                    sources:
+                    - type: build
+                      build:
+                        name: my-super-app-build
+                        number: '15'
+                        timestamp: '2023-10-27T08:00:00.000Z'
+                        repo_key: artifactory-build-info
+                    - type: version
+                      version:
+                        application_key: shared-services-app
+                        version: 2.5.0
+                      child_sources:
+                      - type: build
+                        build:
+                          name: shared-services-build
+                          number: '42'
+                    - type: direct
+                    offset: 0
+                    limit: 25
+          description: Success
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Get application version content
+      tags:
+      - Application version
+  /v1/applications/{application_key}/versions/{version}/integration_event:
+    post:
+      operationId: postIntegrationEvent
+      description: Post an integration event for a specific application version
+      parameters:
+      - description: Application Key
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: Version
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.PostIntegrationEventRequest'
+        description: Post Integration Event Request
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.IntegrationEventResponse'
+          description: Integration event posted successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Parameters
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Application or version not found
+      summary: Post integration event
+      tags:
+      - Application version
+      x-codegen-request-body-name: PostIntegrationEventRequest
+  /v1/applications/{application_key}/versions/{version}/promote:
+    post:
+      operationId: promoteApplicationVersion
+      description: 'Promotes the specified application version to the desired stage.
+        It includes options for including/excluding repositories, specifying running
+        conditions, and providing comments.
+
+
+        **Note:** To move an application version to the official release stage, use
+        the Release Application Version API.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      - description: 'Determines whether the operation should be asynchronous (`true`)
+          or synchronous (`false`).
+
+          The default value is `true`, which means that Artifactory does not wait
+          for application version promotion to complete before allowing you to move
+          on to the next task.
+
+          '
+        in: query
+        name: async
+        schema:
+          default: true
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.PromoteAppVersionRequest'
+            example:
+              target_stage: QA
+              promotion_type: copy
+              overwrite_strategy: latest
+              included_repository_keys:
+              - docker-prod-local
+              artifact_additional_properties:
+              - key: release.status
+                values:
+                - approved
+              - key: promoted.by
+                values:
+                - jane.doe
+        description: Promote Application Version Request
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.PromoteAppVersionResponse'
+              examples:
+                pass:
+                  summary: Successful promotion (pass)
+                  value:
+                    application_key: my-web-app
+                    version: 1.2.0
+                    source_stage: staging
+                    target_stage: QA
+                    promotion_type: copy
+                    status: success
+                    message: Copy promotion from 'staging' to 'QA' was successful.
+                    included_repository_keys:
+                    - docker-prod-local
+                    excluded_repository_keys: []
+                    artifact_additional_properties:
+                      release.status: approved
+                      promoted.by: jane.doe
+                    created: '2023-10-27T10:00:00Z'
+                    evaluations:
+                      exit_gate:
+                        stage: dev
+                        eval_id: eval-exit-a1b2c3d4
+                        decision: pass
+                      entry_gate:
+                        stage: staging
+                        eval_id: eval-entry-e5f6g7h8
+                        decision: pass
+                warn:
+                  summary: Successful promotion with warnings (warn)
+                  value:
+                    application_key: my-web-app
+                    version: 1.2.0
+                    source_stage: staging
+                    target_stage: QA
+                    promotion_type: copy
+                    status: success
+                    message: Copy promotion from 'staging' to 'QA' was successful,
+                      but with warnings.
+                    created: '2025-07-28T12:17:46.787Z'
+                    evaluations:
+                      exit_gate:
+                        stage: staging
+                        eval_id: eval-exit-dbeeff5a
+                        decision: pass
+                      entry_gate:
+                        stage: QA
+                        eval_id: eval-entry-8a9cf92f
+                        decision: warn
+                        explanation: Policy evaluation completed with warnings. The
+                          resource meets critical requirements but has some quality
+                          issues that should be addressed.
+                fail:
+                  summary: Failed promotion due to policy violations (fail)
+                  value:
+                    application_key: my-web-app
+                    version: 1.2.0
+                    source_stage: staging
+                    target_stage: prod
+                    promotion_type: copy
+                    status: failure
+                    message: Copy promotion from 'staging' to 'prod' failed due to
+                      policy violations.
+                    created: '2025-07-30T13:00:00.000Z'
+                    evaluations:
+                      exit_gate:
+                        stage: staging
+                        eval_id: eval-exit-a1b2c3d4
+                        decision: pass
+                      entry_gate:
+                        stage: prod
+                        eval_id: eval-entry-e5f6g7h8
+                        decision: fail
+                        explanation: Promotion blocked due to critical security vulnerabilities.
+          description: Promoted (synchronous)
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.PromoteAppVersionResponse'
+          description: Promoted (asynchronous)
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Conflict - A write-protected artifact exists at the target
+            path and the `overwrite_strategy` is set to `disabled`, or the `overwrite_strategy`
+            is set to `latest` but the conflicting tag is not `latest`.
+      summary: Promote application version
+      tags:
+      - Application version promotion
+      x-codegen-request-body-name: PromoteAppVersionRequest
+  /v1/applications/{application_key}/versions/{version}/promotions:
+    get:
+      operationId: listApplicationVersionPromotions
+      description: 'Returns the details of all promotions of the specified application
+        version.
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      - description: When set to `message`, returns any error messages that were generated
+          during the promotion operation.
+        in: query
+        name: include
+        schema:
+          type: string
+          enum:
+          - message
+      - description: Sets the number of records to skip before returning the query
+          response. Used for pagination purposes.
+        in: query
+        name: offset
+        schema:
+          type: integer
+      - description: Sets the maximum number of versions to return at one time. Used
+          for pagination purposes.
+        in: query
+        name: limit
+        schema:
+          type: integer
+      - description: 'Defines a filter for the list of promotions based on:
+
+          - `application_version`: The application version.
+
+          - `target_stage`: The target stage.
+
+          - `promoted_by`: The name of the user who performed the promotion.
+
+          - `status`: The status of the promotion operation, for example, `success`,
+          `pending`, `failed`.
+
+          '
+        in: query
+        name: filter_by
+        schema:
+          type: string
+      - description: 'Defines the criterion by which to order the list of promotions:
+
+          - `created` (supports standard ISO 8601 timestamps and milliseconds)
+
+          - `created_by`
+
+          - `version`
+
+          - `stage`
+
+          The default is `created`.
+
+          '
+        in: query
+        name: order_by
+        schema:
+          default: created
+          type: string
+      - description: 'Defines whether to list the application in ascending (`true`)
+          or descending (`false`) order.
+
+          The default is `false`.
+
+          '
+        in: query
+        name: order_asc
+        schema:
+          default: false
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.PromotionsResponse'
+              example:
+                promotions:
+                - status: FAILED
+                  project_key: catalina
+                  application_key: my-app
+                  application_version: 1.0.0
+                  source_stage: QA
+                  target_stage: PROD
+                  promoted_by: admin
+                  promoted: '2023-05-19T06:47:56.518Z'
+                  created_millis: 1684478876518
+                  evaluations:
+                    exit_gate:
+                      stage: QA
+                      eval_id: eval-exit-b4c3d2a1
+                      decision: pass
+                    entry_gate:
+                      stage: PROD
+                      eval_id: eval-entry-h8g7f6e5
+                      decision: fail
+                      explanation: Promotion blocked due to critical security vulnerabilities.
+                - status: COMPLETED
+                  project_key: catalina
+                  application_key: my-app
+                  application_version: 1.0.0
+                  source_stage: DEV
+                  target_stage: QA
+                  created_by: admin
+                  created: '2023-05-19T06:21:44.916Z'
+                  created_millis: 1684477304916
+                  evaluations:
+                    exit_gate:
+                      stage: DEV
+                      eval_id: eval-exit-a1b2c3d4
+                      decision: pass
+                    entry_gate:
+                      stage: QA
+                      eval_id: eval-entry-e5f6g7h8
+                      decision: pass
+                total: 2
+                limit: 1000
+                offset: 0
+          description: Success
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+      summary: Get promotions for application version
+      tags:
+      - Application version promotion
+  /v1/applications/{application_key}/versions/{version}/promotions/{created_millis}:
+    get:
+      operationId: getApplicationVersionPromotion
+      description: 'Returns the details of the specified application version promotion.
+
+
+        **Security:** Requires Read permissions to the target application version
+        path
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      - description: The timestamp when the application version promotion was initiated
+          (in milliseconds).
+        in: path
+        name: created_millis
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.PromotionDetailsResponse'
+              example:
+                target_stage: QA
+                created_by: admin
+                created: '2023-05-19T06:21:44.916Z'
+                created_millis: 1684477304916
+                artifacts:
+                - path: commons-qa-maven-local/org/apache/tomcat/commons/1.0.0/commons-1.0.0.jar
+                  checksum: 0d2053f76605e0734f5251a78c5dade5ee81b0f3730b3f603aedb90bc58033fb
+                  package_type: maven
+                  package_name: org.apache.tomcat:commons
+                  package_version: 1.0.0
+                - path: commons-qa-generic-local/commons/release-notes-1.0.0.txt
+                  checksum: f87e4c72e60300b451739d545afc0251a6e2f4bd1beaa1902ba739455897ecb8
+                  package_type: generic
+          description: Fetched
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found (application, application version, or promotion)
+      summary: Get promotion details for application version
+      tags:
+      - Application version promotion
+  /v1/applications/{application_key}/versions/{version}/release:
+    post:
+      operationId: releaseApplicationVersion
+      description: 'Releases the specified application version by moving it to the
+        PROD stage.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      - description: 'Determines whether the operation should be asynchronous (`true`)
+          or synchronous (`false`).
+
+          The default value is `false`, which means that Artifactory waits for application
+          version promotion to complete before allowing you to move on to the next
+          task.
+
+          '
+        in: query
+        name: async
+        schema:
+          default: false
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.ReleaseApplicationVersionRequest'
+            example:
+              promotion_type: copy
+              included_repository_keys:
+              - docker-prod-local
+              artifact_additional_properties:
+                release.status: approved
+                promoted.by: jane.doe
+        description: Release Application Version Request
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.ReleaseAppVersionResponse'
+              examples:
+                success:
+                  summary: Successful release
+                  value:
+                    application_key: my-web-app
+                    version: 1.2.0
+                    source_stage: staging
+                    promotion_type: copy
+                    status: success
+                    message: Releasing version using Copy from 'staging' was successful.
+                    included_repository_keys:
+                    - docker-prod-local
+                    excluded_repository_keys: []
+                    artifact_additional_properties:
+                      release.status: approved
+                      promoted.by: jane.doe
+                    created: '2023-10-27T10:00:00Z'
+                    evaluations:
+                      exit_gate:
+                        eval_id: eval_src_1698399600
+                        stage: staging
+                        decision: pass
+                      release_gate:
+                        eval_id: eval_tgt_1698399605
+                        stage: PROD
+                        decision: pass
+                failure:
+                  summary: Failed release due to policy violations
+                  value:
+                    message: Releasing using copy promotion from 'staging' failed
+                      due to policy violations.
+                    promotion_type: copy
+                    details:
+                    - gate: exit_gate
+                      eval_id: eval_src_1698399799
+                      status: passed
+                      failed_policies: []
+                    - gate: release_gate
+                      eval_id: eval_tgt_1698399800
+                      status: failed
+                      failed_policies:
+                      - policy_name: Block Critical Vulnerabilities
+                        reason: Artifact 'my-web-app:1.2.1/service.jar' contains 3
+                          critical vulnerabilities.
+          description: Promoted (synchronous)
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.ReleaseAppVersionResponse'
+          description: Promoted (asynchronous)
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Conflict - A write-protected artifact exists at the target
+            path and the `overwrite_strategy` is set to `disabled`, or the `overwrite_strategy`
+            is set to `latest` but the conflicting tag is not `latest`.
+      summary: Release application version
+      tags:
+      - Application version release
+      x-codegen-request-body-name: ReleaseApplicationVersionRequest
+  /v1/applications/{application_key}/versions/{version}/rollback:
+    post:
+      operationId: rollbackApplicationVersion
+      description: 'Rolls back the latest promotion of the specified application version
+        to its previous stage. This action removes the promotion record, but the audit
+        log will retain a history of the rollback. The behavior of the rollback on
+        the artifacts in the application version depends on the original promotion
+        type:
+
+
+        - **Copy promotion:** Artifacts in the current stage''s repositories are deleted.
+
+        - **Move promotion:** Artifacts are removed from the current stage''s repositories
+        and restored to the previous stage''s repositories from a secure internal
+        repository.
+
+
+        **Note:** Rollback can be performed from the PROD stage, if needed.
+
+
+        **Note:** If an artifact in the target stage has been overwritten by a newer
+        promotion (i.e., the artifact''s SHA-256 no longer matches the version''s
+        original manifest), that artifact is skipped during rollback and a warning
+        is returned. This prevents accidental deletion of artifacts that now belong
+        to a different version.
+
+
+        **Consumes:** application/json
+
+        '
+      parameters:
+      - description: The unique application key.
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: The application version.
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      - description: 'Determines whether the operation should be asynchronous (`true`)
+          or synchronous (`false`).
+
+          The default value is `false`, which means that Artifactory waits for application
+          version promotion to complete before allowing you to move on to the next
+          task.
+
+          '
+        in: query
+        name: async
+        schema:
+          default: false
+          type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.RollbackAppVersionRequest'
+            example:
+              from_stage: qa
+        description: Rollback Application Version Request
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.RollbackAppVersionResponse'
+              example:
+                application_key: video-encoder
+                version: 1.5.0
+                project_key: MEDIA-PROJ
+                rollback_from_stage: qa
+                rollback_to_stage: dev
+          description: Ok (synchronous)
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.RollbackAppVersionResponse'
+          description: Ok (asynchronous)
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Credentials
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission Denied
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Rollback application version
+      tags:
+      - Application version rollback
+      x-codegen-request-body-name: RollbackAppVersionRequest
+  /v1/applications/{application_key}/versions/{version}/status:
+    get:
+      operationId: getApplicationVersionStatus
+      description: Get the release status for a specific application version from
+        Release Lifecycle Management (RLM).
+      parameters:
+      - description: Application Key
+        in: path
+        name: application_key
+        required: true
+        schema:
+          type: string
+      - description: Version
+        in: path
+        name: version
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.VersionStatusResponse'
+          description: Application version status retrieved successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Parameters - Invalid application key or version format
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad credentials - Authentication required
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Permission denied - Insufficient permissions to access application
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Application or version not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Internal server error - Unable to retrieve status from RLM
+      summary: Get application version status
+      tags:
+      - Application version
+  /v1/applications/batch:
+    post:
+      operationId: batchCreateApplications
+      description: Create multiple applications in a single batch operation. Returns
+        207 with succeeded and failed arrays showing results for each application.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/request.CreateApplicationsBatchDto'
+        description: Batch Create Applications Request
+        required: true
+      responses:
+        '207':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.BatchApplicationsResponse'
+          description: Multi-Status
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+      summary: Create applications batch
+      tags:
+      - Application
+      x-codegen-request-body-name: applications
+  /v1/metrics:
+    get:
+      operationId: getMetrics
+      description: Collect and return the metrics
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: Metrics collected successfully
+      summary: Get metrics
+      tags:
+      - Metrics
+  /v1/projects/{project_key}/lifecycle/stages:
+    get:
+      operationId: getLifecycleStages
+      description: Get lifecycle stages with gates. Gates are filtered based on category
+        and filter_gates_by parameter.
+      parameters:
+      - description: Project key
+        in: path
+        name: project_key
+        required: true
+        schema:
+          type: string
+      - description: 'Filter gates - if ''policies'', only return gates with policies;
+          otherwise, return category-based gates (promote: entry+exit, others: release)'
+        in: query
+        name: filter_gates_by
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/response.LifecycleCategoryResponse'
+                type: array
+          description: Lifecycle categories with stages and gates
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad request - invalid project key
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Project not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Internal server error
+      summary: Get lifecycle stages with gates
+      tags:
+      - Project
+  /v1/projects/{project_key}/stages:
+    get:
+      operationId: getProjectStages
+      description: Get stages by project key
+      parameters:
+      - description: Project key
+        in: path
+        name: project_key
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.StagesResponse'
+          description: OK
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Get stages by project key
+      tags:
+      - Project
+  /v1/projects/{project_key}/stages/release:
+    get:
+      operationId: getProjectReleaseStage
+      description: Get release stage by project key
+      parameters:
+      - description: Project key
+        in: path
+        name: project_key
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/response.StageResponse'
+          description: OK
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Not Found
+      summary: Get release stage by project key
+      tags:
+      - Project
+  /v1/system/liveness:
+    get:
+      operationId: getLiveness
+      description: Get the liveness status of the service
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+      summary: Check the liveness of the service
+      tags:
+      - System
+  /v1/system/ping:
+    get:
+      operationId: ping
+      description: Get the service status
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+        '503':
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: Service is unavailable
+      summary: Ping the service
+      tags:
+      - System
+  /v1/system/readiness:
+    get:
+      operationId: getReadiness
+      description: Get the readiness status of the service
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+        '503':
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: Service is unavailable
+      summary: Check the readiness of the service
+      tags:
+      - System
+  /v1/system/service_id:
+    get:
+      operationId: getServiceId
+      description: Get the service ID of the node
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: Service ID
+      summary: Get the service ID
+      tags:
+      - System
+  /v1/system/support/bundle/{id}:
+    put:
+      operationId: createSupportBundle
+      description: Create a support bundle for the service
+      parameters:
+      - description: Bundle ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                format: binary
+                type: string
+          description: Support Bundle
+        '400':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Bad Request
+        '503':
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/errors.Error'
+          description: Service is unavailable
+      summary: Create a support bundle
+      tags:
+      - System
+components:
+  schemas:
+    clients.Status:
+      example:
+        is_configured: true
+        message: message
+      properties:
+        is_configured:
+          type: boolean
+        message:
+          type: string
+      type: object
+    constants.ProjectScope:
+      enum:
+      - global
+      - project
+      type: string
+      x-enum-varnames:
+      - ProjectScopeGlobal
+      - ProjectScopeProject
+    constants.StageCategory:
+      enum:
+      - none
+      - code
+      - promote
+      - release
+      type: string
+      x-enum-varnames:
+      - StageCategoryNone
+      - StageCategoryCode
+      - StageCategoryPromote
+      - StageCategoryRelease
+    errors.Error:
+      example:
+        details:
+        - details
+        - details
+        message: message
+      properties:
+        details:
+          items:
+            type: string
+          type: array
+        message:
+          type: string
+      type: object
+    httpclient.ProjectMembership:
+      example:
+        roles:
+        - roles
+        - roles
+        name: name
+      properties:
+        name:
+          type: string
+        roles:
+          items:
+            type: string
+          type: array
+      type: object
+    model.AppLabel:
+      properties:
+        key:
+          type: string
+        label_id:
+          type: integer
+        value:
+          type: string
+      type: object
+    model.Label:
+      example:
+        realm: realm
+        id: 0
+        value: value
+        key: key
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        realm:
+          type: string
+        value:
+          type: string
+      required:
+      - key
+      - realm
+      - value
+      type: object
+    model.Owner:
+      example:
+        name: name
+        type: type
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+      type: object
+    model.ProjectMembers:
+      example:
+        groups:
+        - roles:
+          - roles
+          - roles
+          name: name
+        - roles:
+          - roles
+          - roles
+          name: name
+        users:
+        - roles:
+          - roles
+          - roles
+          name: name
+        - roles:
+          - roles
+          - roles
+          name: name
+      properties:
+        groups:
+          items:
+            $ref: '#/components/schemas/httpclient.ProjectMembership'
+          type: array
+        users:
+          items:
+            $ref: '#/components/schemas/httpclient.ProjectMembership'
+          type: array
+      type: object
+    model.Stage:
+      example:
+        gates:
+        - gates
+        - gates
+        stage_name: stage_name
+      properties:
+        gates:
+          items:
+            type: string
+          type: array
+        stage_name:
+          type: string
+      type: object
+    permissions.CurrentUserPermissions:
+      example:
+        application_delete: true
+        application_write: true
+        application_bind: true
+        application_read: true
+      properties:
+        application_bind:
+          type: boolean
+        application_delete:
+          type: boolean
+        application_read:
+          type: boolean
+        application_write:
+          type: boolean
+      type: object
+    request.ArtifactAdditionalProperty:
+      example:
+        values:
+        - values
+        - values
+        key: key
+      properties:
+        key:
+          type: string
+        values:
+          items:
+            type: string
+          type: array
+      type: object
+    request.BindPackageHttpRequest:
+      description: Request body for binding a package version to an application.
+      required:
+      - package_type
+      - package_name
+      - package_version
+      properties:
+        package_type:
+          type: string
+          description: The package type (for example, `maven`, `docker`, `generic`,
+            etc.)
+        package_name:
+          type: string
+          description: The package name.
+        package_version:
+          type: string
+          description: The package version.
+      type: object
+    request.CreateAppVersionArtifactsSources:
+      properties:
+        path:
+          type: string
+        sha256:
+          type: string
+      type: object
+    request.CreateAppVersionBuildsSources:
+      properties:
+        include_dependencies:
+          type: boolean
+        name:
+          type: string
+        number:
+          type: string
+        repository_key:
+          type: string
+        started:
+          type: string
+      type: object
+    request.CreateAppVersionFilters:
+      properties:
+        excluded:
+          items:
+            $ref: '#/components/schemas/request.CreateAppVersionSourceFilter'
+          type: array
+        included:
+          items:
+            $ref: '#/components/schemas/request.CreateAppVersionSourceFilter'
+          type: array
+      type: object
+    request.CreateAppVersionPackagesSources:
+      properties:
+        name:
+          type: string
+        repository_key:
+          type: string
+        type:
+          type: string
+        version:
+          type: string
+      type: object
+    request.CreateAppVersionReleaseBundlesSources:
+      properties:
+        name:
+          type: string
+        project_key:
+          type: string
+        repository_key:
+          type: string
+        version:
+          type: string
+      type: object
+    request.CreateAppVersionRequest:
+      description: Request body for creating a new application version.
+      properties:
+        version:
+          type: string
+          description: 'The application version to be created.
+
+            **Note:** It is recommended to use SemVer formatting to maintain clarity
+            and support CI/CD pipeline automations.
+
+            '
+        sources:
+          $ref: '#/components/schemas/request.CreateAppVersionSources'
+          description: 'The list of sources to include in the version. Sources can
+            include: artifacts, packages, builds, Release Bundles, and other application
+            versions (from this or other applications).
+
+            **Important:** You must define at least one source. Each source type has
+            at least one required parameter.
+
+            '
+        tag:
+          type: string
+          description: A tag to be associated with the application version. A tag
+            is a single free text value, limited to 128 characters, beginning and
+            ending with an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores
+            (_), dots (.), and alphanumerics in between. The tag is usually used to
+            represent the branch.
+        filters:
+          $ref: '#/components/schemas/request.CreateAppVersionFilters'
+          description: Enables you to create a new application version based on the
+            contents of an existing version, but excluding one or more artifacts or
+            including one or more artifacts from a defined source.
+        draft:
+          type: boolean
+          description: 'When set to `true`, creates the application version in draft
+            mode. A draft version can be iteratively modified -- its content (artifacts,
+            builds, packages) can be added to and its version name can be renamed.
+            Security scans are not triggered until the version is finalized. Promoting
+            a draft version automatically finalizes (locks and signs) it before promotion
+            proceeds.
+
+            '
+        dry_run:
+          type: boolean
+          default: false
+          description: 'When set to `true`, simulates the version creation without
+            persisting any data. All backend validations are performed -- including
+            verifying that builds exist, artifacts are accessible, and the version
+            name is valid -- but no application version is saved. Use this to validate
+            your request payload and catch errors before committing to an actual creation.
+
+            '
+      required:
+      - sources
+      - version
+      type: object
+    request.CreateAppVersionSourceFilter:
+      description: 'Filter for including or excluding artifacts/packages from the
+        application version.
+
+        For artifacts: At least one field (`path` or `sha256`) must be specified.
+
+        For packages: At least one field (`package_type`, `package_name`, or `package_version`)
+        must be specified.
+
+        '
+      properties:
+        package_type:
+          type: string
+          description: Filter attribute for packages. Can be "docker", "npm", "maven",
+            "pypi", etc.
+        package_name:
+          type: string
+          description: 'Filter attribute for packages. Wildcards (`*`) supported.
+
+            Wildcard rules: Wild card (*) can be at start or end of string only (e.g.,
+            frontend-*, *-dev, *.jar). Single wild card per field. No regex patterns
+            or character class.
+
+            '
+        package_version:
+          type: string
+          description: Filter attribute for packages. Wildcards (`*`) supported.
+        path:
+          type: string
+          description: Filter attribute for packages. Wildcards (`*`) supported.
+        sha256:
+          type: string
+          description: Filter attribute for artifacts. The string must be an exact
+            match.
+      type: object
+    request.CreateAppVersionSources:
+      description: 'The list of sources to include in the version. Sources can include:
+        artifacts, packages, builds, Release Bundles, and other application versions.
+
+        **Important:** You must define at least one source.
+
+        '
+      properties:
+        aql:
+          type: string
+          description: The contents of the AQL query to include in the application
+            version.
+        skip_docker_manifest_resolution:
+          type: boolean
+          default: false
+          description: Determines whether to skip the resolution of the Docker manifest,
+            which adds the image layers to the application version. The default value
+            is `false` (the manifest is resolved and image layers are included).
+        artifacts:
+          items:
+            $ref: '#/components/schemas/request.CreateAppVersionArtifactsSources'
+          type: array
+          description: The list of artifacts to include in the application version.
+        packages:
+          items:
+            $ref: '#/components/schemas/request.CreateAppVersionPackagesSources'
+          type: array
+          description: The list of packages to include in the application version.
+        builds:
+          items:
+            $ref: '#/components/schemas/request.CreateAppVersionBuildsSources'
+          type: array
+          description: The list of builds to include in the application version.
+        release_bundles:
+          items:
+            $ref: '#/components/schemas/request.CreateAppVersionReleaseBundlesSources'
+          type: array
+          description: The list of Release Bundles v2 to include in the application
+            version.
+        versions:
+          items:
+            $ref: '#/components/schemas/request.CreateAppVersionVersionsSources'
+          type: array
+          description: The list of application versions to include in this application
+            version.
+      type: object
+    request.CreateAppVersionVersionsSources:
+      description: Reference to another application version to include as a source.
+      properties:
+        application_key:
+          type: string
+          description: The application key. The default is the same `application_key`
+            as the application for which this version is being created.
+        version:
+          type: string
+          description: The application version.
+      required:
+      - version
+      type: object
+    request.CreateApplicationDto:
+      required:
+      - application_name
+      - application_key
+      - project_key
+      properties:
+        application_name:
+          type: string
+          description: The application display name. Must be a unique string within
+            the scope of the project, 1-255 alphanumeric characters in length, including
+            underscores, hyphens, and spaces.
+        application_key:
+          type: string
+          description: The application key. Must be 2-64 lowercase alphanumeric characters,
+            beginning with a letter (hyphens are supported). The key must be unique
+            and immutable.
+        project_key:
+          type: string
+          description: The key of the project associated with the application.
+        description:
+          type: string
+          description: A free-text description of the application.
+        maturity_level:
+          type: string
+          description: 'The maturity level of the application:
+
+            - `unspecified`
+
+            - `experimental`
+
+            - `production`
+
+            - `end_of_life`
+
+            '
+          enum:
+          - unspecified
+          - experimental
+          - production
+          - end_of_life
+        criticality:
+          type: string
+          description: 'A classification of how critical the application is for your
+            business:
+
+            - `unspecified` (default)
+
+            - `low`
+
+            - `medium`
+
+            - `high`
+
+            - `critical`
+
+            '
+          enum:
+          - unspecified
+          - low
+          - medium
+          - high
+          - critical
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+          description: 'Key-value pairs for labeling the application. Each key and
+            value is free text, limited to 255 characters, beginning and ending with
+            an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_),
+            dots (.), and alphanumerics in between.
+
+            Each label must have both a key and a value. Empty values are not permitted.
+
+            '
+        user_owners:
+          items:
+            type: string
+          type: array
+          description: List of users defined in the project who own the application.
+        group_owners:
+          items:
+            type: string
+          type: array
+          description: List of user groups defined in the project who own the application.
+      type: object
+    request.CreateApplicationsBatchDto:
+      properties:
+        applications:
+          items:
+            $ref: '#/components/schemas/request.CreateApplicationDto'
+          type: array
+      type: object
+    request.IntegrationEventProperty:
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      type: object
+    request.LabelUpdate:
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+      type: object
+    request.LabelUpdates:
+      properties:
+        add:
+          items:
+            $ref: '#/components/schemas/request.LabelUpdate'
+          type: array
+        remove:
+          items:
+            $ref: '#/components/schemas/request.LabelUpdate'
+          type: array
+      type: object
+    request.PostIntegrationEventRequest:
+      properties:
+        event_message:
+          type: string
+        properties:
+          items:
+            $ref: '#/components/schemas/request.IntegrationEventProperty'
+          type: array
+        reference:
+          type: string
+        status:
+          type: string
+        type:
+          type: string
+      required:
+      - reference
+      - status
+      - type
+      type: object
+    request.PromoteAppVersionRequest:
+      description: Request body for promoting an application version to a target stage.
+      required:
+      - target_stage
+      properties:
+        target_stage:
+          type: string
+          description: The target stage to which the application version should be
+            promoted.
+        promotion_type:
+          $ref: '#/components/schemas/request.PromoteOperation'
+          description: 'The type of promotion to perform:
+
+            - `copy`: Copies the application version to the target stage, preserving
+            the source artifacts. This is the default. **Note:** No physical copy
+            occurs if the source and target repositories are identical.
+
+            - `move`: Moves the application version to the target stage, transferring
+            the source.
+
+            - `dry_run`: Simulates the promotion without actually performing it.
+
+            '
+        included_repository_keys:
+          items:
+            type: string
+          type: array
+          description: 'Defines specific repositories to include in the promotion.
+
+            If this property is left undefined, all repositories (except those specifically
+            excluded) are included in the promotion.
+
+            **Important:** If one or more repositories are specifically included,
+            all other repositories are excluded (regardless of what is defined in
+            `excluded_repository_keys`).
+
+            '
+        excluded_repository_keys:
+          items:
+            type: string
+          type: array
+          description: Defines specific repositories to exclude from the promotion.
+        artifact_additional_properties:
+          items:
+            $ref: '#/components/schemas/request.ArtifactAdditionalProperty'
+          type: array
+          description: 'Key-value pairs that define properties to add to each promoted
+            artifact on top of any existing properties.
+
+            **Note:** If a property with the same key already exists on the artifact,
+            the value defined in `artifact_additional_properties` will override the
+            previous value.
+
+            '
+        overwrite_strategy:
+          type: string
+          default: latest
+          description: 'Defines the overwrite policy for handling write-protected
+            artifacts that already exist in the target repository during promotion.
+            This is primarily relevant for Docker image promotions where mutable tags
+            (such as `:latest`) may already point to a protected artifact in the target
+            stage.
+
+            - `latest` (default): Overwrite is permitted only if the conflicting artifact''s
+            tag is exactly `latest`.
+
+            - `all`: Overwrite is permitted for any conflicting artifact in the target,
+            regardless of the tag name.
+
+            - `disabled`: No overwrite is permitted. The promotion fails with a `409
+            Conflict` if a write-protected artifact exists at the target path.
+
+            '
+          enum:
+          - latest
+          - all
+          - disabled
+        promotion_authorization_type:
+          type: string
+      type: object
+    request.PromoteOperation:
+      description: 'The type of promotion to perform:
+
+        - `copy`: Copies the application version to the target stage, preserving the
+        source artifacts. This is the default. **Note:** No physical copy occurs if
+        the source and target repositories are identical.
+
+        - `move`: Moves the application version to the target stage, transferring
+        the source.
+
+        - `dry_run`: Simulates the promotion without actually performing it.
+
+        '
+      enum:
+      - move
+      - copy
+      - keep
+      - dry_run
+      type: string
+      x-enum-varnames:
+      - PromoteOperationMove
+      - PromoteOperationCopy
+      - PromoteOperationKeep
+      - PromoteOperationDryRun
+    request.ReleaseApplicationVersionRequest:
+      description: Request body for releasing an application version to the PROD stage.
+      properties:
+        promotion_type:
+          $ref: '#/components/schemas/request.PromoteOperation'
+          description: 'The type of release to perform:
+
+            - `copy`: Copies the application version to the target stage, preserving
+            the source artifacts. This is the default. **Note:** No physical copy
+            occurs if the source and target repositories are identical.
+
+            - `move`: Moves the application version to the target stage, transferring
+            the source.
+
+            - `dry_run`: Simulates the release without actually performing it.
+
+            '
+        included_repository_keys:
+          items:
+            type: string
+          type: array
+          description: Use this option to include only the specified repository keys
+            in the promotion.
+        excluded_repository_keys:
+          items:
+            type: string
+          type: array
+          description: Use this option to exclude the specified repository keys from
+            the promotion.
+        artifact_additional_properties:
+          items:
+            $ref: '#/components/schemas/request.ArtifactAdditionalProperty'
+          type: array
+          description: 'Key-value pairs that define properties to add to each promoted
+            artifact on top of any existing properties.
+
+            **Note:** If a property with the same key already exists on the artifact,
+            the value defined in `artifact_additional_properties` will override the
+            previous value.
+
+            '
+        overwrite_strategy:
+          type: string
+          default: latest
+          description: 'Defines the overwrite policy for handling write-protected
+            artifacts that already exist in the target repository during release.
+            This is primarily relevant for Docker image releases where mutable tags
+            (such as `:latest`) may already point to a protected artifact in the PROD
+            stage.
+
+            - `latest` (default): Overwrite is permitted only if the conflicting artifact''s
+            tag is exactly `latest`.
+
+            - `all`: Overwrite is permitted for any conflicting artifact in the target,
+            regardless of the tag name.
+
+            - `disabled`: No overwrite is permitted. The release fails with a `409
+            Conflict` if a write-protected artifact exists at the target path.
+
+            '
+          enum:
+          - latest
+          - all
+          - disabled
+        promotion_authorization_type:
+          type: string
+      type: object
+    request.RollbackAppVersionRequest:
+      description: Request body for rolling back an application version promotion.
+      required:
+      - from_stage
+      properties:
+        from_stage:
+          type: string
+          description: 'The name of the stage from which to roll back the application
+            version.
+
+            **Note:** This parameter acts as a safety check to ensure the rollback
+            targets the correct stage. The request will fail if this value does not
+            match the current stage.
+
+            '
+      type: object
+    request.SaveConfigRequest:
+      properties:
+        config:
+          $ref: '#/components/schemas/request.SaveConfigRequestData'
+        type:
+          type: string
+      required:
+      - config
+      - type
+      type: object
+    request.SaveConfigRequestData:
+      properties:
+        host:
+          type: string
+        token:
+          type: string
+      required:
+      - host
+      - token
+      type: object
+    request.UiCreateAppDescriptorRequest:
+      properties:
+        application_key:
+          type: string
+        criticality:
+          type: string
+        description:
+          type: string
+        display_name:
+          type: string
+        labels:
+          items:
+            $ref: '#/components/schemas/model.AppLabel'
+          type: array
+        maturity_level:
+          type: string
+        owners:
+          items:
+            $ref: '#/components/schemas/model.Owner'
+          type: array
+        project_key:
+          type: string
+      type: object
+    request.UiReplaceAppDescriptorRequest:
+      properties:
+        criticality:
+          type: string
+        description:
+          type: string
+        display_name:
+          type: string
+        labels:
+          items:
+            $ref: '#/components/schemas/model.Label'
+          type: array
+        maturity_level:
+          type: string
+        owners:
+          items:
+            $ref: '#/components/schemas/model.Owner'
+          type: array
+        project_key:
+          type: string
+      type: object
+    request.UpdateAppVersionRequest:
+      description: Request body for updating an application version's tag and/or properties.
+      properties:
+        tag:
+          type: string
+          description: 'The new tag to associate with the application version. Max
+            length 128 characters. The tag is commonly used to represent the Git branch.
+
+            If an empty string (`""`) is provided, the existing tag will be removed.
+            If the field is omitted, the tag remains unchanged.
+
+            The tag must adhere to defined format rules (alphanumeric start/end, with
+            dashes, underscores, dots).
+
+            '
+        properties:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          type: object
+          description: 'An object where each key is a property name (string) and its
+            value is an array of strings representing the values for that property.
+
+            Providing a key with an array of strings replaces any existing values
+            for that specific key.
+
+            Providing a key with an empty array (`[]`) clears all values for that
+            key, but the key itself remains. Property keys not included in this object
+            are not affected.
+
+            '
+        delete_properties:
+          items:
+            type: string
+          type: array
+          description: A list of property keys (strings) to completely remove from
+            the application version. These keys and their associated values will be
+            deleted.
+        add_sources:
+          $ref: '#/components/schemas/request.CreateAppVersionSources'
+          description: 'Additional sources to add to the existing application version.
+            Uses the same format as the `sources` field in the Create Application
+            Version request. Sources can include artifacts, packages, builds, Release
+            Bundles, and other application versions.
+
+            '
+        async:
+          type: boolean
+          description: 'Determines whether the operation should be asynchronous (`true`)
+            or synchronous (`false`).
+
+            '
+        dry_run:
+          type: boolean
+          description: 'When set to `true`, simulates the update operation without
+            actually applying any changes. Use this to validate the request before
+            committing.
+
+            '
+        fail_fast:
+          type: boolean
+          description: 'When set to `true`, the operation stops immediately upon encountering
+            the first error. When `false` or omitted, the operation continues processing
+            and reports all errors at the end.
+
+            '
+        filters:
+          $ref: '#/components/schemas/request.CreateAppVersionFilters'
+          description: 'Filters for including or excluding specific artifacts or packages
+            when adding sources to the application version. Uses the same format as
+            the `filters` field in the Create Application Version request.
+
+            '
+      type: object
+    request.UpdateApplicationDto:
+      description: 'Update application request. All fields are optional - only fields
+        included in the request body will be replaced.
+
+        **Note:** The `application_key` and `project_key` cannot be modified.
+
+        '
+      properties:
+        application_name:
+          type: string
+          description: The application display name. Must be a unique string within
+            the scope of the project, 1-255 alphanumeric characters in length, including
+            underscores, hyphens, and spaces.
+        description:
+          type: string
+          description: A free text description of the application.
+        maturity_level:
+          type: string
+          description: 'The maturity level of the application:
+
+            - `unspecified`
+
+            - `experimental`
+
+            - `production`
+
+            - `end_of_life`
+
+            '
+          enum:
+          - unspecified
+          - experimental
+          - production
+          - end_of_life
+        criticality:
+          type: string
+          description: 'A classification of how critical the application is for your
+            business:
+
+            - `unspecified` (default)
+
+            - `low`
+
+            - `medium`
+
+            - `high`
+
+            - `critical`
+
+            '
+          enum:
+          - unspecified
+          - low
+          - medium
+          - high
+          - critical
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+          description: 'Key-value pairs for labeling the application. Each key and
+            value is free text, limited to 255 characters, beginning and ending with
+            an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_),
+            dots (.), and alphanumerics in between.
+
+            Each label must have both a key and a value. Empty values are not permitted.
+
+            '
+        label_updates:
+          $ref: '#/components/schemas/request.LabelUpdates'
+        user_owners:
+          items:
+            type: string
+          type: array
+          description: List of users defined in the project who own the application.
+        group_owners:
+          items:
+            type: string
+          type: array
+          description: List of user groups defined in the project who own the application.
+      type: object
+    response.ActivityLogDto:
+      description: A single activity log entry.
+      example:
+        event_id: 01HN1234567890ABCDEFGHIJK
+        timestamp: 1672531200000
+        subject_type: application
+        subject_name: catalina-app
+        event_description: Application version 1.2.0 promoted to QA
+        event_type: promote
+        event_category: lifecycle
+        result: success
+        additional_data:
+          version: 1.2.0
+          stage: QA
+        created_by: admin@example.com
+        application_key: catalina-app
+        application_name: Catalina App
+        project_key: catalina
+        project_name: Catalina Project
+      properties:
+        event_id:
+          type: string
+          description: The unique identifier for the activity log entry.
+        timestamp:
+          type: integer
+          description: The UNIX timestamp when the event occurred.
+        subject_type:
+          type: string
+          description: The type of subject that triggered the event.
+        subject_id:
+          type: string
+          description: The ID of the subject that triggered the event.
+        subject_name:
+          type: string
+          description: The name of the subject that triggered the event.
+        event_description:
+          type: string
+          description: The event description.
+        event_type:
+          type: string
+          description: The event type.
+        event_category:
+          type: string
+          description: The event category.
+        result:
+          type: string
+          description: The result of the event (`success`, `failure`, `warning`).
+          enum:
+          - success
+          - failure
+          - warning
+        additional_data:
+          properties: {}
+          type: object
+          description: Additional structured data related to the event.
+        created_by:
+          type: string
+          description: The user who initiated the event.
+        application_key:
+          type: string
+          description: The key of the associated application, if applicable.
+        application_name:
+          type: string
+          description: The display name of the associated application.
+        project_key:
+          type: string
+          description: The key of the associated project.
+        project_name:
+          type: string
+          description: The display name of the associated project.
+      type: object
+    response.ActivityLogResponse:
+      description: Response object for activity log queries.
+      example:
+        activity_logs:
+        - event_id: 01HN1234567890ABCDEFGHIJK
+          timestamp: 1672531200000
+          subject_type: application
+          subject_name: catalina-app
+          event_description: Application version 1.2.0 promoted to QA
+          event_type: promote
+          event_category: lifecycle
+          result: success
+          additional_data:
+            version: 1.2.0
+            stage: QA
+          created_by: admin@example.com
+          application_key: catalina-app
+          application_name: Catalina App
+          project_key: catalina
+          project_name: Catalina Project
+        - event_id: 01HN0987654321ZYXWVUTSRQP
+          timestamp: 1672527600000
+          subject_type: application
+          subject_name: catalina-app
+          event_description: Application created successfully
+          event_type: create
+          event_category: lifecycle
+          result: success
+          additional_data: {}
+          created_by: admin@example.com
+          application_key: catalina-app
+          application_name: Catalina App
+          project_key: catalina
+          project_name: Catalina Project
+        total: 2
+        limit: 10
+        offset: 0
+      properties:
+        activity_logs:
+          items:
+            $ref: '#/components/schemas/response.ActivityLogDto'
+          type: array
+          description: Array of activity log entries.
+        total:
+          type: integer
+          description: Total number of activity logs matching the query.
+        limit:
+          type: integer
+          description: Maximum number of logs returned.
+        offset:
+          type: integer
+          description: Number of records skipped before returning the response.
+      type: object
+    response.AppDescriptorResponse:
+      example:
+        maturity_level: maturity_level
+        project_key: project_key
+        criticality: criticality
+        description: description
+        owners:
+        - name: name
+          type: type
+        - name: name
+          type: type
+        display_name: display_name
+        application_key: application_key
+        labels:
+        - realm: realm
+          id: 0
+          value: value
+          key: key
+        - realm: realm
+          id: 0
+          value: value
+          key: key
+      properties:
+        application_key:
+          type: string
+        criticality:
+          type: string
+        description:
+          type: string
+        display_name:
+          type: string
+        labels:
+          items:
+            $ref: '#/components/schemas/model.Label'
+          type: array
+        maturity_level:
+          type: string
+        owners:
+          items:
+            $ref: '#/components/schemas/model.Owner'
+          type: array
+        project_key:
+          type: string
+      type: object
+    response.ApplicationVersion:
+      example:
+        current_promotion_created: current_promotion_created
+        created: created
+        draft: true
+        messages:
+        - text: text
+        - text: text
+        current_stage: current_stage
+        tag: tag
+        application_key: application_key
+        created_by: created_by
+        release_status: release_status
+        version: version
+        status: status
+      properties:
+        application_key:
+          type: string
+        created:
+          type: string
+        created_by:
+          type: string
+        current_promotion_created:
+          type: string
+        current_stage:
+          type: string
+        draft:
+          type: boolean
+        messages:
+          items:
+            $ref: '#/components/schemas/response.ApplicationVersionMessage'
+          type: array
+        release_status:
+          type: string
+        status:
+          type: string
+        tag:
+          type: string
+        version:
+          type: string
+      type: object
+    response.ApplicationVersionContentResponse:
+      example:
+        offset: 1
+        sources:
+        - release_bundle:
+            repo_key: repo_key
+            name: name
+            version: version
+          build:
+            number: number
+            repo_key: repo_key
+            name: name
+            timestamp: timestamp
+          type: type
+        - release_bundle:
+            repo_key: repo_key
+            name: name
+            version: version
+          build:
+            number: number
+            repo_key: repo_key
+            name: name
+            timestamp: timestamp
+          type: type
+        application_version_sha256: application_version_sha256
+        project_key: project_key
+        total_size: 9
+        created_at: created_at
+        releasables_count: 2
+        created_by: created_by
+        release_status: release_status
+        version: version
+        total: 7
+        artifacts_count: 0
+        service_id: service_id
+        limit: 6
+        current_stage: current_stage
+        tag: tag
+        application_key: application_key
+        releasables:
+        - releasable_type: releasable_type
+          sha256: sha256
+          sources:
+          - release_bundle:
+              repo_key: repo_key
+              name: name
+              version: version
+            build:
+              number: number
+              repo_key: repo_key
+              name: name
+              timestamp: timestamp
+            type: type
+          - release_bundle:
+              repo_key: repo_key
+              name: name
+              version: version
+            build:
+              number: number
+              repo_key: repo_key
+              name: name
+              timestamp: timestamp
+            type: type
+          name: name
+          total_size: 5
+          package_type: package_type
+          version: version
+          artifacts:
+          - path: path
+            sha256: sha256
+            size: 5
+            download_path: download_path
+          - path: path
+            sha256: sha256
+            size: 5
+            download_path: download_path
+        - releasable_type: releasable_type
+          sha256: sha256
+          sources:
+          - release_bundle:
+              repo_key: repo_key
+              name: name
+              version: version
+            build:
+              number: number
+              repo_key: repo_key
+              name: name
+              timestamp: timestamp
+            type: type
+          - release_bundle:
+              repo_key: repo_key
+              name: name
+              version: version
+            build:
+              number: number
+              repo_key: repo_key
+              name: name
+              timestamp: timestamp
+            type: type
+          name: name
+          total_size: 5
+          package_type: package_type
+          version: version
+          artifacts:
+          - path: path
+            sha256: sha256
+            size: 5
+            download_path: download_path
+          - path: path
+            sha256: sha256
+            size: 5
+            download_path: download_path
+        status: status
+      properties:
+        application_key:
+          type: string
+        application_version_sha256:
+          type: string
+        artifacts_count:
+          type: integer
+        created_at:
+          type: string
+        created_by:
+          type: string
+        current_stage:
+          type: string
+        limit:
+          type: integer
+        offset:
+          type: integer
+        project_key:
+          type: string
+        releasables:
+          items:
+            $ref: '#/components/schemas/response.Releasable'
+          type: array
+        releasables_count:
+          type: integer
+        release_status:
+          type: string
+        service_id:
+          type: string
+        sources:
+          items:
+            $ref: '#/components/schemas/response.Source'
+          type: array
+        status:
+          type: string
+        tag:
+          type: string
+        total:
+          type: integer
+        total_size:
+          type: integer
+        version:
+          type: string
+      type: object
+    response.ApplicationVersionMessage:
+      example:
+        text: text
+      properties:
+        text:
+          type: string
+      type: object
+    response.ApplicationVersionsResponse:
+      example:
+        total: 1
+        offset: 6
+        versions:
+        - current_promotion_created: current_promotion_created
+          created: created
+          messages:
+          - text: text
+          - text: text
+          current_stage: current_stage
+          tag: tag
+          application_key: application_key
+          created_by: created_by
+          release_status: release_status
+          version: version
+          status: status
+        - current_promotion_created: current_promotion_created
+          created: created
+          messages:
+          - text: text
+          - text: text
+          current_stage: current_stage
+          tag: tag
+          application_key: application_key
+          created_by: created_by
+          release_status: release_status
+          version: version
+          status: status
+        limit: 0
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+        versions:
+          items:
+            $ref: '#/components/schemas/response.ApplicationVersion'
+          type: array
+      type: object
+    response.BatchApplicationsResponse:
+      example:
+        failed:
+        - status_code: 0
+          message: message
+          application_key: application_key
+        - status_code: 0
+          message: message
+          application_key: application_key
+        succeeded:
+        - status_code: 6
+          application_key: application_key
+        - status_code: 6
+          application_key: application_key
+      properties:
+        failed:
+          items:
+            $ref: '#/components/schemas/response.BatchFailureResult'
+          type: array
+        succeeded:
+          items:
+            $ref: '#/components/schemas/response.BatchSuccessResult'
+          type: array
+      type: object
+    response.BatchFailureResult:
+      example:
+        status_code: 0
+        message: message
+        application_key: application_key
+      properties:
+        application_key:
+          type: string
+        message:
+          type: string
+        status_code:
+          type: integer
+      type: object
+    response.BatchSuccessResult:
+      example:
+        status_code: 6
+        application_key: application_key
+      properties:
+        application_key:
+          type: string
+        status_code:
+          type: integer
+      type: object
+    response.BindPackageResponse:
+      description: Response object for binding a package version to an application.
+      example:
+        application_key: my-web-app
+        package_type: maven
+        package_name: com.example:common-utils
+        package_version: 1.2.3
+        bound_at: '2025-06-04T20:30:00Z'
+        bound_by: user@example.com
+      properties:
+        application_key:
+          type: string
+          description: The key of the application to which the package has been bound
+            (associated).
+        package_type:
+          type: string
+          description: The package type (for example, `maven`, `docker`, `npm`, `generic`,
+            etc.).
+        package_name:
+          type: string
+          description: The package name.
+        package_version:
+          type: string
+          description: The package version.
+        bound_at:
+          type: string
+          description: The timestamp of when the binding operation was performed (ISO
+            8601 format).
+        bound_by:
+          type: string
+          description: The user who performed the binding operation.
+      type: object
+    response.CreateAppVersionResponse:
+      description: Response object for creating a new application version.
+      example:
+        application_key: my-super-app
+        version: 1.2.3
+        created_by: user@example.com
+        created: '2025-05-30T10:00:00Z'
+        tag: stable-release
+        status: IN_PROGRESS
+      properties:
+        application_key:
+          type: string
+          description: The unique key of the application for which the version was
+            created.
+        version:
+          type: string
+          description: The application version (e.g., 1.0.0).
+        created_by:
+          type: string
+          description: The user ID who created this application version.
+        created:
+          type: string
+          description: The ISO 8601 timestamp that indicates when the application
+            version was created. This field is absent when `dry_run` is `true`.
+        tag:
+          type: string
+          description: The tag associated with the application version, if one was
+            provided during creation.
+        status:
+          type: string
+          description: The initial status of the application version (for example,
+            `IN_PROGRESS` if async).
+        dry_run:
+          type: boolean
+          description: 'Indicates whether this response is from a dry run operation.
+            When `true`, no application version was actually created.
+
+            '
+      type: object
+    response.GateInfo:
+      example:
+        policies_count: 0
+        name: name
+      properties:
+        name:
+          type: string
+        policies_count:
+          type: integer
+      type: object
+    response.IntegrationEventResponse:
+      example:
+        message: message
+      properties:
+        message:
+          type: string
+      type: object
+    response.Label:
+      example:
+        values:
+        - values
+        - values
+        key: key
+      properties:
+        key:
+          type: string
+        values:
+          items:
+            type: string
+          type: array
+      type: object
+    response.LabelsResponse:
+      example:
+        realm: realm
+        labels:
+        - values:
+          - values
+          - values
+          key: key
+        - values:
+          - values
+          - values
+          key: key
+      properties:
+        labels:
+          items:
+            $ref: '#/components/schemas/response.Label'
+          type: array
+        realm:
+          type: string
+      type: object
+    response.LifecycleCategoryResponse:
+      example:
+        stages:
+        - gates:
+          - gates
+          - gates
+          gates_info:
+          - policies_count: 0
+            name: name
+          - policies_count: 0
+            name: name
+          scope: global
+          stage_name: stage_name
+        - gates:
+          - gates
+          - gates
+          gates_info:
+          - policies_count: 0
+            name: name
+          - policies_count: 0
+            name: name
+          scope: global
+          stage_name: stage_name
+        category: none
+      properties:
+        category:
+          $ref: '#/components/schemas/constants.StageCategory'
+        stages:
+          items:
+            $ref: '#/components/schemas/response.LifecycleStageResponse'
+          type: array
+      type: object
+    response.LifecycleStageResponse:
+      example:
+        gates:
+        - gates
+        - gates
+        gates_info:
+        - policies_count: 0
+          name: name
+        - policies_count: 0
+          name: name
+        scope: global
+        stage_name: stage_name
+      properties:
+        gates:
+          description: Gate names as strings
+          items:
+            type: string
+          type: array
+        gates_info:
+          description: Gate info objects with policies_count
+          items:
+            $ref: '#/components/schemas/response.GateInfo'
+          type: array
+        scope:
+          $ref: '#/components/schemas/constants.ProjectScope'
+        stage_name:
+          type: string
+      type: object
+    response.PackageSummariesResponse:
+      description: Response object for getting application package bindings.
+      example:
+        packages:
+        - name: portal-ui-components
+          type: npm
+          latest_version: 2.5.1
+          num_versions: 5
+        - name: portal-auth-client
+          type: npm
+          latest_version: 1.3.0
+          num_versions: 3
+        pagination:
+          offset: 0
+          limit: 10
+          total_items: 2
+      properties:
+        packages:
+          items:
+            $ref: '#/components/schemas/response.PackageSummary'
+          type: array
+          description: An array of package summary objects.
+        pagination:
+          type: object
+          properties:
+            offset:
+              type: integer
+            limit:
+              type: integer
+            total_items:
+              type: integer
+      type: object
+    response.PackageSummary:
+      description: Summary information for a bound package.
+      example:
+        name: portal-ui-components
+        type: npm
+        latest_version: 2.5.1
+        num_versions: 5
+      properties:
+        name:
+          type: string
+          description: The package name.
+        type:
+          type: string
+          description: The package type.
+        latest_version:
+          type: string
+          description: The latest version of this package that is owned by the application.
+        num_versions:
+          type: integer
+          description: The total number of versions of this package that are owned
+            by the application.
+      type: object
+    response.PackageVersionInfo:
+      description: Information about a specific package version.
+      example:
+        version: 2.5.1
+        vcs_url: https://github.com/my-org/web-portal.git
+        vcs_branch: main
+        vcs_revision: a1b2c3d4e5f67890
+      properties:
+        version:
+          type: string
+          description: The package version.
+        vcs_url:
+          type: string
+          description: The source control URL associated with the package version.
+        vcs_branch:
+          type: string
+          description: The source control branch from which the package version was
+            built, if available.
+        vcs_revision:
+          type: string
+          description: The source control revision (for example, the commit hash)
+            of the package version, if available.
+      type: object
+    response.PackageVersions:
+      description: Response object for getting bound package versions.
+      example:
+        versions:
+        - version: 2.5.1
+          vcs_url: https://github.com/my-org/web-portal.git
+          vcs_branch: main
+          vcs_revision: a1b2c3d4e5f67890
+        - version: 2.5.0
+          vcs_url: https://github.com/my-org/web-portal.git
+          vcs_branch: feature/new-ui
+          vcs_revision: f6e5d4c3b2a10987
+        offset: 0
+        limit: 2
+        total: 5
+      properties:
+        versions:
+          items:
+            $ref: '#/components/schemas/response.PackageVersionInfo'
+          type: array
+          description: An array of package version objects.
+        total:
+          type: integer
+          description: The total number of bound versions for this package.
+        offset:
+          type: integer
+          description: The offset value used for this request.
+        limit:
+          type: integer
+          description: The limit value used for this request.
+      type: object
+    response.PromoteAppVersionResponse:
+      description: Response object for promoting an application version.
+      example:
+        application_key: my-web-app
+        version: 1.2.0
+        source_stage: staging
+        target_stage: QA
+        promotion_type: copy
+        status: success
+        message: Copy promotion from 'staging' to 'QA' was successful.
+        included_repository_keys:
+        - docker-prod-local
+        excluded_repository_keys: []
+        created: '2023-10-27T10:00:00Z'
+        evaluations:
+          exit_gate:
+            stage: dev
+            eval_id: eval-exit-a1b2c3d4
+            decision: pass
+          entry_gate:
+            stage: staging
+            eval_id: eval-entry-e5f6g7h8
+            decision: pass
+      properties:
+        application_key:
+          type: string
+          description: The unique application key.
+        version:
+          type: string
+          description: The application version identifier.
+        source_stage:
+          type: string
+          description: The source stage from which the application version was promoted.
+        target_stage:
+          type: string
+          description: The target stage to which the application version was promoted.
+        promotion_type:
+          $ref: '#/components/schemas/request.PromoteOperation'
+          description: 'The promotion type that was performed: copy, move, or dry_run.'
+        status:
+          type: string
+          description: The outcome of the request (for example, success).
+        message:
+          type: string
+          description: A human-readable summary of the outcome.
+        included_repository_keys:
+          items:
+            type: string
+          type: array
+          description: Repository keys that were specifically included in the promotion.
+        excluded_repository_keys:
+          items:
+            type: string
+          type: array
+          description: Repository keys that were specifically excluded from the promotion.
+        artifact_additional_properties:
+          items:
+            $ref: '#/components/schemas/request.ArtifactAdditionalProperty'
+          type: array
+          description: Key-value pairs that were added as properties to the application
+            version.
+        created:
+          type: string
+          description: Timestamp of when the version was promoted (ISO 8601 standard).
+        evaluations:
+          $ref: '#/components/schemas/unifiedpolicy.OrderedEvaluations'
+          description: Contains the results of policy evaluations performed at the
+            source and target stage gates, if any.
+      type: object
+    response.ReleaseAppVersionResponse:
+      description: Response object for releasing an application version to the PROD
+        stage.
+      example:
+        application_key: my-web-app
+        version: 1.2.0
+        source_stage: staging
+        promotion_type: copy
+        status: success
+        message: Releasing version using Copy from 'staging' was successful.
+        included_repository_keys:
+        - docker-prod-local
+        excluded_repository_keys: []
+        artifact_additional_properties:
+          release.status: approved
+          promoted.by: jane.doe
+        created: '2023-10-27T10:00:00Z'
+        evaluations:
+          exit_gate:
+            eval_id: eval_src_1698399600
+            stage: staging
+            decision: pass
+          release_gate:
+            eval_id: eval_tgt_1698399605
+            stage: PROD
+            decision: pass
+      properties:
+        application_key:
+          type: string
+          description: The unique application key.
+        version:
+          type: string
+          description: The application version identifier.
+        source_stage:
+          type: string
+          description: The source stage from which the application version was promoted.
+        promotion_type:
+          $ref: '#/components/schemas/request.PromoteOperation'
+          description: 'The promotion type that was performed: copy, move, or dry_run.'
+        status:
+          type: string
+          description: The outcome of the request (for example, success).
+        message:
+          type: string
+          description: A human-readable summary of the outcome.
+        included_repository_keys:
+          items:
+            type: string
+          type: array
+          description: Repository keys that were specifically included in the promotion.
+        excluded_repository_keys:
+          items:
+            type: string
+          type: array
+          description: Repository keys that were specifically excluded from the promotion.
+        artifact_additional_properties:
+          items:
+            $ref: '#/components/schemas/request.ArtifactAdditionalProperty'
+          type: array
+          description: Key-value pairs that were added as properties to the application
+            version.
+        created:
+          type: string
+          description: Timestamp of when the version was promoted (ISO 8601 standard).
+        evaluations:
+          $ref: '#/components/schemas/unifiedpolicy.OrderedEvaluations'
+          description: Contains the results of policy evaluations performed at the
+            source and release stage gates.
+      type: object
+    response.PromotionArtifact:
+      example:
+        path: path
+        package_version: package_version
+        checksum: checksum
+        package_name: package_name
+        package_type: package_type
+      properties:
+        checksum:
+          type: string
+        package_name:
+          type: string
+        package_type:
+          type: string
+        package_version:
+          type: string
+        path:
+          type: string
+      type: object
+    response.PromotionDetailsResponse:
+      example:
+        target_stage: target_stage
+        created: created
+        created_by: created_by
+        created_millis: 0
+        artifacts:
+        - path: path
+          package_version: package_version
+          checksum: checksum
+          package_name: package_name
+          package_type: package_type
+        - path: path
+          package_version: package_version
+          checksum: checksum
+          package_name: package_name
+          package_type: package_type
+      properties:
+        artifacts:
+          items:
+            $ref: '#/components/schemas/response.PromotionArtifact'
+          type: array
+        created:
+          type: string
+        created_by:
+          type: string
+        created_millis:
+          type: integer
+        target_stage:
+          type: string
+      type: object
+    response.PromotionMessage:
+      example:
+        text: text
+      properties:
+        text:
+          type: string
+      type: object
+    response.PromotionRecord:
+      example:
+        target_stage: target_stage
+        created: created
+        project_key: project_key
+        messages:
+        - text: text
+        - text: text
+        source_stage: source_stage
+        application_key: application_key
+        created_by: created_by
+        created_millis: 1
+        application_version: application_version
+        status: status
+      properties:
+        application_key:
+          type: string
+        application_version:
+          type: string
+        created:
+          type: string
+        created_by:
+          type: string
+        created_millis:
+          type: integer
+        messages:
+          items:
+            $ref: '#/components/schemas/response.PromotionMessage'
+          type: array
+        project_key:
+          type: string
+        source_stage:
+          type: string
+        status:
+          type: string
+        target_stage:
+          type: string
+      type: object
+    response.PromotionsResponse:
+      example:
+        promotions:
+        - target_stage: target_stage
+          created: created
+          project_key: project_key
+          messages:
+          - text: text
+          - text: text
+          source_stage: source_stage
+          application_key: application_key
+          created_by: created_by
+          created_millis: 1
+          application_version: application_version
+          status: status
+        - target_stage: target_stage
+          created: created
+          project_key: project_key
+          messages:
+          - text: text
+          - text: text
+          source_stage: source_stage
+          application_key: application_key
+          created_by: created_by
+          created_millis: 1
+          application_version: application_version
+          status: status
+        total: 5
+        offset: 6
+        limit: 0
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        promotions:
+          items:
+            $ref: '#/components/schemas/response.PromotionRecord'
+          type: array
+        total:
+          type: integer
+      type: object
+    response.Releasable:
+      example:
+        releasable_type: releasable_type
+        sha256: sha256
+        sources:
+        - release_bundle:
+            repo_key: repo_key
+            name: name
+            version: version
+          build:
+            number: number
+            repo_key: repo_key
+            name: name
+            timestamp: timestamp
+          type: type
+        - release_bundle:
+            repo_key: repo_key
+            name: name
+            version: version
+          build:
+            number: number
+            repo_key: repo_key
+            name: name
+            timestamp: timestamp
+          type: type
+        name: name
+        total_size: 5
+        package_type: package_type
+        version: version
+        artifacts:
+        - path: path
+          sha256: sha256
+          size: 5
+          download_path: download_path
+        - path: path
+          sha256: sha256
+          size: 5
+          download_path: download_path
+      properties:
+        artifacts:
+          items:
+            $ref: '#/components/schemas/response.ReleasableArtifact'
+          type: array
+        name:
+          type: string
+        package_type:
+          type: string
+        releasable_type:
+          type: string
+        sha256:
+          type: string
+        sources:
+          items:
+            $ref: '#/components/schemas/response.Source'
+          type: array
+        total_size:
+          type: integer
+        version:
+          type: string
+      type: object
+    response.ReleasableArtifact:
+      example:
+        path: path
+        sha256: sha256
+        size: 5
+        download_path: download_path
+      properties:
+        download_path:
+          type: string
+        path:
+          type: string
+        sha256:
+          type: string
+        size:
+          type: integer
+      type: object
+    response.ReleasableBuild:
+      example:
+        number: number
+        repo_key: repo_key
+        name: name
+        timestamp: timestamp
+      properties:
+        name:
+          type: string
+        number:
+          type: string
+        repo_key:
+          type: string
+        timestamp:
+          type: string
+      type: object
+    response.ReleasableReleaseBundle:
+      example:
+        repo_key: repo_key
+        application: true
+        name: name
+        version: version
+      properties:
+        application:
+          type: boolean
+        name:
+          type: string
+        repo_key:
+          type: string
+        version:
+          type: string
+      type: object
+    response.ReleaseStatus:
+      enum:
+      - pre_release
+      - released
+      - trusted_release
+      type: string
+      x-enum-varnames:
+      - ReleaseStatusPreRelease
+      - ReleaseStatusReleased
+      - ReleaseStatusTrusted
+    response.RollbackAppVersionResponse:
+      description: Response object for rolling back an application version promotion.
+      example:
+        application_key: video-encoder
+        version: 1.5.0
+        project_key: MEDIA-PROJ
+        rollback_from_stage: qa
+        rollback_to_stage: dev
+      properties:
+        application_key:
+          type: string
+          description: The unique application key.
+        version:
+          type: string
+          description: The application version identifier.
+        project_key:
+          type: string
+          description: The project to which the application belongs.
+        rollback_from_stage:
+          type: string
+          description: The source stage from which the application version was rolled
+            back.
+        rollback_to_stage:
+          type: string
+          description: The target stage to which the application version was rolled
+            back.
+        message:
+          type: string
+      type: object
+    response.SaveConfigResponse:
+      example:
+        message: message
+      properties:
+        message:
+          type: string
+      type: object
+    response.SingleApplicationResponse:
+      description: Response object for a single application.
+      example:
+        application_name: Catalina-App
+        application_key: catalina_app
+        project_key: catalina
+        description: This application contains enhancements to login performance.
+        maturity_level: production
+        criticality: low
+        labels:
+          environment: production
+          region: us-east
+        user_owners:
+        - JohnD
+        - Dave Rice
+        - Alina Hood
+        group_owners:
+        - DevOps
+        - Platform Admins
+      properties:
+        application_name:
+          type: string
+          description: The application display name.
+        application_key:
+          type: string
+          description: The application key.
+        project_key:
+          type: string
+          description: The key of the project associated with the application.
+        description:
+          type: string
+          description: The application description.
+        maturity_level:
+          type: string
+          description: 'The maturity level of the application:
+
+            - `unspecified`
+
+            - `experimental`
+
+            - `production`
+
+            - `end_of_life`
+
+            '
+        criticality:
+          type: string
+          description: 'The classification of how critical the application is for
+            your business:
+
+            - `unspecified` (default)
+
+            - `low`
+
+            - `medium`
+
+            - `high`
+
+            - `critical`
+
+            '
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+          description: Key-value pairs that label the application.
+        user_owners:
+          items:
+            type: string
+          type: array
+          description: List of users who own the application.
+        group_owners:
+          items:
+            type: string
+          type: array
+          description: List of user groups who own the application.
+      type: object
+    response.GetApplicationsResponse:
+      description: Response object for the list of applications.
+      properties:
+        applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/response.ApplicationListItem'
+          description: Array of applications.
+        total:
+          type: integer
+          description: Total number of applications matching the query.
+        limit:
+          type: integer
+          description: Maximum number of applications returned.
+        offset:
+          type: integer
+          description: Number of records skipped before returning the response.
+      type: object
+    response.ApplicationListItem:
+      description: Application item in the list response.
+      properties:
+        project_name:
+          type: string
+          description: The name of the project associated with the application.
+        project_key:
+          type: string
+          description: The key of the project associated with the application.
+        created:
+          type: string
+          format: date-time
+          description: The creation timestamp of the application.
+        application_name:
+          type: string
+          description: The application display name.
+        application_key:
+          type: string
+          description: The application key.
+        application_version_latest:
+          type: string
+          description: The latest version of the application.
+        application_version_tag:
+          type: string
+          description: The version tag of the latest application version.
+        application_versions_count:
+          type: integer
+          description: The total number of versions for the application.
+      type: object
+    response.ApplicationDetailsResponse:
+      description: Response object for application details.
+      example:
+        project_name: Catalina
+        project_key: catalina
+        application_name: Catalina-App
+        application_key: catalina_app
+        signing_key: catalina-key
+        description: This application contains enhancements to login performance.
+        maturity: production
+        criticality: low
+        labels:
+          environment: production
+          region: us-east
+        user_owners:
+        - JohnD
+        - Dave Rice
+        - Alina Hood
+        group_owners:
+        - DevOps
+        - Platform Admins
+      properties:
+        project_name:
+          type: string
+          description: The name of the project associated with the application.
+        project_key:
+          type: string
+          description: The key of the project associated with the application.
+        application_name:
+          type: string
+          description: The application display name.
+        application_key:
+          type: string
+          description: The application key.
+        signing_key:
+          type: string
+          description: The name of the key used to sign the application.
+        description:
+          type: string
+          description: The application description.
+        maturity:
+          type: string
+          description: 'The maturity level of the application:
+
+            - `unspecified`
+
+            - `experimental`
+
+            - `production`
+
+            - `end_of_life`
+
+            '
+        criticality:
+          type: string
+          description: 'The classification of how critical the application is for
+            your business:
+
+            - `unspecified` (default)
+
+            - `low`
+
+            - `medium`
+
+            - `high`
+
+            - `critical`
+
+            '
+        labels:
+          additionalProperties:
+            type: string
+          type: object
+          description: Key-value pairs that label the application.
+        user_owners:
+          items:
+            type: string
+          type: array
+          description: List of users who own the application.
+        group_owners:
+          items:
+            type: string
+          type: array
+          description: List of user groups who own the application.
+      type: object
+    response.Source:
+      example:
+        release_bundle:
+          repo_key: repo_key
+          name: name
+          version: version
+        build:
+          number: number
+          repo_key: repo_key
+          name: name
+          timestamp: timestamp
+        type: type
+        application_version:
+          application_key: application_key
+          version: version
+      properties:
+        application_version:
+          $ref: '#/components/schemas/response.SourceApplicationVersion'
+        build:
+          $ref: '#/components/schemas/response.ReleasableBuild'
+        release_bundle:
+          $ref: '#/components/schemas/response.ReleasableReleaseBundle'
+        type:
+          type: string
+      type: object
+    response.SourceApplicationVersion:
+      example:
+        application_key: application_key
+        version: version
+      properties:
+        application_key:
+          type: string
+        version:
+          type: string
+      type: object
+    response.StageResponse:
+      example:
+        gates:
+        - gates
+        - gates
+        stage_name: stage_name
+      properties:
+        gates:
+          items:
+            type: string
+          type: array
+        stage_name:
+          type: string
+      type: object
+    response.StagesResponse:
+      example:
+        stages:
+        - gates:
+          - gates
+          - gates
+          stage_name: stage_name
+        - gates:
+          - gates
+          - gates
+          stage_name: stage_name
+      properties:
+        stages:
+          items:
+            $ref: '#/components/schemas/model.Stage'
+          type: array
+      type: object
+    response.UnsyncIntegrationResponse:
+      example:
+        message: message
+      properties:
+        message:
+          type: string
+      type: object
+    response.UpdateAppVersionResponse:
+      description: Response object for updating an application version.
+      example:
+        application_key: my-app
+        version: 1.2.3
+        tag: release
+        properties:
+          status:
+          - rc
+          - validated
+          tested_on:
+          - ubuntu20.04
+          old_feature_flag: []
+          deployed_to:
+          - staging-A
+          - staging-B
+        modified_by: user@example.com
+        modified_at: '2025-06-04T10:06:00Z'
+      properties:
+        application_key:
+          type: string
+          description: The unique application key.
+        version:
+          type: string
+          description: The application version.
+        tag:
+          type: string
+          description: The updated tag of the application version. Will be `null`
+            or absent if removed.
+        properties:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          type: object
+          description: The updated key-value map of custom properties, where each
+            value is an array of strings. Will be an empty object if all properties
+            were removed or never existed. Keys with cleared values are shown as an
+            empty array `[]`.
+        modified_by:
+          type: string
+          description: The user who performed the update.
+        modified_at:
+          type: string
+          description: The date and time when the update occurred (ISO 8601 format).
+        status:
+          type: string
+          description: The current status of the application version.
+        message:
+          type: string
+        added_artifacts_count:
+          type: integer
+          description: 'The number of artifacts that were added to the application
+            version during the update operation.
+
+            '
+      type: object
+    response.VersionStatusResponse:
+      example:
+        version_release_status: pre_release
+      properties:
+        version_release_status:
+          $ref: '#/components/schemas/response.ReleaseStatus'
+      type: object
+    unifiedpolicy.EvaluationGate:
+      example:
+        decision: decision
+        eval_id: eval_id
+        stage: stage
+        policies_count: 0
+        explanation: explanation
+      properties:
+        decision:
+          type: string
+        eval_id:
+          type: string
+        explanation:
+          type: string
+        policies_count:
+          type: integer
+        stage:
+          type: string
+      type: object
+    unifiedpolicy.OrderedEvaluations:
+      example:
+        exit_gate:
+          decision: decision
+          eval_id: eval_id
+          stage: stage
+          policies_count: 0
+          explanation: explanation
+        release_gate:
+          decision: decision
+          eval_id: eval_id
+          stage: stage
+          policies_count: 0
+          explanation: explanation
+        entry_gate:
+          decision: decision
+          eval_id: eval_id
+          stage: stage
+          policies_count: 0
+          explanation: explanation
+      properties:
+        entry_gate:
+          $ref: '#/components/schemas/unifiedpolicy.EvaluationGate'
+        exit_gate:
+          $ref: '#/components/schemas/unifiedpolicy.EvaluationGate'
+        release_gate:
+          $ref: '#/components/schemas/unifiedpolicy.EvaluationGate'
+      type: object
+    widget.DailyDeployment:
+      example:
+        date: date
+        application_versions:
+        - application_versions
+        - application_versions
+        deployments: 6
+      properties:
+        application_versions:
+          items:
+            type: string
+          type: array
+        date:
+          type: string
+        deployments:
+          type: integer
+      type: object
+    widget.DeploymentFrequency:
+      example:
+        dora_badge: Elite
+        average_deployments_per_day: 0.8008281904610115
+        trend:
+          percentage_change: 1.4658129805029452
+          direction: direction
+        daily_deployments:
+        - date: date
+          application_versions:
+          - application_versions
+          - application_versions
+          deployments: 6
+        - date: date
+          application_versions:
+          - application_versions
+          - application_versions
+          deployments: 6
+      properties:
+        average_deployments_per_day:
+          type: number
+        daily_deployments:
+          items:
+            $ref: '#/components/schemas/widget.DailyDeployment'
+          type: array
+        dora_badge:
+          $ref: '#/components/schemas/widget.DoraPerformanceBadge'
+        trend:
+          $ref: '#/components/schemas/widget.TrendIndicator'
+      type: object
+    widget.DoraPerformanceBadge:
+      enum:
+      - Elite
+      - High
+      - Medium
+      - Low
+      type: string
+      x-enum-varnames:
+      - DoraBadgeElite
+      - DoraBadgeHigh
+      - DoraBadgeMedium
+      - DoraBadgeLow
+    widget.LeadTimeForChangesMetrics:
+      example:
+        lead_time_trend:
+        - date: date
+          median_lead_time_hours: 6
+          version_lead_times_hours:
+            key: 1
+        - date: date
+          median_lead_time_hours: 6
+          version_lead_times_hours:
+            key: 1
+        previous_median_time_hours: 5
+        current_median_time_hours: 0
+      properties:
+        current_median_time_hours:
+          type: integer
+        lead_time_trend:
+          items:
+            $ref: '#/components/schemas/widget.LeadTimeTrendPoint'
+          type: array
+        previous_median_time_hours:
+          type: integer
+      type: object
+    widget.LeadTimeTrendPoint:
+      example:
+        date: date
+        median_lead_time_hours: 6
+        version_lead_times_hours:
+          key: 1
+      properties:
+        date:
+          type: string
+        median_lead_time_hours:
+          type: integer
+        version_lead_times_hours:
+          additionalProperties:
+            type: integer
+          type: object
+      type: object
+    widget.TrendIndicator:
+      example:
+        percentage_change: 1.4658129805029452
+        direction: direction
+      properties:
+        direction:
+          description: '"up", "down", "neutral", "na"'
+          type: string
+        percentage_change:
+          type: number
+      type: object
+    widget.TrustedReleaseVulnerability:
+      example:
+        findings:
+        - severity: severity
+          jfrog_applicability: jfrog_applicability
+          code: code
+          fingerprint:
+            id: id
+            version: version
+          description: description
+          details:
+            references:
+            - id: id
+              source:
+                name: name
+                url: url
+            - id: id
+              source:
+                name: name
+                url: url
+            ratings:
+            - severity: severity
+              score: 1.4658129805029452
+              method: method
+              vector: vector
+            - severity: severity
+              score: 1.4658129805029452
+              method: method
+              vector: vector
+            affects:
+            - ref: ref
+            - ref: ref
+            id: id
+            analysis:
+              detail: detail
+              justification: justification
+              state: state
+            cwes:
+            - cwes
+            - cwes
+          id: id
+          type: type
+        - severity: severity
+          jfrog_applicability: jfrog_applicability
+          code: code
+          fingerprint:
+            id: id
+            version: version
+          description: description
+          details:
+            references:
+            - id: id
+              source:
+                name: name
+                url: url
+            - id: id
+              source:
+                name: name
+                url: url
+            ratings:
+            - severity: severity
+              score: 1.4658129805029452
+              method: method
+              vector: vector
+            - severity: severity
+              score: 1.4658129805029452
+              method: method
+              vector: vector
+            affects:
+            - ref: ref
+            - ref: ref
+            id: id
+            analysis:
+              detail: detail
+              justification: justification
+              state: state
+            cwes:
+            - cwes
+            - cwes
+          id: id
+          type: type
+        version:
+          current_promotion_created: current_promotion_created
+          created: created
+          messages:
+          - text: text
+          - text: text
+          current_stage: current_stage
+          tag: tag
+          application_key: application_key
+          created_by: created_by
+          release_status: release_status
+          version: version
+          status: status
+      properties:
+        findings:
+          items:
+            $ref: '#/components/schemas/xray.Finding'
+          type: array
+        version:
+          $ref: '#/components/schemas/response.ApplicationVersion'
+      type: object
+    widget.TrustedReleasesVulnerabilityStatus:
+      example:
+        total_trusted_releases: 6
+        total_release_gate_policies: 0
+        vulnerabilities:
+        - findings:
+          - severity: severity
+            jfrog_applicability: jfrog_applicability
+            code: code
+            fingerprint:
+              id: id
+              version: version
+            description: description
+            details:
+              references:
+              - id: id
+                source:
+                  name: name
+                  url: url
+              - id: id
+                source:
+                  name: name
+                  url: url
+              ratings:
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              affects:
+              - ref: ref
+              - ref: ref
+              id: id
+              analysis:
+                detail: detail
+                justification: justification
+                state: state
+              cwes:
+              - cwes
+              - cwes
+            id: id
+            type: type
+          - severity: severity
+            jfrog_applicability: jfrog_applicability
+            code: code
+            fingerprint:
+              id: id
+              version: version
+            description: description
+            details:
+              references:
+              - id: id
+                source:
+                  name: name
+                  url: url
+              - id: id
+                source:
+                  name: name
+                  url: url
+              ratings:
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              affects:
+              - ref: ref
+              - ref: ref
+              id: id
+              analysis:
+                detail: detail
+                justification: justification
+                state: state
+              cwes:
+              - cwes
+              - cwes
+            id: id
+            type: type
+          version:
+            current_promotion_created: current_promotion_created
+            created: created
+            messages:
+            - text: text
+            - text: text
+            current_stage: current_stage
+            tag: tag
+            application_key: application_key
+            created_by: created_by
+            release_status: release_status
+            version: version
+            status: status
+        - findings:
+          - severity: severity
+            jfrog_applicability: jfrog_applicability
+            code: code
+            fingerprint:
+              id: id
+              version: version
+            description: description
+            details:
+              references:
+              - id: id
+                source:
+                  name: name
+                  url: url
+              - id: id
+                source:
+                  name: name
+                  url: url
+              ratings:
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              affects:
+              - ref: ref
+              - ref: ref
+              id: id
+              analysis:
+                detail: detail
+                justification: justification
+                state: state
+              cwes:
+              - cwes
+              - cwes
+            id: id
+            type: type
+          - severity: severity
+            jfrog_applicability: jfrog_applicability
+            code: code
+            fingerprint:
+              id: id
+              version: version
+            description: description
+            details:
+              references:
+              - id: id
+                source:
+                  name: name
+                  url: url
+              - id: id
+                source:
+                  name: name
+                  url: url
+              ratings:
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              - severity: severity
+                score: 1.4658129805029452
+                method: method
+                vector: vector
+              affects:
+              - ref: ref
+              - ref: ref
+              id: id
+              analysis:
+                detail: detail
+                justification: justification
+                state: state
+              cwes:
+              - cwes
+              - cwes
+            id: id
+            type: type
+          version:
+            current_promotion_created: current_promotion_created
+            created: created
+            messages:
+            - text: text
+            - text: text
+            current_stage: current_stage
+            tag: tag
+            application_key: application_key
+            created_by: created_by
+            release_status: release_status
+            version: version
+            status: status
+      properties:
+        total_release_gate_policies:
+          type: integer
+        total_trusted_releases:
+          type: integer
+        vulnerabilities:
+          items:
+            $ref: '#/components/schemas/widget.TrustedReleaseVulnerability'
+          type: array
+      type: object
+    xray.Affect:
+      example:
+        ref: ref
+      properties:
+        ref:
+          type: string
+      type: object
+    xray.Analysis:
+      example:
+        detail: detail
+        justification: justification
+        state: state
+      properties:
+        detail:
+          type: string
+        justification:
+          type: string
+        state:
+          type: string
+      type: object
+    xray.Details:
+      example:
+        references:
+        - id: id
+          source:
+            name: name
+            url: url
+        - id: id
+          source:
+            name: name
+            url: url
+        ratings:
+        - severity: severity
+          score: 1.4658129805029452
+          method: method
+          vector: vector
+        - severity: severity
+          score: 1.4658129805029452
+          method: method
+          vector: vector
+        affects:
+        - ref: ref
+        - ref: ref
+        id: id
+        analysis:
+          detail: detail
+          justification: justification
+          state: state
+        cwes:
+        - cwes
+        - cwes
+      properties:
+        affects:
+          items:
+            $ref: '#/components/schemas/xray.Affect'
+          type: array
+        analysis:
+          $ref: '#/components/schemas/xray.Analysis'
+        cwes:
+          items:
+            type: string
+          type: array
+        id:
+          type: string
+        ratings:
+          items:
+            $ref: '#/components/schemas/xray.Rating'
+          type: array
+        references:
+          items:
+            $ref: '#/components/schemas/xray.Reference'
+          type: array
+      type: object
+    xray.Finding:
+      example:
+        severity: severity
+        jfrog_applicability: jfrog_applicability
+        code: code
+        fingerprint:
+          id: id
+          version: version
+        description: description
+        details:
+          references:
+          - id: id
+            source:
+              name: name
+              url: url
+          - id: id
+            source:
+              name: name
+              url: url
+          ratings:
+          - severity: severity
+            score: 1.4658129805029452
+            method: method
+            vector: vector
+          - severity: severity
+            score: 1.4658129805029452
+            method: method
+            vector: vector
+          affects:
+          - ref: ref
+          - ref: ref
+          id: id
+          analysis:
+            detail: detail
+            justification: justification
+            state: state
+          cwes:
+          - cwes
+          - cwes
+        id: id
+        type: type
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+        details:
+          $ref: '#/components/schemas/xray.Details'
+        fingerprint:
+          $ref: '#/components/schemas/xray.Fingerprint'
+        id:
+          type: string
+        jfrog_applicability:
+          type: string
+        severity:
+          type: string
+        type:
+          type: string
+      type: object
+    xray.Fingerprint:
+      example:
+        id: id
+        version: version
+      properties:
+        id:
+          type: string
+        version:
+          type: string
+      type: object
+    xray.Rating:
+      example:
+        severity: severity
+        score: 1.4658129805029452
+        method: method
+        vector: vector
+      properties:
+        method:
+          type: string
+        score:
+          type: number
+        severity:
+          type: string
+        vector:
+          type: string
+      type: object
+    xray.Reference:
+      example:
+        id: id
+        source:
+          name: name
+          url: url
+      properties:
+        id:
+          type: string
+        source:
+          $ref: '#/components/schemas/xray.Source'
+      type: object
+    xray.Source:
+      example:
+        name: name
+        url: url
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+      type: object
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+x-original-swagger-version: '2.0'
+security:
+- bearerAuth: []
+x-readme:
+  explorer-enabled: false

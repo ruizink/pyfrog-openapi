@@ -1,0 +1,3580 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Repositories API
+  description: REST API for managing repositories in JFrog Artifactory, including
+    local, remote, virtual, and federated repositories, as well as metadata calculation
+    for various package types and VCS repository operations.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Repositories
+  description: Repository management operations
+- name: Puppet
+  description: Puppet repository operations
+- name: Metadata Calculation
+  description: Repository metadata calculation operations
+- name: VCS
+  description: Version Control System repository operations
+paths:
+  /repositories/{repoKey}:
+    put:
+      tags:
+      - Repositories
+      summary: Create Repository
+      description: Creates a new repository in Artifactory with the provided configuration.
+        Supported by local, remote, virtual, and Federated repositories.
+      operationId: createRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Repository already exists or invalid configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    get:
+      tags:
+      - Repositories
+      summary: Get Repository Configuration
+      description: Returns the current configuration of a repository. Supported by
+        local, remote, virtual, and Federated repositories.
+      operationId: getRepositoryConfiguration
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/vnd.org.jfrog.artifactory.repositories.LocalRepositoryConfiguration+json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    post:
+      tags:
+      - Repositories
+      summary: Update Repository Configuration
+      description: Updates an existing repository configuration in Artifactory with
+        the provided configuration elements. Supported by local, remote, virtual,
+        and Federated repositories.
+      operationId: updateRepositoryConfiguration
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    delete:
+      tags:
+      - Repositories
+      summary: Delete Repository
+      description: Removes a repository configuration together with the whole repository
+        content. Supported by local, remote, virtual and federated repositories.
+      operationId: deleteRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /v2/repositories/{repoKey}:
+    get:
+      tags:
+      - Repositories
+      summary: Get Repository Configuration (v2)
+      description: Returns the current configuration of a repository, providing only
+        those fields that are relevant to the package type. Supported by local, remote,
+        virtual, and Federated repositories.
+      operationId: getRepositoryConfigurationV2
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/vnd.org.jfrog.artifactory.repositories.LocalRepositoryConfiguration+json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /v2/repositories/batch:
+    put:
+      tags:
+      - Repositories
+      summary: Create Multiple Repositories
+      description: Creates multiple repositories using a batch request. The batch
+        request can contain a mix of different package types and repository types.
+      operationId: createMultipleRepositories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required:
+                - key
+      responses:
+        '201':
+          description: Repositories created successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Batch limit exceeded, mandatory keys not configured,
+            or repository key conflict
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    get:
+      tags:
+      - Repositories
+      summary: Get Batch of Repositories by Name
+      description: Returns a batch of repositories defined by name. The default batch
+        size is 100 items (configurable).
+      operationId: getBatchOfRepositoriesByName
+      parameters:
+      - name: names
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+        description: The repository names to return
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+        '400':
+          description: Bad Request - Repository keys are missing or repository item
+            limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    post:
+      tags:
+      - Repositories
+      summary: Update Multiple Repositories
+      description: Updates the configuration of multiple repositories using a batch
+        request. The batch request can contain a mix of different package types and
+        repository types.
+      operationId: updateMultipleRepositories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required:
+                - key
+      responses:
+        '200':
+          description: Repositories updated successfully
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Batch limit exceeded or mandatory keys not configured
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - No repositories found for the specified keys
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /repositories:
+    get:
+      tags:
+      - Repositories
+      summary: Get Repositories by Type and Project
+      description: Returns a list of minimal repository details for all repositories
+        of the specified type. Filter the results using type, packageType, and project
+        parameters.
+      operationId: getRepositoriesByTypeAndProject
+      parameters:
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum:
+          - local
+          - remote
+          - virtual
+          - federated
+          - distribution
+        description: Repository type filter
+      - name: packageType
+        in: query
+        schema:
+          type: string
+          enum:
+          - bower
+          - cargo
+          - chef
+          - cocoapods
+          - composer
+          - conan
+          - cran
+          - debian
+          - docker
+          - gems
+          - gitlfs
+          - go
+          - gradle
+          - helm
+          - ivy
+          - maven
+          - nuget
+          - opkg
+          - p2
+          - pub
+          - puppet
+          - pypi
+          - rpm
+          - sbt
+          - swift
+          - terraform
+          - vagrant
+          - yum
+          - generic
+        description: Package type filter
+      - name: project
+        in: query
+        schema:
+          type: string
+        description: Project key filter
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                    type:
+                      type: string
+                    description:
+                      type: string
+                    url:
+                      type: string
+                      format: uri
+                    packageType:
+                      type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /repositories/existence:
+    get:
+      tags:
+      - Repositories
+      summary: Check If Repository Exists
+      description: Checks if repositories exist that match the repository types and
+        the project key specified in the query parameters.
+      operationId: checkIfRepositoryExists
+      parameters:
+      - name: type
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - local
+            - remote
+            - virtual
+            - federated
+            - releaseBundle
+        description: The type of repository to search for. Can be specified multiple
+          times.
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: The key to the project in which you want to search
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+                  matchingRepoTypes:
+                    type: array
+                    items:
+                      type: string
+                  projectKey:
+                    type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /repositories/configurations:
+    get:
+      tags:
+      - Repositories
+      summary: Get All Repository Configurations
+      description: Returns a list of all repository configurations.
+      operationId: getAllRepositoryConfigurations
+      parameters:
+      - name: packageType
+        in: query
+        schema:
+          type: string
+        description: Filters the response according to the defined package type. Separate
+          multiple entries with commas.
+      - name: repoType
+        in: query
+        schema:
+          type: string
+        description: Filters the response according to the defined repository type.
+          Separate multiple entries with commas.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  LOCAL:
+                    type: array
+                    items:
+                      type: object
+                  REMOTE:
+                    type: array
+                    items:
+                      type: object
+                  VIRTUAL:
+                    type: array
+                    items:
+                      type: object
+                  FEDERATED:
+                    type: array
+                    items:
+                      type: object
+                  RELEASE_BUNDLE:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /repositories/{remoteRepoName}/configuration:
+    get:
+      tags:
+      - Repositories
+      summary: Remote Repository Configuration (Deprecated)
+      description: Returns the shared configuration of a remote repository. This API
+        is deprecated. Use the Get Repository Configuration API instead.
+      operationId: getRemoteRepositoryConfiguration
+      deprecated: true
+      parameters:
+      - name: remoteRepoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The remote repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /puppet/{repoKey}/v3/modules:
+    get:
+      tags:
+      - Puppet
+      summary: Get Puppet Modules
+      description: Returns a list of all Puppet modules hosted by the specified repository.
+        Results are paginated.
+      operationId: getPuppetModules
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  current:
+                    type: string
+                  next:
+                    type: string
+                  previous:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /puppet/{repoKey}/v3/modules/{userModule}:
+    get:
+      tags:
+      - Puppet
+      summary: Get Puppet Module Info
+      description: Returns information about a specific Puppet module.
+      operationId: getPuppetModuleInfo
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userModule
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user-module identifier (format {user}-{module})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /puppet/{repoKey}/v3/releases:
+    get:
+      tags:
+      - Puppet
+      summary: Get Puppet Releases
+      description: Returns a list of all Puppet releases hosted by the specified repository.
+        Results are paginated.
+      operationId: getPuppetReleases
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  current:
+                    type: string
+                  next:
+                    type: string
+                  previous:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /puppet/{repoKey}/v3/releases/{userModuleVersion}:
+    get:
+      tags:
+      - Puppet
+      summary: Get Puppet Release Info
+      description: Returns information about the specific Puppet module's release.
+      operationId: getPuppetReleaseInfo
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userModuleVersion
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user-module-version identifier (format {user}-{module}-{version})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /alpine/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Alpine Repository Metadata
+      description: Calculates/recalculates the metadata index for this repository,
+        based on the Alpine packages in it. Calculation is asynchronous. Supported
+        by local repositories only.
+      operationId: calculateAlpineRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /cocoapods/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate CocoaPods Index
+      description: Calculates a CocoaPods index for the specified repository.
+      operationId: calculateCocoaPodsIndex
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /yum/{repoKey}:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate YUM Repository Metadata
+      description: For Local repositories calculates/recalculates the YUM metadata
+        for this repository, based on the RPM package currently hosted in the repository.
+        Supported by local, virtual, and Federated repositories. Calculation can be
+        synchronous (the default) or asynchronous.
+      operationId: calculateYumRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: path
+        in: query
+        schema:
+          type: string
+        description: Path to repodata dir (for virtual repositories)
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /nuget/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate NuGet Repository Metadata
+      description: Recalculates all the NuGet packages for this repository (local/cache/virtual),
+        and re-annotate the NuGet properties for each NuGet package according to its
+        internal nuspec file. Supported by local, local-cache, remote and virtual
+        repositories.
+      operationId: calculateNuGetRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /npm/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Npm Repository Metadata
+      description: Recalculates the npm packages indexes for this repository. Supported
+        by local repositories.
+      operationId: calculateNpmRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /maven:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Maven Index
+      description: Calculates/caches a Maven index for the specified repositories.
+        For a virtual repository specify all underlying repositories that you want
+        the aggregated index to include.
+      operationId: calculateMavenIndex
+      parameters:
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository names
+      - name: force
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: Force calculation (0 or 1)
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /maven/calculateMetadata/{repoKey}/{folderPath}:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Maven Metadata
+      description: Calculates Maven metadata on the specified path (for local repositories
+        only). A POM file must exist in the repository for the calculation to succeed.
+      operationId: calculateMavenMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: folderPath
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The folder path
+      - name: noneRecursive
+        in: query
+        schema:
+          type: boolean
+        description: Whether to calculate recursively (default false)
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /maven/generatePom/{repoKey}/{jarFilePath}:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Generate Maven POM File
+      description: Generates a Maven POM file from an internal Jar or a default POM
+        file.
+      operationId: generateMavenPomFile
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: jarFilePath
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The JAR file path
+      responses:
+        '200':
+          description: Success
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /pypi/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate PyPI Repository Metadata
+      description: Calculates/recalculates the PyPI packages and repository indexes
+        from the artifact metadata in this repository. The calculation can be synchronous
+        (the default) or asynchronous. Supported for local repositories only.
+      operationId: calculatePypiRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /pypi/{repository}/pypi/{package}/json:
+    get:
+      tags:
+      - Metadata Calculation
+      summary: Get PyPI Latest Package Version Metadata in JSON
+      description: Retrieves metadata in JSON format for the latest PyPI package version.
+      operationId: getPypiLatestPackageVersionMetadataInJson
+      parameters:
+      - name: repository
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the repository
+      - name: package
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the package
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /pypi/{repository}/pypi/{package}/{version}/json:
+    get:
+      tags:
+      - Metadata Calculation
+      summary: Get PyPI Package Version Metadata in JSON
+      description: Retrieves metadata in JSON format for a specific PyPI package version.
+      operationId: getPypiPackageVersionMetadataInJson
+      parameters:
+      - name: repository
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the repository
+      - name: package
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the package
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The version of the package
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /deb/reindex/{repoKey}:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Debian Repository Metadata
+      description: Calculates/recalculates the Packages and Release metadata for this
+        repository, based on the Debian packages in it. Calculation can be synchronous
+        (the default) or asynchronous. Supported by local repositories only.
+      operationId: calculateDebianRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      - name: writeProps
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: Whether to write properties (0 or 1)
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /deb/indexCached/{repoKey}:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Cached Remote Debian Repository Coordinates
+      description: Calculates/recalculates the Debian packages coordinates. Supported
+        by remote-cache repositories only.
+      operationId: calculateCachedRemoteDebianRepositoryCoordinates
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /deb/{repoKey}/snapshot:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Create Debian Snapshot
+      description: Creates Debian Snapshots in the Debian repository in Artifactory.
+      operationId: createDebianSnapshot
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: Whether to run asynchronously (0 or 1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - tag
+              - targetRepo
+              - distribution
+              properties:
+                tag:
+                  type: string
+                  description: The snapshot tag
+                targetRepo:
+                  type: string
+                  description: The target repository
+                distribution:
+                  type: string
+                  description: The distribution name
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /opkg/reindex/{repoKey}:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Opkg Repository Metadata
+      description: Calculates/recalculates the Packages and Release metadata for this
+        repository, based on the ipk packages in it (in each feed location). Calculation
+        can be synchronous (the default) or asynchronous. Supported by local repositories
+        only.
+      operationId: calculateOpkgRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      - name: writeProps
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+        description: Whether to write properties (0 or 1)
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /bower/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Bower Index
+      description: Recalculates the index for a Bower repository.
+      operationId: calculateBowerIndex
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /helm/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Helm Chart Index
+      description: Calculates Helm chart index on the specified path (local and Federated
+        repositories only).
+      operationId: calculateHelmChartIndex
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /helm/{repoKey}/{pathForPartialReindex}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Helm Charts Partial Re-Indexing
+      description: Recalculates partial indexing for the helm repository.
+      operationId: helmChartsPartialReIndexing
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: pathForPartialReindex
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The path for partial reindex
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /cran/reindex/{repoKey}:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate CRAN Repository Metadata
+      description: Calculates/recalculates the Packages and Release metadata for this
+        repository, based on the CRAN packages in it. The calculation can be synchronous
+        (the default) or asynchronous. Supported by local repositories only.
+      operationId: calculateCranRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /cran/{repoKey}/move-archives:
+    get:
+      tags:
+      - Metadata Calculation
+      summary: Move CRAN Archives
+      description: Moves the existing archives from the wrong location to the correct
+        location (if the system property is enabled).
+      operationId: moveCranArchives
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /cargo/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Cargo Repository Metadata
+      description: Calculates/recalculates the Cargo packages and release metadata
+        for this repository. The calculation can be synchronous (the default) or asynchronous.
+        Supported for local and remote repositories.
+      operationId: calculateCargoRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /conda/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Conda Repository Metadata
+      description: Calculates/recalculates the Conda packages and release metadata
+        for this repository. The calculation can be synchronous (the default) or asynchronous.
+        Supported for local repositories only.
+      operationId: calculateCondaRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /conan/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Conan Repository Metadata
+      description: Calculates/recalculates the Conan packages and release metadata
+        for this repository. The calculation can be synchronous (the default) or asynchronous.
+        Supported for local repositories only.
+      operationId: calculateConanRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /pub/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Pub Repository Metadata
+      description: Calculates/recalculates the Dart/Flutter packages and release metadata
+        for this repository. The calculation is asynchronous. Supported for local
+        and remote repositories.
+      operationId: calculatePubRepositoryMetadata
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: async
+        in: query
+        schema:
+          type: boolean
+        description: Whether to run asynchronously
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /gems/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate RubyGems Index
+      description: Calculates RubyGems index on the specified path.
+      operationId: calculateRubyGemsIndex
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /swift/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Swift Index
+      description: Calculates a Swift index for the specified repository.
+      operationId: calculateSwiftIndex
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /terraform/{repoKey}/reindex:
+    post:
+      tags:
+      - Metadata Calculation
+      summary: Calculate Terraform Index
+      description: Calculates Terraform Modules or Providers index for the specified
+        repository.
+      operationId: calculateTerraformIndex
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/tags/{repoKey}/{userOrg}/{repo}:
+    get:
+      tags:
+      - VCS
+      summary: Get VCS Tags
+      description: Lists all VCS tags in a specific repository or subgroup repository.
+      operationId: getVcsTags
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    commitId:
+                      type: string
+                    isBranch:
+                      type: boolean
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/branches/{repoKey}/{userOrg}/{repo}:
+    get:
+      tags:
+      - VCS
+      summary: Get VCS Branches
+      description: Lists all VCS branches in a specific repository or subgroup repository.
+      operationId: getVcsBranches
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    commitId:
+                      type: string
+                    isBranch:
+                      type: boolean
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/refs/{repoKey}/{userOrg}/{repo}:
+    get:
+      tags:
+      - VCS
+      summary: Get VCS Refs
+      description: Downloads a VCS Git References file.
+      operationId: getVcsRefs
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadTag/{repoKey}/{userOrg}/{repo}/{tagName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Tag
+      description: Download a complete tarball (tar.gz/zip) of a tag. Downloading
+        can be executed conditionally according to properties by specifying the properties
+        query param.
+      operationId: downloadVcsTag
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: tagName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The tag name
+      - name: ext
+        in: query
+        schema:
+          type: string
+          enum:
+          - tar.gz
+          - zip
+          default: tar.gz
+        description: The archive format
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadTag/{repoKey}/{userOrg}/{tagName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Tag (Alternative Format)
+      description: Download a complete tarball (tar.gz/zip) of a tag using userOrg
+        as the repository.
+      operationId: downloadVcsTagAlternative
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization (used as repository)
+      - name: tagName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The tag name
+      - name: ext
+        in: query
+        schema:
+          type: string
+          enum:
+          - tar.gz
+          - zip
+          default: tar.gz
+        description: The archive format
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadTagFile/{repoKey}/{userOrg}/{repo}/{tagName}:
+    get:
+      tags:
+      - VCS
+      summary: Download File within a VCS Tag
+      description: Download a specific file from within a tag.
+      operationId: downloadFileWithinVcsTag
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: tagName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The tag name and file path (format {tag-name}!{file-path})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadTagFile/{repoKey}/{userOrg}/{tagName}:
+    get:
+      tags:
+      - VCS
+      summary: Download File within a VCS Tag (Alternative Format)
+      description: Download a specific file from within a tag using userOrg as the
+        repository.
+      operationId: downloadFileWithinVcsTagAlternative
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization (used as repository)
+      - name: tagName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The tag name and file path (format {tag-name}!{file-path})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadBranch/{repoKey}/{userOrg}/{repo}/{branchName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Branch
+      description: Downloads a tarball (tar.gz/zip) of a complete branch. Downloading
+        can be executed conditionally according to properties by specifying the properties
+        query param.
+      operationId: downloadVcsBranch
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: branchName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The branch name
+      - name: ext
+        in: query
+        schema:
+          type: string
+          enum:
+          - tar.gz
+          - zip
+          default: tar.gz
+        description: The archive format
+      - name: properties
+        in: query
+        schema:
+          type: string
+        description: Properties filter (e.g., qa=approved)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadBranch/{repoKey}/{userOrg}/{branchName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Branch (Alternative Format)
+      description: Downloads a tarball (tar.gz/zip) of a complete branch using userOrg
+        as the repository.
+      operationId: downloadVcsBranchAlternative
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization (used as repository)
+      - name: branchName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The branch name
+      - name: ext
+        in: query
+        schema:
+          type: string
+          enum:
+          - tar.gz
+          - zip
+          default: tar.gz
+        description: The archive format
+      - name: properties
+        in: query
+        schema:
+          type: string
+        description: Properties filter (e.g., qa=approved)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadCommit/{repoKey}/{userOrg}/{repo}/{commitId}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Commit
+      description: Downloads a tarball (tar.gz/zip, default tar.gz) of a complete
+        commit.
+      operationId: downloadVcsCommit
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: commitId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The commit ID
+      - name: ext
+        in: query
+        schema:
+          type: string
+          enum:
+          - tar.gz
+          - zip
+          default: tar.gz
+        description: The archive format
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadBranchFile/{repoKey}/{userOrg}/{repo}/{branchName}:
+    get:
+      tags:
+      - VCS
+      summary: Download File within a VCS Branch
+      description: Downloads a specific file from within a branch.
+      operationId: downloadFileWithinVcsBranch
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: branchName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The branch name and file path (format {branch-name}!{file-path})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadBranchFile/{repoKey}/{userOrg}/{branchName}:
+    get:
+      tags:
+      - VCS
+      summary: Download File within a VCS Branch (Alternative Format)
+      description: Downloads a specific file from within a branch using userOrg as
+        the repository.
+      operationId: downloadFileWithinVcsBranchAlternative
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization (used as repository)
+      - name: branchName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The branch name and file path (format {branch-name}!{file-path})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadRelease/{repoKey}/{userOrg}/{repo}/{releaseName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Release
+      description: Downloads a complete release tarball (tar.gz/zip, default tar.gz)
+        of a tag from GitHub.
+      operationId: downloadVcsRelease
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: releaseName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The release name
+      - name: ext
+        in: query
+        schema:
+          type: string
+          enum:
+          - tar.gz
+          - zip
+          default: tar.gz
+        description: The archive format
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadBranchFile/{repoKey}/{userOrg}/{repo}/archive/refs/{branchName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a File in a VCS Branch in a Subgroup Repository
+      description: Downloads a specific file that is in a VCS branch in a subgroup
+        repository.
+      operationId: downloadFileInVcsBranchInSubgroupRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: branchName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The branch name and file path (format {branch-name}!{file-path})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadTagFile/{repoKey}/{userOrg}/{repo}/archive/refs/{tagName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a File in a VCS Tag in a Subgroup Repository
+      description: Downloads a specific file that is in a VCS tag in a subgroup repository.
+      operationId: downloadFileInVcsTagInSubgroupRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: tagName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The tag name and file path (format {tag-name}!{file-path})
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadBranch/{repoKey}/{userOrg}/{repo}/archive/refs/{branchName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Branch from a Subgroup Repository
+      description: Downloads a tarball (tar.gz/zip, default tar.gz) of a complete
+        branch from a subgroup repository. Downloading can be executed conditionally
+        according to properties by specifying the properties query param.
+      operationId: downloadVcsBranchFromSubgroupRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: branchName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The branch name
+      - name: properties
+        in: query
+        schema:
+          type: string
+        description: Properties filter (e.g., qa=approved)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /vcs/downloadTag/{repoKey}/{userOrg}/{repo}/archive/refs/{tagName}:
+    get:
+      tags:
+      - VCS
+      summary: Download a VCS Tag from a Subgroup Repository
+      description: Download a complete tarball (tar.gz/zip) of a tag in a subgroup
+        repository. Downloading can be executed conditionally according to properties
+        by specifying the properties query parameter.
+      operationId: downloadVcsTagFromSubgroupRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: userOrg
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The user organization
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: tagName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The tag name
+      - name: properties
+        in: query
+        schema:
+          type: string
+        description: Properties filter (e.g., qa=approved)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer

@@ -1,0 +1,1671 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Federated Repositories API
+  description: REST API for managing federated repositories in JFrog Artifactory,
+    including conversion, synchronization, monitoring, and binary task management.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Federation Management
+  description: Federation repository management operations
+- name: Federation Monitoring
+  description: Federation monitoring operations
+- name: Legacy Federation Monitoring
+  description: Legacy federation monitoring operations (deprecated)
+- name: Binary Tasks
+  description: Binary task management operations
+- name: Service Trust
+  description: Service trust pairing operations
+paths:
+  /federation/migrate/{repoKey}:
+    post:
+      tags:
+      - Federation Management
+      summary: Convert Local Repository to a Federated Repository
+      description: Converts the local repository to a Federated repository. When working
+        inside a specific project, the Federated repositories that comprise the Federation
+        must all share the same project key.
+      operationId: convertLocalRepositoryToFederated
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the local repository
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/convertToLocal:
+    post:
+      tags:
+      - Federation Management
+      summary: Convert Federated Repository to a Local Repository
+      description: Converts the specified Federated repository to a local repository.
+        The conversion from Federated back to local is allowed only if the Federated
+        repository is not part of an active Federation containing additional members.
+      operationId: convertFederatedRepositoryToLocal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+              description: A list of Federated repositories to convert back to local
+                repositories
+      responses:
+        '200':
+          description: One or more repos converted successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: string
+                - type: object
+                  properties:
+                    failedConversionRepositories:
+                      type: object
+                      additionalProperties:
+                        type: string
+        '400':
+          description: Repos failed to convert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  failedConversionRepositories:
+                    type: object
+                    additionalProperties:
+                      type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/inconsistentRepos:
+    get:
+      tags:
+      - Federation Management
+      summary: Get List of Inconsistent Federated Repositories
+      description: Returns a list of Federated repositories in your local Artifactory
+        instance that have a configuration mismatch with one or more remote members.
+      operationId: getListOfInconsistentFederatedRepositories
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/recovery:
+    post:
+      tags:
+      - Federation Management
+      summary: Federation Recovery
+      description: Activates the recovery mechanism on the Federation or the specified
+        Federated repository. The recovery mechanism clears errors in exhausted queues
+        so that additional attempts can be made to send events to all remote Federation
+        members.
+      operationId: federationRecovery
+      parameters:
+      - name: repoKey
+        in: query
+        schema:
+          type: string
+        description: The name of the Federated repository on which to perform recovery.
+          If this property is not defined, recovery is performed on all Federated
+          repositories.
+      - name: force
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: When set to true, forces the recovery operation.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/reconnect:
+    post:
+      tags:
+      - Federation Management
+      summary: Reconnect to Federation Client
+      description: If Artifactory cannot connect to the Artifactory Federation service
+        automatically during startup, use this endpoint to reconnect the service manually.
+      operationId: reconnectToFederationClient
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '424':
+          description: Failed Dependency Client
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/fullSync/{repoKey}:
+    post:
+      tags:
+      - Federation Management
+      summary: Federated Repository Full Sync
+      description: Runs a full synchronization between the Federated repository members.
+        Starting with Artifactory 7.104.2, there is an option to use the Federation
+        Comparison tool, which uses the isDry query parameter to generate a JSON file
+        listing the binaries requiring synchronization without carrying out the operation.
+      operationId: federatedRepositoryFullSync
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The name of the repository
+      - name: mirror
+        in: query
+        schema:
+          type: string
+        description: The URL of the specific Federation member on which you want to
+          run the Full Sync. If this parameter is not set, the Full Sync is run against
+          all remote Federation members.
+      - name: isDry
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: When set to true, runs the Federation Comparison tool to determine
+          which files on the local member are missing on the remote members.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  resultPaths:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/forceFullSync/{repoKey}:
+    post:
+      tags:
+      - Federation Management
+      summary: Federated Repository Force Full Sync
+      description: Forces a full synchronization between the Federated repository
+        members, interrupting another Full Sync operation that is already in progress.
+        This can be used if the Full Sync operation in progress has become stuck.
+      operationId: federatedRepositoryForceFullSync
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: mirror
+        in: query
+        schema:
+          type: string
+        description: The URL of a specific Federation member to sync with. If not
+          set, syncs with all remote Federation members.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  resultPaths:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/propagateCreatedTime:
+    put:
+      tags:
+      - Federation Management
+      summary: Propagate Creation Time Metadata during Full Sync
+      description: Enables the propagation of artifact creation time metadata during
+        Full Sync operations. This endpoint is relevant when using the Artifactory
+        Federation Service (RTFS).
+      operationId: propagateCreationTimeMetadataDuringFullSync
+      parameters:
+      - name: enabled
+        in: query
+        required: true
+        schema:
+          type: boolean
+        description: Set to true to enable the propagation of artifact creation time
+          metadata during Full Sync operations.
+      responses:
+        '200':
+          description: Enabled
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Missing the enabled query parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/configSync/{repoKey}:
+    post:
+      tags:
+      - Federation Management
+      summary: Synchronize Federated Member Configuration
+      description: Synchronizes the configuration of a federated member in case of
+        a network malfunction.
+      operationId: synchronizeFederatedMemberConfiguration
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key to synchronize configuration for
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/removeMember:
+    post:
+      tags:
+      - Federation Management
+      summary: Remove Federation Member
+      description: Removes the member from all the Federations with which it was associated.
+        This API requires the installation of the Artifactory Federation Service.
+      operationId: removeFederationMember
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: The base URL of the member to remove
+      responses:
+        '200':
+          description: Member found and deleted
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Invalid URL, non-existent member, or failed getting
+            JPD config for remote member
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /v1/service_trust/pairing/{usecase}:
+    post:
+      tags:
+      - Service Trust
+      summary: Generate Pairing Token
+      description: Creates a pairing token for the specified use case (e.g., federated-repo/r
+        for read-only unidirectional sync).
+      operationId: generatePairingToken
+      parameters:
+      - name: usecase
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The use case path (e.g., federated-repo/r for read pairing token)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pairing_token:
+                    type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Unknown use case
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    put:
+      tags:
+      - Service Trust
+      summary: Exchange Pairing Token
+      description: Exchanges a pairing token to establish trust between services.
+      operationId: exchangePairingToken
+      parameters:
+      - name: usecase
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The use case path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - pairing_token
+              properties:
+                pairing_token:
+                  type: string
+                  description: The pairing token
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Unknown use case
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    delete:
+      tags:
+      - Service Trust
+      summary: Unregister Pairing Token
+      description: Cancels the trust relationship with a specific service.
+      operationId: unregisterPairingToken
+      parameters:
+      - name: usecase
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The use case path
+      - name: force
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Force the unpairing operation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - base_url
+              properties:
+                base_url:
+                  type: string
+                  description: The base URL of the service to unpair
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Unknown use case
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/status/connectionStates/{repoKey}:
+    get:
+      tags:
+      - Federation Monitoring
+      summary: Get Federation Connection Details
+      description: Returns the connection status of a Federated repository with other
+        members of its Federation. This status indicates whether metadata events are
+        being synchronized promptly between each source and each target within the
+        Federation.
+      operationId: getFederationConnectionDetails
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberConnections:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        localRepoKey:
+                          type: string
+                        localPlatformUrl:
+                          type: string
+                        remoteRepoKey:
+                          type: string
+                        remotePlatformUrl:
+                          type: string
+                        status:
+                          type: string
+                        lagInMs:
+                          type: integer
+                          format: int64
+                        queuedEvents:
+                          type: integer
+                          format: int64
+                        disabled:
+                          type: boolean
+                        supported:
+                          type: boolean
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/status/stateList:
+    get:
+      tags:
+      - Federation Monitoring
+      summary: Get Federation State Details
+      description: Returns the current state of each repository Federation configured
+        on your JPD.
+      operationId: getFederationStateDetails
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of statuses to filter by (e.g., HEALTHY,ERROR)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  federations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        localRepoKey:
+                          type: string
+                        memberInfoList:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              url:
+                                type: string
+                              repoKey:
+                                type: string
+                              aggregatedStatus:
+                                type: string
+                              isSupported:
+                                type: boolean
+                              isDisabled:
+                                type: boolean
+                              isInLag:
+                                type: boolean
+                        priority:
+                          type: string
+                          enum:
+                          - HIGH
+                          - STANDARD
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/status/stateSummary:
+    get:
+      tags:
+      - Federation Monitoring
+      summary: Get Federation State Summaries
+      description: Returns the number of Federation members that are currently in
+        each of the following states - HEALTHY, NOT_AVAILABLE, DELAYED, PENDING_FS,
+        FULL_SYNC_RUNNING, ERROR, DISABLED
+      operationId: getFederationStateSummaries
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  federationStates:
+                    type: object
+                    properties:
+                      HEALTHY:
+                        type: integer
+                        format: int64
+                      NOT_AVAILABLE:
+                        type: integer
+                        format: int64
+                      DELAYED:
+                        type: integer
+                        format: int64
+                      PENDING_FS:
+                        type: integer
+                        format: int64
+                      FULL_SYNC_RUNNING:
+                        type: integer
+                        format: int64
+                      ERROR:
+                        type: integer
+                        format: int64
+                      DISABLED:
+                        type: integer
+                        format: int64
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/prioritization/{repoKey}:
+    put:
+      tags:
+      - Federation Monitoring
+      summary: Prioritize Federated Repository
+      description: Determines whether the queue of the specified Federated repository
+        has priority access to system resources. Prioritizing the repository helps
+        ensure timely synchronization of its events with other members of the Federation.
+        There can be a maximum of 10 prioritized Federated repositories at any one
+        time on the JPD.
+      operationId: prioritizeFederatedRepository
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      - name: priorityLevel
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - high
+          - standard
+        description: Defines the priority level assigned to the Federated repository
+      responses:
+        '200':
+          description: The repository was prioritized/deprioritized successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: The repository was not found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/status/repo/{repoKey}:
+    get:
+      tags:
+      - Legacy Federation Monitoring
+      summary: Get Federated Repository Status
+      description: Returns the synchronization status of the Federation for a specific
+        repository. This API is not supported by the standalone Artifactory Federation
+        service that was released in version 7.104.2. This API has a high impact on
+        the database and should be used with care.
+      operationId: getFederatedRepositoryStatus
+      deprecated: true
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  localKey:
+                    type: string
+                  binariesTasksInfo:
+                    type: object
+                    properties:
+                      inProgressTasks:
+                        type: integer
+                      failingTasks:
+                        type: integer
+                  mirrorEventsStatusInfo:
+                    type: array
+                    items:
+                      type: object
+                  federatedArtifactStatus:
+                    type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Repository not found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /v2/federation/status/repo/{repoKey}:
+    get:
+      tags:
+      - Legacy Federation Monitoring
+      summary: Get Federated Repository Status (v2)
+      description: Returns the synchronization status of the Federation for a specific
+        repository. This is the v2 version of the endpoint, which was released to
+        offer a wider range of possible member statuses. This API is not supported
+        by the standalone Artifactory Federation service that was released in version
+        7.104.2. This API greatly impacts the database and should be used with care.
+      operationId: getFederatedRepositoryStatusV2
+      deprecated: true
+      parameters:
+      - name: repoKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  localKey:
+                    type: string
+                  binariesTasksInfo:
+                    type: object
+                  mirrorEventsStatusInfo:
+                    type: array
+                    items:
+                      type: object
+                  federatedArtifactStatus:
+                    type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Repository not found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/state:
+    get:
+      tags:
+      - Legacy Federation Monitoring
+      summary: Get Federation Sync State
+      description: Returns the synchronization state of all Federated repositories
+        in the JPD. This API is not supported by the standalone Artifactory Federation
+        service that was released in version 7.104.2.
+      operationId: getFederationSyncState
+      deprecated: true
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                    status:
+                      type: string
+                      enum:
+                      - SYNCING
+                      - FULL_SYNC_RUNNING
+                      - DISABLED
+                      - OUT_OF_SYNC
+                    members:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          remoteKey:
+                            type: string
+                          remoteUrl:
+                            type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/status/mirrorsLag:
+    get:
+      tags:
+      - Legacy Federation Monitoring
+      summary: Get Federation Mirror Lag Time
+      description: Returns the elapsed time since the last event that was not handled
+        on each Federation mirror for all repositories. This API is not supported
+        by the standalone Artifactory Federation service that was released in version
+        7.104.2.
+      operationId: getFederationMirrorLagTime
+      deprecated: true
+      parameters:
+      - name: thresholdTimeInMs
+        in: query
+        schema:
+          type: integer
+          format: int64
+        description: Returns only those repositories whose lag exceeds this defined
+          threshold (in milliseconds)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    localRepoKey:
+                      type: string
+                    remoteUrl:
+                      type: string
+                    remoteRepoKey:
+                      type: string
+                    lagInMS:
+                      type: integer
+                      format: int64
+                    eventRegistrationTimeStamp:
+                      type: integer
+                      format: int64
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/status/unavailableMirrors:
+    get:
+      tags:
+      - Legacy Federation Monitoring
+      summary: Get Unavailable Mirrors
+      description: Gets a list of unsynchronized Federated mirrors from all repositories.
+        Mirrors are unsynchronized when they are first added to the federation, during
+        repository migration from local to Federated, and when a certain error threshold
+        is crossed. This API is not supported by the standalone Artifactory Federation
+        service that was released in version 7.104.2.
+      operationId: getUnavailableMirrors
+      deprecated: true
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    localRepoKey:
+                      type: string
+                    remoteUrl:
+                      type: string
+                    remoteRepoKey:
+                      type: string
+                    status:
+                      type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '405':
+          description: Method Not Allowed - RTFS is enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/binaries/failures/list:
+    get:
+      tags:
+      - Binary Tasks
+      summary: Get List of Failed Binary Tasks
+      description: Returns a list of tasks that failed because Artifactory was not
+        able to retrieve the binary of the task. The number of attempts that Artifactory
+        tries to retrieve the binary of the task is set by maximum, which is 10 by
+        default.
+      operationId: getListOfFailedBinaryTasks
+      parameters:
+      - name: repoKey
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The name of the repository
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 1000
+        description: The number of tasks to be returned in the response
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: The page number for a group of tasks, starting from 1
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    sha1:
+                      type: string
+                    repoKey:
+                      type: string
+                    creationTime:
+                      type: integer
+                      format: int64
+                    failuresCount:
+                      type: integer
+        '400':
+          description: Bad Request - repoKey parameter is required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/binaries/failures/replay:
+    put:
+      tags:
+      - Binary Tasks
+      summary: Replay Failed Binary Tasks
+      description: This API marks binary tasks that previously failed to be processed
+        again. This can be done for the entire repository or for a particular binary
+        task in the repository.
+      operationId: replayFailedBinaryTasks
+      parameters:
+      - name: repoKey
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The name of the repository
+      - name: sha1
+        in: query
+        schema:
+          type: string
+        description: The SHA1 of the artifact. If not provided, all failed tasks for
+          the repository will be replayed.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  replayTasks:
+                    type: integer
+        '400':
+          description: Bad Request - repoKey parameter is required or invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /federation/binaries/failures/delete:
+    delete:
+      tags:
+      - Binary Tasks
+      summary: Delete Failed Binary Tasks
+      description: This API deletes binary tasks that previously failed. This can
+        be done for the entire repository or for a particular binary task in the repository.
+      operationId: deleteFailedBinaryTasks
+      parameters:
+      - name: repoKey
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The name of the repository
+      - name: sha1
+        in: query
+        schema:
+          type: string
+        description: The SHA1 of the artifact. If not provided, all failed tasks for
+          the repository will be deleted.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletedTasks:
+                    type: integer
+        '400':
+          description: Bad Request - repoKey parameter is required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer

@@ -1,0 +1,503 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Webhooks API
+  description: 'Webhook subscription management APIs for the JFrog Platform.
+
+
+    **Authentication:**
+
+    - Basic authentication using username and password
+
+    - [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens) instead
+    of password for basic authentication
+
+    - [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens) as
+    bearer token in authorization header (Authorization: Bearer <token>)
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Webhooks
+  description: Webhook subscription management APIs.
+security:
+- BearerAuth: []
+paths:
+  /event/api/v1/subscriptions:
+    get:
+      tags:
+      - Webhooks
+      summary: Get the List of all Webhook Subscriptions
+      description: 'Get all webhook subscriptions.
+
+
+        **Security:** This endpoint requires authentication using [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens).
+        You can authenticate using the following methods:
+
+        - Administrator Roles: Authenticate as admin, project admin, or user with
+        the Platform Administrator role.
+
+        - User with Manage Webhooks Role: Available from Artifactory version 7.137.0
+
+        - Scoped Token: Available from Artifactory version 7.135.0 using the `system:webhooks@<project_key>/<JFrog_domain>:r`
+        scope.
+
+        '
+      operationId: getWebhookSubscriptions
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebhookSubscription'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Webhooks
+      summary: Create a New Webhook Subscription
+      description: "Registers a new Webhook subscription with a given input.\n\n**Security:**\
+        \ This endpoint requires authentication using [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens).\
+        \ You can authenticate using the following methods:\n- Administrator Roles:\
+        \ Authenticate as admin, project admin, or user with the Platform Administrator\
+        \ role.\n  - Note: Project Admins can only create Webhook subscriptions for\
+        \ the\n`artifact`, `artifact_property`, `docker`, and `build` domains.\n-\
+        \ User with Manage Webhooks Role: Available from Artifactory version 7.137.0\n\
+        - Scoped Token: Available from Artifactory version 7.135.0 using the `system:webhooks@<project_key>/<JFrog_domain>:w`\
+        \ scope.\n"
+      operationId: createWebhookSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookSubscriptionCreate'
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscription'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /event/api/v1/subscriptions/{key}:
+    get:
+      tags:
+      - Webhooks
+      summary: Get a Webhook Subscription by Key
+      description: 'Get a specific webhook subscription by key.
+
+
+        **Security:** This endpoint requires authentication using [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens).
+        You can authenticate using the following methods:
+
+        - Administrator Roles: Authenticate as admin, project admin, or user with
+        the Platform Administrator role.
+
+        - User with Manage Webhooks Role: Available from Artifactory version 7.137.0
+
+        - Scoped Token: Available from Artifactory version 7.135.0 using the `system:webhooks@<project_key>/<JFrog_domain>:r`
+        scope.
+
+        '
+      operationId: getWebhookSubscription
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The subscription key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscription'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Subscription not found
+    put:
+      tags:
+      - Webhooks
+      summary: Update Webhook Subscription by Key
+      description: 'Update a webhook subscription.
+
+
+        **Security:** This endpoint requires authentication using [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens).
+        You can authenticate using the following methods:
+
+        - Administrator Roles: Authenticate as admin, project admin, or user with
+        the Platform Administrator role.
+
+        - User with Manage Webhooks Role: Available from Artifactory version 7.137.0
+
+        - Scoped Token: Available from Artifactory version 7.135.0 using the `system:webhooks@<project_key>/<JFrog_domain>:w`
+        scope.
+
+        '
+      operationId: updateWebhookSubscription
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The subscription key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookSubscriptionUpdate'
+      responses:
+        '204':
+          description: Subscription updated
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Subscription not found
+    delete:
+      tags:
+      - Webhooks
+      summary: Delete Webhook Subscription by Key
+      description: 'Delete a webhook subscription.
+
+
+        **Security:** This endpoint requires authentication using [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens).
+        You can authenticate using the following methods:
+
+        - Administrator Roles: Authenticate as admin, project admin, or user with
+        the Platform Administrator role.
+
+        - User with Manage Webhooks Role: Available from Artifactory version 7.137.0
+
+        - Scoped Token: Available from Artifactory version 7.135.0 using the `system:webhooks@<project_key>/<JFrog_domain>:d`
+        scope.
+
+        '
+      operationId: deleteWebhookSubscription
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The subscription key
+      responses:
+        '204':
+          description: Subscription deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Subscription not found
+  /event/api/v1/subscriptions/test:
+    post:
+      tags:
+      - Webhooks
+      summary: Test Webhook Subscription
+      description: 'Test a webhook subscription.
+
+
+        **Security:** This endpoint requires authentication using [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens).
+        You can authenticate using the following methods:
+
+        - Administrator Roles: Authenticate as admin, project admin, or user with
+        the Platform Administrator role.
+
+        - User with Manage Webhooks Role: Available from Artifactory version 7.137.0
+
+        - Scoped Token: Available from Artifactory version 7.135.0 using the `system:webhooks@<project_key>/<JFrog_domain>:d`
+        scope.
+
+        '
+      operationId: testWebhookSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookSubscriptionCreate'
+      responses:
+        '200':
+          description: Test successful
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /event/api/v1/troubleshooting:
+    get:
+      tags:
+      - Webhooks
+      summary: Stream / Fetch Webhooks Troubleshooting Data
+      description: "Stream or fetch webhooks troubleshooting data with optional filters.\n\
+        \n**Stream Filtered Troubleshooting Data:**\nUse `subscription` and `target`\
+        \ parameters to filter the live stream of troubleshooting data.\n\n**Fetch\
+        \ Historical Troubleshooting Data:**\nUse `start`, `end`, and `count` parameters\
+        \ to fetch troubleshooting data based on timestamps. \nThe `start` parameter\
+        \ includes data reported since the provided timestamp. The `end` parameter\
+        \ \nincludes data reported before the provided timestamp. If you provide the\
+        \ `start` parameter \nwithout `count` or `end`, the stream will be live and\
+        \ provide new data as it comes in.\nYou cannot use the `end` and `count` parameters\
+        \ without the `start` parameter.\n\n**Fetch Earliest Data in Storage:**\n\
+        Use `start=0` to fetch all data from the earliest data available in Redis.\
+        \ Redis stores the \nlast 10000 records and records prior to those are cleared\
+        \ automatically every 30 seconds.\n\n**Security:** This endpoint requires\
+        \ authentication using [Access Tokens](https://docs.jfrog.com/administration/docs/access-tokens).\
+        \ You can authenticate using the following methods:\n- Administrator Roles:\
+        \ Authenticate as admin, project admin, or user with the Platform Administrator\
+        \ role.\n- User with Manage Webhooks Role: Available from Artifactory version\
+        \ 7.137.0\n- Scoped Token: Available from Artifactory version 7.135.0 using\
+        \ the `system:webhooks@<project_key>/<JFrog_domain>:r` scope.\n"
+      operationId: streamWebhookTroubleshooting
+      parameters:
+      - name: subscription
+        in: query
+        schema:
+          type: string
+        description: Filter by subscription key
+        example: mysub
+      - name: target
+        in: query
+        schema:
+          type: string
+        description: Filter by target URL
+        example: github.com
+      - name: start
+        in: query
+        schema:
+          type: integer
+          format: int64
+        description: Start timestamp (Unix timestamp). Includes data reported since
+          this timestamp.
+        example: 14354677650
+      - name: end
+        in: query
+        schema:
+          type: integer
+          format: int64
+        description: End timestamp (Unix timestamp). Includes data reported before
+          this timestamp. Cannot be used without `start`.
+        example: 14354677680
+      - name: count
+        in: query
+        schema:
+          type: integer
+        description: Maximum number of records to return. Cannot be used without `start`.
+        example: 5
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: integer
+                    format: int64
+                  elapsed_millis:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                  request:
+                    type: object
+                    properties:
+                      method:
+                        type: string
+                      url:
+                        type: string
+                      headers:
+                        type: object
+                        additionalProperties:
+                          type: string
+                      payload:
+                        type: string
+                      retries_attempted:
+                        type: integer
+                  response:
+                    type: object
+                    properties:
+                      status:
+                        type: integer
+                      headers:
+                        type: object
+                        additionalProperties:
+                          type: string
+                      body:
+                        type: string
+                  event:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      subscription_key:
+                        type: string
+                      domain:
+                        type: string
+                      event_type:
+                        type: string
+                      data:
+                        type: string
+                      source:
+                        type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication using username and password
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    WebhookSubscription:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Subscription key
+        project_key:
+          type: string
+          description: Project key
+        description:
+          type: string
+          description: Subscription description
+        enabled:
+          type: boolean
+          description: Whether the subscription is enabled
+        event_filter:
+          type: object
+          properties:
+            domain:
+              type: string
+              description: Event domain (artifact, artifact_property, docker, build,
+                etc.)
+            event_types:
+              type: array
+              items:
+                type: string
+              description: Event types to subscribe to
+            criteria:
+              type: object
+              properties:
+                anyLocal:
+                  type: boolean
+                anyRemote:
+                  type: boolean
+                includePatterns:
+                  type: array
+                  items:
+                    type: string
+                excludePatterns:
+                  type: array
+                  items:
+                    type: string
+                repoKeys:
+                  type: array
+                  items:
+                    type: string
+        handlers:
+          type: array
+          items:
+            type: object
+            properties:
+              handler_type:
+                type: string
+                description: Handler type (webhook, etc.)
+              url:
+                type: string
+                description: Webhook URL
+              secret:
+                type: string
+                description: Webhook secret
+              proxy:
+                type: string
+                description: Proxy to use
+              custom_http_headers:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    value:
+                      type: string
+    WebhookSubscriptionCreate:
+      type: object
+      required:
+      - key
+      - enabled
+      - event_filter
+      - handlers
+      properties:
+        key:
+          type: string
+        project_key:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        event_filter:
+          type: object
+          properties:
+            domain:
+              type: string
+            event_types:
+              type: array
+              items:
+                type: string
+            criteria:
+              type: object
+        handlers:
+          type: array
+          items:
+            type: object
+    WebhookSubscriptionUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+        enabled:
+          type: boolean
+        event_filter:
+          type: object
+        handlers:
+          type: array
+          items:
+            type: object
+x-readme:
+  explorer-enabled: false

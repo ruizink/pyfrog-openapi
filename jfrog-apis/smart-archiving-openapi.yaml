@@ -1,0 +1,805 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Smart Archiving API
+  description: REST API for managing smart archiving policies in JFrog Artifactory.
+    Smart Archiving Policies APIs are supported in Artifactory version 7.111 and later
+    for cloud only.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api/archive/v2
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Smart Archiving Policies
+  description: Smart archiving policy management operations
+paths:
+  /packages/policies/{policyKey}:
+    post:
+      tags:
+      - Smart Archiving Policies
+      summary: Create Smart Archiving Policy
+      description: Creates a new package-level smart archiving policy. A policy must
+        be created inactive. This feature is supported in Artifactory version 7.111
+        and later for cloud only.
+      operationId: createSmartArchivingPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        description: An ID that is used to identify the archive policy. A minimum
+          of three characters is required and can include letters, numbers, underscore
+          and hyphen.
+        required: true
+        schema:
+          type: string
+          minLength: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartArchivingPolicy'
+      responses:
+        '201':
+          description: Created - Policy created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartArchivingPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+      - Smart Archiving Policies
+      summary: Get Single Smart Archiving Policy by Key
+      description: Returns details on a single smart archiving policy.
+      operationId: getSmartArchivingPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartArchivingPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Smart Archiving Policies
+      summary: Update Smart Archiving Policy
+      description: Updates configuration settings for an existing smart archiving
+        policy. A policy cannot be updated if it is currently running.
+      operationId: updateSmartArchivingPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmartArchivingPolicy'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmartArchivingPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Smart Archiving Policies
+      summary: Delete Smart Archiving Policy
+      description: Deletes a smart archiving policy. A policy cannot be deleted if
+        it is currently running.
+      operationId: deleteSmartArchivingPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+      responses:
+        '200':
+          description: Deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies:
+    get:
+      tags:
+      - Smart Archiving Policies
+      summary: Get All Smart Archiving Policies
+      description: Returns a list of all the existing smart archiving policies for
+        either a specific project or for the entire system.
+      operationId: getAllSmartArchivingPolicies
+      parameters:
+      - name: projectKey
+        in: query
+        description: This parameter is used when calling this API to return all archive
+          policies for a specific project. This parameter is optional for a platform
+          admin, but not using it will return all archive policies in Artifactory,
+          both global policies and project-level policies. This parameter is mandatory
+          for a project admin.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmartArchivingPolicy'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/forceDisableAll:
+    put:
+      tags:
+      - Smart Archiving Policies
+      summary: Disable All Smart Archiving Policies
+      description: This API is called to disable all smart archiving policies on the
+        global level.
+      operationId: disableAllSmartArchivingPolicies
+      responses:
+        '200':
+          description: The request was successful
+        '400':
+          description: Bad request
+        '500':
+          description: Internal Server Error
+  /packages/policies/view:
+    get:
+      tags:
+      - Smart Archiving Policies
+      summary: View Smart Archiving Policies
+      description: Displays smart archiving policies in the user interface and uses
+        various optional filters to refine results.
+      operationId: viewSmartArchivingPolicies
+      parameters:
+      - name: itemTypes
+        in: query
+        description: List of item types to filter. Possible value - package
+        required: false
+        schema:
+          type: string
+      - name: policyKey
+        in: query
+        description: Optional parameter. Partial or complete string to use for search.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewPoliciesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/{policyKey}/enablement:
+    post:
+      tags:
+      - Smart Archiving Policies
+      summary: Enable/Disable Smart Archiving Policy
+      description: Enables or disables a smart archiving policy. A policy must be
+        enabled for it to run according to the automated schedule set in the cron
+        expression or to trigger a run manually.
+      operationId: enableDisableSmartArchivingPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: A true value means the policy can be executed. A false
+                    value means that it cannot.
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/{policyKey}/run:
+    put:
+      tags:
+      - Smart Archiving Policies
+      summary: Run Smart Archiving Policy
+      description: Manually runs a smart archiving policy.
+      operationId: runSmartArchivingPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+      - name: dryRun
+        in: query
+        description: Optional, default is FALSE. Dry runs are used to run a policy
+          without an actual archive. It produces a report used to determine which
+          packages will be archived if an actual run is performed.
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: OK - The request was successful and the response body contains
+            the triggerId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/runs/downloadReport:
+    get:
+      tags:
+      - Smart Archiving Policies
+      summary: Download Smart Archiving Policy Run Report
+      description: This REST API is called to download a CSV report after a smart
+        archiving policy run. Platform admins can download run reports for both global
+        smart archiving policies and project-specific smart archiving policies. This
+        API checks that the username is the project admin for the policyKey received
+        and therefore project admins can download run reports for archive policies
+        related to the projects they manage.
+      operationId: downloadSmartArchivingPolicyRunReport
+      parameters:
+      - name: policyKey
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 3
+      - name: runId
+        in: query
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: The request was successful and the response body contains the
+            binary data of the report
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: One or both of the request parameters are invalid
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/runs/summaryReports:
+    get:
+      tags:
+      - Smart Archiving Policies
+      summary: View Smart Archiving Policy Run Summary Report
+      description: This REST API is called to view a summary report on a smart archiving
+        policy run. Platform admins can view run summary reports for both global archive
+        policies and project-specific smart archiving policies. This API checks that
+        the username is the project admin for the policyKey received and therefore
+        project admins can view run summary reports for smart archiving policies related
+        to the projects they manage.
+      operationId: viewSmartArchivingPolicyRunSummaryReport
+      parameters:
+      - name: triggerId
+        in: query
+        required: true
+        schema:
+          type: integer
+        description: An ID that identifies the run.
+      responses:
+        '200':
+          description: The request was successful and the response body contains the
+            run summary report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunSummaryReport'
+        '400':
+          description: One or both of the request parameters are invalid
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/runs/forceStopAll:
+    put:
+      tags:
+      - Smart Archiving Policies
+      summary: Stop All Running Smart Archiving Policies
+      description: Stops all running smart archiving policies on the global level.
+      operationId: stopAllRunningSmartArchivingPolicies
+      responses:
+        '202':
+          description: The request was successful
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/runs/{runId}:
+    put:
+      tags:
+      - Smart Archiving Policies
+      summary: Stop Running Smart Archiving Policy
+      description: Stops a smart archiving policy that is currently running. Once
+        a policy has been stopped, it cannot be resumed from the point where it stopped.
+      operationId: stopRunningSmartArchivingPolicy
+      parameters:
+      - name: runId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: An ID that identifies the run. This ID is received when calling
+          the Manually Run Smart Archiving Policy API.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionRequest'
+      responses:
+        '202':
+          description: The request was successful
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /restore/packages:
+    post:
+      tags:
+      - Smart Archiving Policies
+      summary: Restore Archived Packages
+      description: Restores the archived packages.
+      operationId: restoreArchivedPackages
+      parameters:
+      - name: projectKey
+        in: query
+        description: This key is obtained from the Project Settings screen. This parameter
+          is used only for project-level restore, it is not used for global-level
+          policies. This parameter is not mandatory. It takes the default value.
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestorePackagesRequest'
+      responses:
+        '200':
+          description: The request was successful and the response body contains the
+            runSummaryId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runSummaryId:
+                    type: integer
+                  responseMessage:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  responses:
+    BadRequest:
+      description: Validation errors
+    Unauthorized:
+      description: Bad Credentials
+    Forbidden:
+      description: Unauthorized
+    NotFound:
+      description: Not Found
+    Conflict:
+      description: A policy with the specified key already exists
+    InternalServerError:
+      description: Internal server error
+  schemas:
+    SmartArchivingPolicy:
+      type: object
+      required:
+      - key
+      - searchCriteria
+      properties:
+        key:
+          type: string
+          description: An ID that is used to identify the archive policy. A minimum
+            of three characters is required and can include letters, numbers, underscore
+            and hyphen.
+        description:
+          type: string
+          description: A description of the policy
+        cronExp:
+          type: string
+          description: The cron expression determines when the policy is run. This
+            parameter is not mandatory, however if left empty the policy will not
+            run automatically and can only be triggered manually.
+        durationInMinutes:
+          type: integer
+          description: This setting limits the maximum duration (in minutes) the policy
+            can run when enabled. The maximum allowed duration is 300 minutes.
+        enabled:
+          type: boolean
+          description: An archive policy must be created inactive. This parameter
+            is optional, but if used it must be set to FALSE. If set to TRUE when
+            calling this API, the API call will fail and an error message is received.
+        skipTrashcan:
+          type: boolean
+          description: A true value means that when this policy is executed, packages
+            will be permanently deleted without an option to restore them immediately,
+            false means that when the policy is executed packages will be deleted
+            to the Trash Can.
+        projectKey:
+          type: string
+          description: This key is obtained from the Project Settings screen. This
+            parameter is used only for project-level archive V2 policies, it is not
+            used for global-level policies.
+        searchCriteria:
+          $ref: '#/components/schemas/SearchCriteria'
+    RunResponse:
+      type: object
+      properties:
+        triggerId:
+          type: integer
+          description: An ID that identifies the run. This ID is used by the Stop
+            a Running Archive Policy API and other run-related APIs.
+    SearchCriteria:
+      type: object
+      required:
+      - packageTypes
+      - repos
+      - includedPackages
+      properties:
+        packageTypes:
+          type: array
+          items:
+            type: string
+          description: The package types that are archived by the policy. You must
+            enter at least one package type.
+        repos:
+          type: array
+          items:
+            type: string
+          description: Specify one or more patterns for the repository name(s) on
+            which you want the archive policy to run. You can also specify explicit
+            repository names. Specifying at least one pattern or explicit name is
+            mandatory.
+        excludedRepos:
+          type: array
+          items:
+            type: string
+          description: Specify patterns for repository names or explicit repository
+            names that you want excluded from the archive policy. This parameter is
+            optional.
+        includedPackages:
+          type: array
+          items:
+            type: string
+          description: Specify a pattern for a package name or an explicit package
+            name on which you want the archive policy to run. Only one pattern or
+            explicit name can be entered. To include all packages, use ["**"]
+        excludedPackages:
+          type: array
+          items:
+            type: string
+          description: Specify explicit package names that you want excluded from
+            the policy. Only explicit names (and not patterns) are accepted. This
+            parameter is optional.
+        includeAllProjects:
+          type: boolean
+          description: Set this value to true if you want the policy to run on all
+            Artifactory projects. The default value is false. This parameter is optional.
+            This parameter is relevant only on the global level, for Platform Admins.
+        includedProjects:
+          type: array
+          items:
+            type: string
+          description: Enter the project keys for the projects on which you want the
+            policy to run. To include repositories that are not assigned to any project,
+            enter the project key default. This parameter is relevant only on the
+            global level, for Platform Admins.
+        createdBeforeInDays:
+          type: integer
+          description: The archive policy will archive packages based on how long
+            ago they were created. A day in this context is a 24-hour period from
+            the moment the policy is executed.
+        lastDownloadedBeforeInDays:
+          type: integer
+          description: The archive policy will archive packages based on how long
+            ago they were downloaded.
+        keepLastNVersions:
+          type: integer
+          description: Set a value for the number of latest versions to keep. The
+            archive policy will remove all versions before the number you select here.
+            The latest version is always excluded.
+        includedProperties:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: A key-value pair applied to the lead artifact of a package.
+            Packages with this property will be archived.
+        excludedProperties:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: A key-value pair applied to the lead artifact of a package.
+            Packages with this property will be excluded from archival.
+        includedPackageVersions:
+          type: array
+          items:
+            type: string
+          description: Specify package version to include explicitly. (or) Use wildcards
+            at the end to match any suffix, or at the start to match any prefix. Available
+            from V 7.127 (Cloud) and V 7.125.7 (Self-managed)
+        excludedPackageVersions:
+          type: array
+          items:
+            type: string
+          description: Specify explicit package versions that you want excluded from
+            the policy. It also supports, multiple and patterns such as 1.*, *.1.
+            Available from V 7.127 (Cloud) and V 7.125.7 (Self-managed)
+    ViewPoliciesResponse:
+      type: object
+      properties:
+        policies:
+          type: array
+          items:
+            type: object
+            properties:
+              itemType:
+                type: string
+              policyName:
+                type: string
+              enabled:
+                type: boolean
+              nextRunTime:
+                type: integer
+                format: int64
+              lastRunData:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  lastRunTime:
+                    type: integer
+                    format: int64
+                  dryRun:
+                    type: boolean
+    RunSummaryReport:
+      type: object
+      properties:
+        policySummary:
+          type: object
+          properties:
+            policyName:
+              type: string
+            runId:
+              type: integer
+            dryRun:
+              type: boolean
+            status:
+              type: string
+            triggeredBy:
+              type: string
+        executionSummary:
+          type: object
+          properties:
+            startedAt:
+              type: string
+              format: date-time
+            finishedAt:
+              type: string
+              format: date-time
+            durationMillis:
+              type: integer
+        processedItemsSummary:
+          type: object
+          properties:
+            itemType:
+              type: string
+            totalItems:
+              type: integer
+            processedItems:
+              type: integer
+            failedItems:
+              type: integer
+            processedPhysicalSizeBytes:
+              type: integer
+            processedVirtualSizeBytes:
+              type: integer
+        runConfiguration:
+          type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+            createdBy:
+              type: string
+            modifiedAt:
+              type: string
+              format: date-time
+            modifiedBy:
+              type: string
+            schedule:
+              type: object
+              properties:
+                cronExpression:
+                  type: string
+                maxRunDurationMillis:
+                  type: integer
+            description:
+              type: string
+            skipTrashCan:
+              type: boolean
+            target:
+              type: object
+            cleanupCriteria:
+              type: object
+    RestorePackagesRequest:
+      type: object
+      required:
+      - manifestPaths
+      properties:
+        restoreToOriginal:
+          type: boolean
+          description: A true value means the package will be restored to the original
+            repository where the items were located before archiving. A false value
+            means the package will be restored to the new destination path. This parameter
+            is mandatory if newDestinationPath is not set.
+        fallbackDestinationPath:
+          type: string
+          description: If restoreToOriginal is set as true and the original location
+            does not exist anymore, restore to this fallback location. fallbackDestinationPath
+            must contain at least the repository key.
+        newDestinationPath:
+          type: string
+          description: Restore the packages to the new destination path other than
+            where the items were located before archiving. This parameter is mandatory
+            if restoreToOriginal is not set.
+        manifestPaths:
+          type: array
+          items:
+            type: string
+          description: A manifest file path that contains metadata or a list of items
+            that need to be restored.
+    ActionRequest:
+      type: object
+      required:
+      - action
+      properties:
+        action:
+          type: string
+          enum:
+          - stop
+          description: Use the stop action to stop the policy run
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication
+security:
+- BearerAuth: []
+- BasicAuth: []

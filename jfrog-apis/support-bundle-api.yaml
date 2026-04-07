@@ -1,0 +1,529 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Support Bundle API
+  description: "Support Bundle REST APIs for creating, managing, and downloading support\
+    \ bundles \nfor JFrog Distribution.\n\n**Authentication:**\n- Access Tokens as\
+    \ bearer token in authorization header (Authorization: Bearer <token>)\n\nSince:\
+    \ 1.6\n"
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Support Bundle
+  description: Support bundle management APIs for troubleshooting and diagnostics.
+security:
+- BearerAuth: []
+paths:
+  /distribution/api/v1/system/support/bundle:
+    post:
+      tags:
+      - Support Bundle
+      summary: Create Support Bundle
+      description: 'Creates a support bundle with automatically generated ID.
+
+
+        Since: 1.6
+
+
+        Security: Admin only
+
+        '
+      operationId: createSupportBundle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupportBundleCreateRequest'
+            example:
+              parameters:
+                configuration: true
+                logs:
+                  include: true
+                  start_date: '2024-01-20'
+                  end_date: '2024-01-21'
+                system: true
+                thread_dump:
+                  count: 1
+                  interval: 0
+              description: Support bundle for issue investigation
+              name: my-support-bundle
+      responses:
+        '200':
+          description: Successfully created support bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportBundleCreateResponse'
+        '400':
+          description: Bad Request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - Unauthorized user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /distribution/api/v1/system/support/bundle/{bundle_id}:
+    put:
+      tags:
+      - Support Bundle
+      summary: Create Specific Support Bundle
+      description: 'Creates a new support bundle and assigns it a specific ID.
+
+
+        Since: 1.6
+
+
+        Security: Admin only
+
+        '
+      operationId: createSpecificSupportBundle
+      parameters:
+      - name: bundle_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The specific bundle ID to assign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupportBundleCreateRequest'
+      responses:
+        '200':
+          description: Successfully created support bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportBundleCreateResponse'
+        '400':
+          description: Bad Request - Corresponding repository does not exist in Artifactory.
+            Support bundle will be persisted to the file system in each Distribution
+            Edge.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '401':
+          description: Bad Credentials - Unauthorized user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - Artifactory authentication provider could not be
+            found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    get:
+      tags:
+      - Support Bundle
+      summary: Get Support Bundle Info
+      description: 'Returns details about a support bundle.
+
+
+        Since: 1.6
+
+
+        Security: Admin only
+
+        '
+      operationId: getSupportBundleInfo
+      parameters:
+      - name: bundle_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bundle ID
+      responses:
+        '200':
+          description: Successfully retrieved support bundle info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportBundleInfo'
+        '401':
+          description: Bad Credentials - Unauthorized user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - Support bundle not found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+    delete:
+      tags:
+      - Support Bundle
+      summary: Delete Support Bundle
+      description: 'Deletes a support bundle.
+
+
+        Since: 1.6
+
+
+        Security: Admin only
+
+        '
+      operationId: deleteSupportBundle
+      parameters:
+      - name: bundle_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bundle ID to delete
+      responses:
+        '204':
+          description: Successfully deleted support bundle
+        '401':
+          description: Bad Credentials - Unauthorized user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - Support bundle not found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /distribution/api/v1/system/support/bundle/{bundle_id}/archive:
+    get:
+      tags:
+      - Support Bundle
+      summary: Get Support Bundle
+      description: 'Downloads a specified support bundle as a ZIP archive.
+
+
+        Since: 1.6
+
+
+        Security: Admin only
+
+        '
+      operationId: downloadSupportBundle
+      parameters:
+      - name: bundle_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bundle ID to download
+      responses:
+        '200':
+          description: Successfully downloaded support bundle
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - Unauthorized user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - Support bundle not found
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /distribution/api/v1/system/support/bundles:
+    get:
+      tags:
+      - Support Bundle
+      summary: List Support Bundles
+      description: 'Get the list of all support bundles.
+
+
+        Since: 1.6
+
+
+        Security: Admin only
+
+        '
+      operationId: listSupportBundles
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportBundleList'
+        '401':
+          description: Bad Credentials - Unauthorized user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - Admin access required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication using username and password
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    SupportBundleCreateRequest:
+      type: object
+      properties:
+        parameters:
+          type: object
+          description: Support bundle parameters
+          properties:
+            configuration:
+              type: boolean
+              default: true
+              description: Collect configuration files
+            logs:
+              type: object
+              description: "Collect all system logs. If this field is not specified,\
+                \ support bundle \nwill collect logs from day before today until today.\n"
+              properties:
+                include:
+                  type: boolean
+                  default: true
+                  description: Collect system logs
+                start_date:
+                  type: string
+                  format: date
+                  description: Start date from which to fetch the logs (ISO8601 format
+                    YYYY-MM-DD)
+                  example: '2024-01-20'
+                end_date:
+                  type: string
+                  format: date
+                  description: End date until which to fetch the logs (ISO8601 format
+                    YYYY-MM-DD)
+                  example: '2024-01-21'
+            system:
+              type: boolean
+              default: true
+              description: Information about your system including storage, system
+                properties, CPU, and JVM information
+            thread_dump:
+              type: object
+              description: Create a thread dump for all running threads
+              properties:
+                count:
+                  type: integer
+                  default: 1
+                  description: Number of thread dumps to collect
+                interval:
+                  type: integer
+                  default: 0
+                  description: Interval between times of collect thread dump in milliseconds
+        description:
+          type: string
+          description: Support bundle description
+        name:
+          type: string
+          description: Support bundle name
+    SupportBundleCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The support bundle ID
+          example: 20181230145474-53666747
+        artifactory:
+          type: object
+          properties:
+            service_id:
+              type: string
+              description: The service ID
+              example: jfds@...
+            bundle_url:
+              type: string
+              description: URL to access the support bundle in Artifactory
+              example: http://<artifactory_host>:<port>/artifactory/support-bundles/<bundle_id>/jfds/<service_id>
+    SupportBundleInfo:
+      type: object
+      properties:
+        parameters:
+          type: object
+          properties:
+            configuration:
+              type: boolean
+            logs:
+              type: object
+              properties:
+                include:
+                  type: boolean
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+            system:
+              type: boolean
+            thread_dump:
+              type: object
+              properties:
+                count:
+                  type: integer
+                interval:
+                  type: integer
+        description:
+          type: string
+          description: Support bundle description
+        name:
+          type: string
+          description: Support bundle name
+        artifactory:
+          type: object
+          properties:
+            service_id:
+              type: string
+            bundle_url:
+              type: string
+        status:
+          type: string
+          description: Status of the support bundle
+          example: success
+        created:
+          type: string
+          format: date
+          description: Creation date of the support bundle
+    SupportBundleList:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Total number of support bundles
+        bundles:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Support bundle ID
+                example: 20181230145474-53666747
+              description:
+                type: string
+                description: Support bundle description
+              name:
+                type: string
+                description: Support bundle name
+              created:
+                type: string
+                format: date
+                description: Creation date
+x-readme:
+  explorer-enabled: false

@@ -1,0 +1,618 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Retention (Release Bundle v1) API
+  description: REST API for managing retention policies for Release Bundle v1 versions
+    in JFrog Artifactory. The Retention feature is disabled by default and must be
+    enabled by the customer. Retention policies are designed to work with Postgres
+    and Derby databases. Other databases are not officially supported.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api/v1/bundle/retention
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Retention
+  description: Release Bundle v1 retention policy management operations
+paths:
+  /config/enable:
+    get:
+      tags:
+      - Retention
+      summary: Query the Status of the Retention Service
+      description: Gets the activation status of the retention policies. If enable
+        is set to false, any bundles can be deleted even if they have been marked
+        as keep (i.e., their keep status will be ignored).
+      operationId: queryStatusOfRetentionService
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enable:
+                    type: boolean
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Retention
+      summary: Set Retention Policies to Enabled
+      description: Sets the Release Bundle retention policy to enabled. If enable
+        is set to false, any bundles can be deleted even if they have been marked
+        as keep (i.e., their keep status will be ignored).
+      operationId: setRetentionPoliciesToEnabled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - enable
+              properties:
+                enable:
+                  type: boolean
+                  description: Enable or disable retention policies
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /config:
+    get:
+      tags:
+      - Retention
+      summary: Get Retention Policy Configuration
+      description: Gets the retention policies that were configured.
+      operationId: getRetentionPolicyConfiguration
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  automatic:
+                    type: boolean
+                  num_of_versions_to_keep_per_release_bundle:
+                    type: integer
+                  max_days_to_keep:
+                    type: integer
+                  cron_pattern:
+                    type: string
+                  max_deletions_per_background_run:
+                    type: integer
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Retention
+      summary: Set the Retention Policy Configuration
+      description: Sets the retention policies that were configured. If a Release
+        Bundle meets one or more of the retention policies configured, the policy
+        will be applied to it. Note that you can set a partial configuration, but
+        you cannot 'unset' a value - instead you will need to override it to change
+        it.
+      operationId: setRetentionPolicyConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                automatic:
+                  type: boolean
+                  description: Enable automatic retention
+                num_of_versions_to_keep_per_release_bundle:
+                  type: integer
+                  description: Number of versions to keep per release bundle
+                max_days_to_keep:
+                  type: integer
+                  description: Maximum days to keep
+                cron_pattern:
+                  type: string
+                  description: Cron pattern for scheduled retention
+                max_deletions_per_background_run:
+                  type: integer
+                  description: Maximum deletions per background run
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /report:
+    post:
+      tags:
+      - Retention
+      summary: Get the Configured Retention Policies List
+      description: Finds the bundles that are candidates for retention according to
+        the configuration type.
+      operationId: getConfiguredRetentionPoliciesList
+      parameters:
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          default: 0
+        description: Offset in set of all fitting bundle versions (fitting by retention
+          config). Default is 0.
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 100
+        description: Maximum amount of items to return. Default is 100.
+      - name: order_by
+        in: query
+        schema:
+          type: string
+          enum:
+          - bundle_name
+          - bundle_version
+          - distribution_time
+          - keep
+          default: distribution_time
+        description: Order by field. Default is "distribution_time".
+      - name: direction
+        in: query
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+          default: asc
+        description: Sort direction. Default is "asc".
+      - name: pattern
+        in: query
+        schema:
+          type: string
+          default: '*'
+        description: Case insensitive name/version pattern, where "*" is allowed as
+          the wild card. Default is "*".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - type
+              properties:
+                include_keep:
+                  type: boolean
+                  description: Include bundles marked as keep
+                type:
+                  type: string
+                  enum:
+                  - MAX_VERSIONS_PER_RELEASE_BUNDLE
+                  - MAX_DAYS_TO_KEEP
+                  description: The retention policy type
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bundle_name:
+                          type: string
+                        bundle_version:
+                          type: string
+                        creation_time:
+                          type: integer
+                        distribution_time:
+                          type: integer
+                        keep:
+                          type: boolean
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method Not Allowed - This endpoint is not available on this
+            Artifactory instance configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /audit:
+    get:
+      tags:
+      - Retention
+      summary: Get the Retention Operations History
+      description: Gets the history of the retention operations.
+      operationId: getRetentionOperationsHistory
+      parameters:
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          default: 0
+        description: Offset in a set of historical operations. Default is 0.
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 100
+        description: Maximum amount of items to return. Default is 100.
+      - name: order_by
+        in: query
+        schema:
+          type: string
+          enum:
+          - bundle_name
+          - bundle_version
+          - operation
+          - created
+          - created_by
+          default: created
+        description: Order by field. Default is "created".
+      - name: direction
+        in: query
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+          default: desc
+        description: Sort direction. Default is "desc".
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bundle_name:
+                          type: string
+                        bundle_version:
+                          type: string
+                        operation:
+                          type: string
+                          enum:
+                          - DELETE
+                          - KEEP
+                          - UNKEEP
+                        created:
+                          type: string
+                          format: date-time
+                        created_by:
+                          type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method Not Allowed - This endpoint is not available on this
+            Artifactory instance configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /delete:
+    post:
+      tags:
+      - Retention
+      summary: Delete Release Bundles
+      description: Deletes the Release Bundles.
+      operationId: deleteReleaseBundles
+      parameters:
+      - name: dryRun
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: When true no actual deletion will be performed, could be used
+          for validation. Default is false.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required:
+                - bundle_name
+                - bundle_version
+                properties:
+                  bundle_name:
+                    type: string
+                    description: The bundle name
+                  bundle_version:
+                    type: string
+                    description: The bundle version
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method Not Allowed - This endpoint is not available on this
+            Artifactory instance configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /keep:
+    post:
+      tags:
+      - Retention
+      summary: Mark Release Bundles to Keep (or Don't Keep)
+      description: Sets the indicator to keep (indefinitely) or not keep (unkeep)
+        Release Bundles.
+      operationId: markReleaseBundlesToKeepOrDontKeep
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                keep:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - bundle_name
+                    - bundle_version
+                    properties:
+                      bundle_name:
+                        type: string
+                        description: The bundle name
+                      bundle_version:
+                        type: string
+                        description: The bundle version
+                  description: List of bundles to mark as keep
+                unkeep:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - bundle_name
+                    - bundle_version
+                    properties:
+                      bundle_name:
+                        type: string
+                        description: The bundle name
+                      bundle_version:
+                        type: string
+                        description: The bundle version
+                  description: List of bundles to unkeep
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method Not Allowed - This endpoint is not available on this
+            Artifactory instance configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Standard JFrog error envelope
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer

@@ -1,0 +1,550 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Workers API
+  description: 'Worker service management APIs for the JFrog Platform.
+
+
+    **Authentication:**
+
+    - Basic authentication using username and password
+
+    - Access Tokens instead of password for basic authentication
+
+    - Access Tokens as bearer token in authorization header (Authorization: Bearer
+    <token>)
+
+
+    Since: 7.63.2
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Workers
+  description: Worker service management APIs. Since 7.63.2.
+security:
+- BearerAuth: []
+paths:
+  /worker/api/v1/workers:
+    post:
+      tags:
+      - Workers
+      summary: Create Worker
+      description: "Creates a worker service.\n\nSince: 7.63.2\n\nSecurity: Platform\
+        \ Admin, Project Admin (for Project Admin, the projectKey query parameter\
+        \ \nmust be set and match the one in the Worker request body).\n"
+      operationId: createWorker
+      parameters:
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: Project key (required for project admins)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerCreateRequest'
+      responses:
+        '201':
+          description: Worker created
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    get:
+      tags:
+      - Workers
+      summary: Get Workers
+      description: Get all workers.
+      operationId: getWorkers
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Worker'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - Workers
+      summary: Update Worker
+      description: Update a worker.
+      operationId: updateWorker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerUpdateRequest'
+      responses:
+        '200':
+          description: Worker updated
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Worker not found
+  /worker/api/v1/workers/{workerKey}:
+    get:
+      tags:
+      - Workers
+      summary: Get Specified Worker
+      description: Get a specific worker by key.
+      operationId: getWorker
+      parameters:
+      - name: workerKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The worker key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Worker'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Worker not found
+    delete:
+      tags:
+      - Workers
+      summary: Delete Worker
+      description: Delete a worker.
+      operationId: deleteWorker
+      parameters:
+      - name: workerKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The worker key
+      responses:
+        '204':
+          description: Worker deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Worker not found
+  /worker/api/v1/actions:
+    get:
+      tags:
+      - Workers
+      summary: Get Available Actions
+      description: Get available worker action names.
+      operationId: getWorkerActions
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+  /worker/api/v2/actions:
+    get:
+      tags:
+      - Workers
+      summary: Get Actions Metadata
+      description: 'Returns full metadata for each available worker action. Use this
+        to discover the **dynamic** payload and result
+
+        shapes: each action''s `samplePayload` (example request JSON), `typesDefinitions`
+        (TypeScript interfaces for
+
+        request/response), and `filterType` (which filter criteria shape applies).
+        Refer to this endpoint when building
+
+        or validating execution payloads and when interpreting execution results.
+
+        '
+      operationId: getWorkerActionsMetadata
+      parameters:
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: Optional project key (filters actions available to project admins)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActionMetadata'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /worker/api/v1/test:
+    post:
+      tags:
+      - Workers
+      summary: Execute Test
+      description: Execute a worker test without a specific worker key.
+      operationId: executeWorkerTestGeneric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerExecutionPayload'
+      responses:
+        '200':
+          description: Test executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerExecutionResult'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /worker/api/v1/test/{workerKey}:
+    post:
+      tags:
+      - Workers
+      summary: Execute Test for Worker
+      description: Execute a test for a specific worker.
+      operationId: executeWorkerTest
+      parameters:
+      - name: workerKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The worker key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerExecutionPayload'
+      responses:
+        '200':
+          description: Test executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerExecutionResult'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Worker not found
+  /worker/api/v1/system/readiness:
+    get:
+      tags:
+      - Workers
+      summary: Workers Service Readiness
+      description: Check workers service readiness.
+      operationId: checkWorkersReadiness
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+  /worker/api/v1/system/liveness:
+    get:
+      tags:
+      - Workers
+      summary: Workers Service Liveness
+      description: Check workers service liveness.
+      operationId: checkWorkersLiveness
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+  /worker/api/v1/execution_history:
+    get:
+      tags:
+      - Workers
+      summary: Get Worker Execution History
+      description: Get execution history for workers.
+      operationId: getWorkerExecutionHistory
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkerExecutionResult'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /worker/api/v1/execute/{workerKey}:
+    post:
+      tags:
+      - Workers
+      summary: Execute an HTTP-Triggered Worker
+      description: Execute an HTTP-triggered worker.
+      operationId: executeHttpTriggeredWorker
+      parameters:
+      - name: workerKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The worker key
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerExecutionPayload'
+      responses:
+        '200':
+          description: Worker executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerExecutionResult'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Worker not found
+  /worker/api/v1/rerun/{workerKey}:
+    post:
+      tags:
+      - Workers
+      summary: Rerun Worker
+      description: Rerun a worker.
+      operationId: rerunWorker
+      parameters:
+      - name: workerKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The worker key
+      - name: forceRecord
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Force record the execution
+      responses:
+        '200':
+          description: Worker rerun
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerExecutionResult'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Worker not found
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication using username and password
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    Worker:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Worker key
+        description:
+          type: string
+          description: Worker description
+        enabled:
+          type: boolean
+          description: Whether the worker is enabled
+        sourceCode:
+          type: string
+          description: Worker source code (TypeScript/JavaScript)
+        action:
+          type: string
+          description: Worker action
+        filterCriteria:
+          type: object
+          description: Filter criteria for the worker
+    WorkerCreateRequest:
+      type: object
+      required:
+      - key
+      - enabled
+      - sourceCode
+      - action
+      properties:
+        key:
+          type: string
+          description: Unique worker key
+        description:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+        sourceCode:
+          type: string
+          description: Worker script in TypeScript or JavaScript
+        action:
+          type: string
+          description: "The action (event) type for the worker. Supported events:\n\
+            \n**Access Events:** BEFORE_CREATE_TOKEN, BEFORE_REVOKE_TOKEN, BEFORE_TOKEN_EXPIRY\n\
+            \n**Artifactory Events:** BEFORE_DOWNLOAD, AFTER_DOWNLOAD, BEFORE_PROPERTY_CREATE,\
+            \ \nBEFORE_UPLOAD, AFTER_CREATE, AFTER_BUILD_INFO_SAVE, AFTER_MOVE, BEFORE_UPLOAD_REQUEST,\
+            \ \nALT_RESPONSE, ALT_ALL_RESPONSES, ALT_REMOTE_PATH, ALT_REMOTE_CONTENT,\
+            \ \nBEFORE_REMOTE_INFO_REQUEST, BEFORE_REMOTE_DOWNLOAD, AFTER_REMOTE_DOWNLOAD,\
+            \ \nAFTER_DOWNLOAD_ERROR, BEFORE_DOWNLOAD_REQUEST, BEFORE_CREATE, BEFORE_DELETE,\
+            \ \nAFTER_DELETE, BEFORE_MOVE, BEFORE_COPY, AFTER_COPY, AFTER_PROPERTY_CREATE,\
+            \ \nBEFORE_PROPERTY_DELETE, AFTER_PROPERTY_DELETE, BEFORE_BUILD_INFO_SAVE,\
+            \ AFTER_SAVE, \nBEFORE_FILE_REPLICATION, BEFORE_DIRECTORY_REPLICATION,\
+            \ BEFORE_DELETE_REPLICATION, \nBEFORE_PROPERTY_REPLICATION, BEFORE_STATISTICS_REPLICATION\n\
+            \n**Runtime Events:** AFTER_WORKLOAD_STATE_CHANGE_REQUEST\n\n**HTTP Triggered:**\
+            \ GENERIC_EVENT\n"
+        filterCriteria:
+          type: object
+          description: Filter criteria for event-driven workers
+    WorkerUpdateRequest:
+      type: object
+      properties:
+        key:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        sourceCode:
+          type: string
+        action:
+          type: string
+        filterCriteria:
+          type: object
+          description: Filter criteria for event-driven workers
+    ActionMetadata:
+      type: object
+      description: Metadata for a single worker action. Used to discover dynamic payload/result
+        shapes and filter types.
+      properties:
+        action:
+          type: object
+          description: Action identifier (application + name)
+          properties:
+            application:
+              type: string
+              description: Application that owns the action
+            name:
+              type: string
+              description: Action name
+        description:
+          type: string
+          description: Human-readable action description
+        samplePayload:
+          type: string
+          description: Example request payload as JSON string; use to build WorkerExecutionPayload
+            for this action
+        sampleCode:
+          type: string
+          description: Sample worker code snippet for this action
+        typesDefinitions:
+          type: string
+          description: TypeScript interfaces (request/response types) for this action;
+            describes payload and result shapes
+        supportProjects:
+          type: boolean
+          description: Whether project admins can create workers for this action
+        filterType:
+          type: string
+          description: Filter criteria type for this action. see **WorkerFilterCriteria**
+        mandatoryFilter:
+          type: boolean
+          description: Whether filter criteria must be set for this action
+        wikiUrl:
+          type: string
+          description: Link to documentation for this action
+        async:
+          type: boolean
+          description: Whether this action is asynchronous
+        requestSchema:
+          type: string
+          description: JSON schema for the execution request (if available)
+        executionRequestType:
+          type: string
+          description: Name of the request type defined in typesDefinitions
+    WorkerExecutionPayload:
+      type: object
+      description: '**Dynamic payload:** The request body structure depends on the
+        worker''s action type (e.g. BEFORE_DOWNLOAD, SCHEDULED_EVENT).
+
+        Each action defines its own input shape. Use **GET /worker/api/v2/actions**
+        to obtain per-action metadata at runtime
+
+        (`samplePayload`, `typesDefinitions`).
+
+        '
+      additionalProperties: true
+    WorkerExecutionResult:
+      type: object
+      description: '**Dynamic result:** The response may include execution metadata
+        (e.g. logs, timing). The **result** field (the worker
+
+        script''s return value) has a structure that depends on the worker''s action
+        type. Use **GET /worker/api/v2/actions**
+
+        for per-action metadata (`typesDefinitions` describes both request and response
+        shapes).
+
+        '
+      additionalProperties: true
+x-readme:
+  explorer-enabled: false

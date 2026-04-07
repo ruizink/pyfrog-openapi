@@ -1,0 +1,453 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Release Bundles V1 API
+  description: REST API for managing Release Bundles V1 in JFrog Artifactory. These
+    APIs apply to the Release Bundles (v1) received in Artifactory. Requires Artifactory
+    Enterprise+.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api/release
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Release Bundles V1
+  description: Release Bundles V1 management operations
+paths:
+  /bundles:
+    get:
+      tags:
+      - Release Bundles V1
+      summary: Get All Bundles
+      description: Returns a list of all release bundles. Requires Artifactory Enterprise+.
+      operationId: getAllBundles
+      parameters:
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum:
+          - target
+          - source
+          default: target
+        description: Specifies the type of Release Bundle to return, target or source.
+          If this parameter is not specified, the default value is target.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bundles:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          version:
+                            type: string
+                          created:
+                            type: string
+                            format: date-time
+                          status:
+                            type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bundles/{bundleName}:
+    get:
+      tags:
+      - Release Bundles V1
+      summary: Get All Bundle Versions
+      description: Returns a list of all bundles versions. Requires Artifactory Enterprise+.
+      operationId: getAllBundleVersions
+      parameters:
+      - name: bundleName
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The bundle name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        version:
+                          type: string
+                        created:
+                          type: string
+                          format: date-time
+                        status:
+                          type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bundles/{bundleName}/{bundleVersion}:
+    get:
+      tags:
+      - Release Bundles V1
+      summary: Get a Release Bundle Version
+      description: Returns a specific Release Bundle v1. Requires Artifactory Enterprise+.
+      operationId: getReleaseBundleVersion
+      parameters:
+      - name: bundleName
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The bundle name
+      - name: bundleVersion
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The bundle version
+      - name: format
+        in: query
+        schema:
+          type: string
+          enum:
+          - jws
+          - json
+        description: The format of the response (jws or json)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  version:
+                    type: string
+                  description:
+                    type: string
+                  created:
+                    type: string
+                    format: date-time
+                  artifacts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repo_path:
+                          type: string
+                        checksum:
+                          type: string
+                        props:
+                          type: array
+                          items:
+                            type: object
+            application/jose:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /bundles/source/{bundleName}/{bundleVersion}:
+    delete:
+      tags:
+      - Release Bundles V1
+      summary: Delete a Release Bundle Version
+      description: Delete a specific release bundle version from the source Artifactory.
+        To delete a release bundle on a target Artifactory, see Delete Release Bundle
+        v1 Version in the Distribution REST API. Requires Artifactory Enterprise+.
+      operationId: deleteReleaseBundleVersion
+      parameters:
+      - name: bundleName
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The bundle name
+      - name: bundleVersion
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The bundle version
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /import:
+    post:
+      tags:
+      - Release Bundles V1
+      summary: Import Release Bundle Version
+      description: Import the Release Bundle version from the exported zip file. This
+        API is relevant for both Release Bundles v1 and Release Bundles v2. The Import
+        process is performed on the Artifactory node. You can set dryRun=true to validate
+        that the conditions for performing the import process are met. From Artifactory
+        7.10.2, the import feature has been extended to support importing a file from
+        a user-defined ARTIFACTORY_HOME/var/data/artifactory/import/ path. Note that
+        the file will be deleted from the path after the file is imported.
+      operationId: importReleaseBundleVersion
+      parameters:
+      - name: file_name
+        in: query
+        schema:
+          type: string
+        description: The file name when importing from a local path
+      - name: dry_run
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Set to true to validate that the conditions for performing the
+          import process are met without actually importing
+      requestBody:
+        required: false
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: The release bundle zip file (when uploading directly)
+          application/json:
+            schema:
+              type: object
+              description: Used when importing from a local path
+      responses:
+        '202':
+          description: Successfully triggered to import version
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Failed to import version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /import/{name}/{version}/status:
+    get:
+      tags:
+      - Release Bundles V1
+      summary: Get Release Bundle Version Import Status
+      description: Returns the status of the imported Release Bundle version. The
+        Import process is performed on the Artifactory Edge node.
+      operationId: getReleaseBundleVersionImportStatus
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The release bundle name
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The release bundle version
+      - name: format
+        in: query
+        schema:
+          type: string
+          enum:
+          - json
+          default: json
+        description: The response format
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                    - IN_PROGRESS
+                    - NOT_EXPORTED
+                    - FAILED
+                    - COMPLETED
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer

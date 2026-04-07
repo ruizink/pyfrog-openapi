@@ -1,0 +1,458 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Import & Export API
+  description: REST API for importing and exporting repository content and system
+    settings in JFrog Artifactory. From version 5.10, Artifactory maintains any security
+    entities (users, groups, permissions and tokens) when doing a system import.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Import
+  description: Import operations
+- name: Export
+  description: Export operations
+paths:
+  /import/repositories:
+    post:
+      tags:
+      - Import
+      summary: Import Repository Content
+      description: Import one or more repositories.
+      operationId: importRepositoryContent
+      parameters:
+      - name: path
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: The file system path to import from. This may point to a specific
+          folder to import data for a single repository, or to the parent "repositories"
+          folder to import data for all repositories.
+      - name: repo
+        in: query
+        schema:
+          type: string
+        description: Empty/null repo -> all
+      - name: metadata
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 1
+        description: Include metadata - default 1
+      - name: verbose
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+        description: Verbose - default 0
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /import/system:
+    get:
+      tags:
+      - Import
+      summary: Import System Settings Example
+      description: Returns the default Import Settings JSON. From version 5.10, Artifactory
+        maintains any security entities (users, groups, permissions and tokens) when
+        doing a system import.
+      operationId: getImportSystemSettingsExample
+      responses:
+        '200':
+          description: Success
+          content:
+            application/vnd.org.jfrog.artifactory.system.ImportSettings+json:
+              schema:
+                type: object
+                properties:
+                  importPath:
+                    type: string
+                  includeMetadata:
+                    type: boolean
+                  verbose:
+                    type: boolean
+                  failOnError:
+                    type: boolean
+                  failIfEmpty:
+                    type: boolean
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '406':
+          description: Not Acceptable - The content type is not supported.
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Import
+      summary: Full System Import
+      description: Import full system from a server local Artifactory export directory.
+        From version 5.10, Artifactory maintains any security entities (users, groups,
+        permissions and tokens) when doing a system import.
+      operationId: fullSystemImport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - importPath
+              properties:
+                importPath:
+                  type: string
+                  description: The file system path to import from
+                includeMetadata:
+                  type: boolean
+                  description: Include metadata
+                verbose:
+                  type: boolean
+                  description: Verbose mode
+                failOnError:
+                  type: boolean
+                  description: Fail on error
+                failIfEmpty:
+                  type: boolean
+                  description: Fail if empty
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '406':
+          description: Not Acceptable - The content type is not supported.
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /export/system:
+    get:
+      tags:
+      - Export
+      summary: Export System Settings Example
+      description: Returns default Export Settings JSON.
+      operationId: getExportSystemSettingsExample
+      responses:
+        '200':
+          description: Success
+          content:
+            application/vnd.org.jfrog.artifactory.system.ExportSettings+json:
+              schema:
+                type: object
+                properties:
+                  exportPath:
+                    type: string
+                  includeMetadata:
+                    type: boolean
+                  createArchive:
+                    type: boolean
+                  bypassFiltering:
+                    type: boolean
+                  verbose:
+                    type: boolean
+                  failOnError:
+                    type: boolean
+                  failIfEmpty:
+                    type: boolean
+                  m2:
+                    type: boolean
+                  incremental:
+                    type: boolean
+                  excludeContent:
+                    type: boolean
+        '400':
+          description: Bad Request - Not supported (e.g. on SaaS/Cloud instances).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Export
+      summary: Export System
+      description: Export full system to a server local directory.
+      operationId: exportSystem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - exportPath
+              properties:
+                exportPath:
+                  type: string
+                  description: The file system path to export to
+                includeMetadata:
+                  type: boolean
+                  description: Include metadata
+                createArchive:
+                  type: boolean
+                  description: Create archive
+                bypassFiltering:
+                  type: boolean
+                  description: Bypass filtering
+                verbose:
+                  type: boolean
+                  description: Verbose mode
+                failOnError:
+                  type: boolean
+                  description: Fail on error
+                failIfEmpty:
+                  type: boolean
+                  description: Fail if empty
+                m2:
+                  type: boolean
+                  description: Maven 2 format
+                incremental:
+                  type: boolean
+                  description: Incremental export
+                excludeContent:
+                  type: boolean
+                  description: Exclude content
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /artifactexport/repository:
+    post:
+      tags:
+      - Export
+      summary: Export Repository with Metadata
+      description: Export repository with its metadata. This command creates two directories
+        Repository Data Directory (contains the exported data) and Metadata Directory
+        (contains the associated metadata). Note This export API does not adhere to
+        the same structure as the import command (/artifactory/api/import/repositories).
+      operationId: exportRepositoryWithMetadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - action
+              - path
+              - repository
+              properties:
+                action:
+                  type: string
+                  enum:
+                  - repository
+                  description: The action type
+                path:
+                  type: string
+                  description: The location on the artifactory server where the repository
+                    will be exported to
+                repository:
+                  type: string
+                  description: The repository you want to export
+                excludeMetadata:
+                  type: boolean
+                  default: false
+                  description: false includes metadata, true excludes metadata
+                m2:
+                  type: boolean
+                  description: This parameter is specific to Maven repositories and
+                    indicates whether the output should be formatted for Maven 2.
+                    Setting it to true adjusts the export to be compatible with Maven
+                    2 expectations.
+                verbose:
+                  type: boolean
+                  description: Verbose mode
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Standard JFrog error envelope
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+                description: HTTP status code
+              message:
+                type: string
+                description: Error message
+        error:
+          type: string
+          description: Simple error message (legacy format)
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer

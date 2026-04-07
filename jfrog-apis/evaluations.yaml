@@ -1,0 +1,1435 @@
+openapi: 3.0.3
+info:
+  title: JFrog Unified Policy Service APIs
+  description: 'JFrog Unified Policy Service APIs for managing policies across the
+    JFrog Platform.
+
+
+    This API provides endpoints for creating, updating, and managing policies
+
+    that can be applied to various JFrog platform resources.
+
+
+    ## Authentication
+
+    All API requests require a valid JWT bearer token in the Authorization header.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+    url: https://jfrog.com/contact-us/
+    email: support@jfrog.com
+  license:
+    name: JFrog Terms of Service
+    url: https://jfrog.com/terms-and-conditions/
+servers:
+- url: https://{jfrog_url}/unifiedpolicy/api/v1
+  description: Local Development Self-Hosted
+- url: http://localhost:8182/unifiedpolicy/api/v1
+  description: Local Development Multi-Tenant
+- url: https://z0appstaging.jfrogdev.org/unifiedpolicy/api/v1
+  description: Leap env
+tags:
+- name: evaluation
+  description: evaluations summaries of requested events in the JFrog Platform.
+paths:
+  /evaluations:
+    get:
+      summary: List all evaluations
+      description: 'Retrieve a paginated list of all evaluations in the system.
+
+        This endpoint supports pagination and filtering of evaluations based on various
+        criteria.
+
+        '
+      tags:
+      - evaluation
+      operationId: evaluationsList
+      parameters:
+      - $ref: '#/components/parameters/policyResourceTypeQueryParam'
+      - name: action_type
+        in: query
+        description: Filter policies by action types.
+        allowEmptyValue: true
+        schema:
+          type: string
+          enum:
+          - certify_to_gate
+          description: The action type the policy applies to.
+          x-oapi-codegen-extra-tags:
+            binding: required,oneof=certify_to_gate
+      - name: stage_key
+        in: query
+        description: Filter policies by stage. Multiple values can be provided for
+          filtering.
+        allowEmptyValue: true
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyGatePair/properties/key'
+      - name: stage_gate
+        in: query
+        description: Filter policies by gate. Multiple values can be provided for
+          filtering.
+        allowEmptyValue: true
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyGatePair/properties/gate'
+      - $ref: '#/components/parameters/lifecycleStageQueryParam'
+      - $ref: '#/components/parameters/decisionQueryParam'
+      - name: project_key
+        in: query
+        description: Filter policies by project key.
+        allowEmptyValue: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 'Project key identifier in the JFrog platform.
+
+            Must be non-empty and cannot be ''default''. Used to scope policies and
+            resources to specific projects.
+
+            '
+          example: prj-security
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=255
+      - name: application_key
+        in: query
+        description: Filter policies by application key. Multiple values can be provided
+          for filtering.
+        allowEmptyValue: true
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceApplicationVersion/allOf/0/properties/key'
+      - $ref: '#/components/parameters/applicationVersionQueryParam'
+      - name: id
+        in: query
+        description: Query by the resource id. Multiple values can be provided for
+          filtering.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: array
+          items:
+            $ref: '#/components/parameters/evaluationIdPathParam/schema'
+      - name: offset
+        in: query
+        description: A page offset to the requested page.
+        required: false
+        schema:
+          type: integer
+          format: int32
+          description: The number of items to skip before starting to collect the
+            result set.
+          minimum: 0
+          default: 0
+          example: 0
+          x-oapi-codegen-extra-tags:
+            binding: min=0
+      - name: limit
+        in: query
+        description: An integer value representing the maximum number of items to
+          include in the response.
+        required: false
+        schema:
+          type: integer
+          format: int32
+          description: The maximum number of items to return per page.
+          minimum: 1
+          maximum: 1000
+          default: 100
+          example: 100
+          x-oapi-codegen-extra-tags:
+            binding: min=1,max=1000
+      - name: sort_order
+        in: query
+        description: Sort direction.
+        required: false
+        schema:
+          type: string
+          default: desc
+          example: desc
+          enum:
+          - asc
+          - desc
+          x-oapi-codegen-extra-tags:
+            binding: omitempty,oneof=asc desc
+      - $ref: '#/components/parameters/evaluationSortByParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/EvaluationPaginatedResponse'
+        '400':
+          description: The request syntax was invalid or malformed, or validation
+            failed.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/paths/~1evaluations/get/responses/401/content/application~1json/schema'
+                - type: object
+                  properties:
+                    details:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          property:
+                            type: string
+                            minLength: 1
+                            maxLength: 100
+                            description: The name of the property that failed validation.
+                            x-oapi-codegen-extra-tags:
+                              binding: required,min=1,max=100
+                          message:
+                            type: string
+                            minLength: 1
+                            maxLength: 500
+                            description: A human-readable message for this specific
+                              error.
+                            x-oapi-codegen-extra-tags:
+                              binding: required,min=1,max=500
+                        required:
+                        - property
+                        - message
+                        example:
+                          property: password
+                          message: Password must be at least 8 characters long.
+                        x-oapi-codegen-extra-tags:
+                          binding: required
+                      minItems: 1
+                      maxItems: 100
+                      x-oapi-codegen-extra-tags:
+                        binding: required,min=1,max=100
+                example:
+                  code: validation_error
+                  message: One or more fields failed validation.
+                  details:
+                  - property: email
+                    message: Email must be a valid email address.
+                  - property: password
+                    message: Password must be at least 8 characters long.
+                  trace_id: c9d0e1f2-a3b4-c5d6-e7f8-a9b0c1d2e3f4
+                x-oapi-codegen-extra-tags:
+                  binding: required
+              examples:
+                bad_request:
+                  summary: Bad Request Error
+                  description: Example of bad request error for invalid query parameters,
+                    request syntax, or request body validation
+                  value:
+                    code: bad_request
+                    message: One or more fields failed validation.
+                    details:
+                    - property: name
+                      message: Name must be a string
+                    - property: email
+                      message: Email must be a valid email address
+                    - property: policy.name
+                      message: Policy name must be shorter than or equal to 255 characters
+                    trace_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+        '401':
+          description: Authentication credentials are required or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                    description: A unique, machine-readable code for the general error
+                      type.
+                    example: resource_not_found
+                    x-oapi-codegen-extra-tags:
+                      binding: required,min=1,max=100
+                  message:
+                    type: string
+                    minLength: 1
+                    maxLength: 1000
+                    description: A human-readable message summarizing the error.
+                    example: The resource with the specified ID was not found.
+                    x-oapi-codegen-extra-tags:
+                      binding: required,min=1,max=1000
+                  trace_id:
+                    type: string
+                    maxLength: 64
+                    description: 'A unique trace identifier for distributed tracing,
+                      logging, and support purposes.
+
+                      Typically an uber trace id (hexadecimal string, 16 or 32 characters)
+                      matching the regex pattern ^[0-9a-fA-F-]{1,64}$,
+
+                      automatically extracted from the ''uber-trace-id'' header when
+                      available.
+
+                      '
+                    example: 1a2b3c4d5e6f7890
+                    x-oapi-codegen-extra-tags:
+                      binding: omitempty,max=64
+                required:
+                - code
+                - message
+                x-oapi-codegen-extra-tags:
+                  binding: required
+              examples:
+                unauthorized:
+                  summary: Unauthorized Error
+                  description: Example of unauthorized error
+                  value:
+                    code: unauthorized
+                    message: Authentication token is required.
+                    trace_id: c3d4e5f6-7890-9012-cdef-345678901234
+        '500':
+          description: An unexpected error occurred. Please contact support.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1evaluations/get/responses/401/content/application~1json/schema'
+              examples:
+                internal_server_error:
+                  summary: Internal Server Error
+                  description: Example of internal server error
+                  value:
+                    code: internal_server_error
+                    message: An unexpected error occurred while processing your request.
+                    trace_id: c3d4e5f6-a7b8-9012-abcd-345678901234
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - evaluation:read
+  /evaluations/{evaluationId}:
+    get:
+      summary: Get a specific evaluation
+      description: 'Retrieve detailed information about a specific evaluation by its
+        unique identifier.
+
+        This endpoint returns the complete evaluation summary.
+
+        '
+      tags:
+      - evaluation
+      operationId: evaluationsGet
+      parameters:
+      - $ref: '#/components/parameters/evaluationIdPathParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/EvaluationResponse'
+        '401':
+          $ref: '#/paths/~1evaluations/get/responses/401'
+        '404':
+          description: The resource with the specified ID was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1evaluations/get/responses/401/content/application~1json/schema'
+              examples:
+                not_found:
+                  summary: Not Found Error
+                  description: Example of resource not found error
+                  value:
+                    code: not_found
+                    message: The requested resource was not found.
+                    trace_id: a7b8c9d0-e1f2-3456-abcd-789012345678
+        '500':
+          $ref: '#/paths/~1evaluations/get/responses/500'
+      security:
+      - bearerAuth: []
+      - unifiedPolicyAuth:
+        - evaluation:read
+components:
+  securitySchemes:
+    bearerAuth:
+      description: JWT Bearer token authentication
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    unifiedPolicyAuth:
+      description: "Unified Policy OAuth2 security scheme defining required permission\
+        \ scopes.\nUses JFrog's permission scope format: <resource-type>:<target>:<action>\n\
+        \nWhile OAuth2 is defined here for permission documentation, the actual \n\
+        implementation uses JWT Bearer tokens transported via Authorization header.\n"
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://your-jfrog-instance.com/access/oauth/authorize
+          tokenUrl: https://{your-domain}.jfrog.io/access/oauth/token
+          scopes:
+            evaluation:*:read: Read access to all evaluations
+            evaluation:*:write: Write access to create evaluations
+            evaluation:*:delete: Delete access to evaluations
+  parameters:
+    lifecycleStageQueryParam:
+      name: lifecycle_stage
+      in: query
+      description: "Filter evaluations by lifecycle stage and gate combinations.\n\
+        Use deep object notation with array indices to specify multiple combinations.\n\
+        Examples: \n- Single: ?lifecycle_stage[0][key]=DEV&lifecycle_stage[0][gate]=Entry\n\
+        - Multiple: ?lifecycle_stage[0][key]=DEV&lifecycle_stage[0][gate]=Exit&lifecycle_stage[1][key]=QA&lifecycle_stage[1][gate]=Entry\n"
+      allowEmptyValue: true
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties:
+          $ref: '#/components/schemas/KeyGatePair'
+        x-oapi-codegen-extra-tags:
+          binding: required
+    decisionQueryParam:
+      name: decision
+      in: query
+      description: Filter evaluations by decision (pass, fail, warn, error)
+      allowEmptyValue: true
+      schema:
+        $ref: '#/components/schemas/EvaluationDecision'
+    applicationVersionQueryParam:
+      name: application_version
+      in: query
+      description: Filter evaluations by application version
+      allowEmptyValue: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+        example: 1.0.0
+    evaluationIdPathParam:
+      name: evaluationId
+      in: path
+      description: Evaluation identifier.
+      required: true
+      schema:
+        type: string
+        description: A Snowflake unique identifier (64-bit integer, represented as
+          a string).
+        pattern: ^[0-9]*$
+        minLength: 4
+        maxLength: 20
+        example: '123456789012345'
+        x-oapi-codegen-extra-tags:
+          binding: required,min=4,max=20,regex=^[0-9]*$
+    policyResourceTypeQueryParam:
+      name: resource_type
+      in: query
+      description: Filter policies by resource types.
+      allowEmptyValue: true
+      schema:
+        $ref: '#/components/schemas/ResourceType'
+    evaluationSortByParam:
+      name: sort_by
+      in: query
+      description: "Sort evaluations by a specific field \n- timestamp: Sort by creation\
+        \ timestamp (default)\n- decision: Sort by evaluation decision (fail first,\
+        \ warn second, pass third, error last)\n"
+      allowEmptyValue: true
+      schema:
+        type: string
+        enum:
+        - timestamp
+        - decision
+        default: timestamp
+        example: timestamp
+        x-oapi-codegen-extra-tags:
+          binding: omitempty,oneof=timestamp decision
+  schemas:
+    ResourceType:
+      type: string
+      enum:
+      - application_version
+      description: The resource type the policy applies to.
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=application_version
+    KeyGatePair:
+      type: object
+      description: 'A pair representing lifecycle stage key and gate.
+
+        '
+      required:
+      - key
+      - gate
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: ^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+          description: "Lifecycle stage key identifier.\nMust begin and end with an\
+            \ alphanumeric character and may consist only of dashes, underscores,\
+            \ \ndots and alphanumerics in between. Examples: \"qa\", \"dev\", \"production\"\
+            .\n"
+          example: qa
+          x-oapi-codegen-extra-tags:
+            binding: required,min=1,max=255,regex=^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+        gate:
+          type: string
+          enum:
+          - entry
+          - exit
+          - release
+          description: Application lifecycle phase to evaluate for a specific stage.
+          x-oapi-codegen-extra-tags:
+            binding: required,oneof=entry exit release
+      x-oapi-codegen-extra-tags:
+        binding: required
+    Resource:
+      oneOf:
+      - $ref: '#/components/schemas/ResourceApplicationVersion'
+      discriminator:
+        propertyName: type
+        mapping:
+          application_version: '#/components/schemas/ResourceApplicationVersion'
+      example:
+        type: application_version
+        key: web-application
+        version: 2.1.0
+      x-oapi-codegen-extra-tags:
+        binding: required
+    ResourceApplicationVersion:
+      allOf:
+      - type: object
+        properties:
+          type:
+            type: string
+            enum:
+            - application_version
+            default: application_version
+            x-oapi-codegen-extra-tags:
+              binding: required,oneof=application_version
+          key:
+            type: string
+            minLength: 2
+            maxLength: 64
+            pattern: ^[a-z][a-z0-9\\-]*$
+            description: 'Application key identifier in the JFrog platform.
+
+              Must be 2-64 characters, lowercase alphanumeric characters and hyphens,
+              beginning with a letter.
+
+              '
+            example: web-application
+            x-oapi-codegen-extra-tags:
+              binding: required,min=2,max=64,regex=^[a-z][a-z0-9\-]*$
+          version:
+            $ref: '#/components/schemas/ApplicationVersionEnrichment/properties/version'
+        required:
+        - type
+        example:
+          type: application_version
+          key: web-application
+          version: 2.1.0
+      - type: object
+        properties:
+          version:
+            x-oapi-codegen-extra-tags:
+              binding: omitempty
+          key:
+            x-oapi-codegen-extra-tags:
+              binding: omitempty
+    EvaluationPayload:
+      type: object
+      required:
+      - action
+      - resource
+      properties:
+        action:
+          $ref: '#/components/schemas/Evaluation/properties/action'
+        resource:
+          $ref: '#/components/schemas/Resource'
+        context:
+          type: object
+        enrichments:
+          $ref: '#/components/schemas/HierarchyEnrichment'
+        response_fields:
+          type: array
+          items:
+            type: string
+            enum:
+            - resource
+            - effective_policies
+            - decision_breakdown
+          x-oapi-codegen-extra-tags:
+            binding: omitempty,dive,oneof=resource effective_policies decision_breakdown
+    Evaluation:
+      description: 'Evaluation summary object to represent evaluated results.
+
+        '
+      type: object
+      required:
+      - id
+      - timestamp
+      - action
+      - resource
+      - policies
+      - decision
+      - explanation
+      - decision_breakdown
+      - created_by
+      properties:
+        id:
+          $ref: '#/components/parameters/evaluationIdPathParam/schema'
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the resource was created
+        created_by:
+          $ref: '#/components/schemas/Evaluation/properties/waivers/items/allOf/0/properties/decided_by'
+          description: The identity of the user who triggered the evaluation
+        action:
+          description: Attributes defines the action a policy is applicable.
+          oneOf:
+          - title: Certify to Gate Action
+            type: object
+            required:
+            - type
+            - stage
+            properties:
+              type:
+                type: string
+                enum:
+                - certify_to_gate
+                x-oapi-codegen-extra-tags:
+                  binding: required,oneof=certify_to_gate
+              stage:
+                allOf:
+                - type: object
+                  required:
+                  - key
+                  - gate
+                  properties:
+                    key:
+                      $ref: '#/components/schemas/KeyGatePair/properties/key'
+                    gate:
+                      $ref: '#/components/schemas/KeyGatePair/properties/gate'
+                  description: The stage gate the policy is defined for.
+            example:
+              type: certify_to_gate
+              stage:
+                key: qa
+                gate: entry
+          discriminator:
+            propertyName: type
+            mapping:
+              certify_to_gate: '#/components/schemas/PolicyActionCertifyToGate'
+          x-oapi-codegen-extra-tags:
+            binding: required
+        resource:
+          $ref: '#/components/schemas/EvaluationResource'
+        policies:
+          type: array
+          items:
+            description: 'Complete policy resource including system-managed identity
+              fields and expanded rule objects.
+
+              Returned when expand=rules query parameter is used.
+
+              '
+            allOf:
+            - description: 'Complete policy resource including system-managed identity
+                fields.
+
+                Returned in all policy response operations.
+
+                '
+              allOf:
+              - description: 'Policy data for create and update operations.
+
+                  Contains the policy configuration without system-managed fields.
+
+                  '
+                allOf:
+                - type: object
+                  required:
+                  - name
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 255
+                      pattern: ^[a-zA-Z0-9_ -]*$
+                      description: 'A unique name for JFrog resources.
+
+                        Must be 1-255 alphanumeric characters, underscores, hyphens,
+                        and spaces.
+
+                        '
+                      example: resource-name
+                      x-oapi-codegen-extra-tags:
+                        binding: min=1,max=255,regex=^[a-zA-Z0-9_ -]*$
+                    description:
+                      type: string
+                      maxLength: 2048
+                      description: 'A human-readable description of the resource.
+
+                        Optional field with a maximum length of 2048 characters. Can
+                        contain any characters.
+
+                        '
+                      example: This is a description of a platform resource.
+                      x-oapi-codegen-extra-tags:
+                        binding: omitempty,max=2048
+                  description: 'Foundation schema for all named resources in the system.
+
+                    Provides common name and description fields that all resources
+                    inherit.
+
+                    Used as the base for all resource payload schemas.
+
+                    '
+                - type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: if true policy is active, otherwise it is inactive.
+                    mode:
+                      type: string
+                      enum:
+                      - block
+                      - warning
+                      description: Controls the behavior of unified policy, allowing
+                        it to run in a non-enforcing state.
+                      x-oapi-codegen-extra-tags:
+                        binding: required,oneof=block warning
+                    action:
+                      $ref: '#/components/schemas/Evaluation/properties/action'
+                    scope:
+                      description: Attributes defines when a policy is applicable.
+                      oneOf:
+                      - title: Project Scope
+                        type: object
+                        required:
+                        - type
+                        - project_keys
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                            - project
+                            x-oapi-codegen-extra-tags:
+                              binding: required,oneof=project
+                          project_keys:
+                            type: array
+                            items:
+                              $ref: '#/paths/~1evaluations/get/parameters/6/schema'
+                            minItems: 1
+                            maxItems: 1
+                            x-oapi-codegen-extra-tags:
+                              binding: required,min=1,max=1,dive
+                          application_labels:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ApplicationEnrichment/properties/labels/items'
+                            minItems: 1
+                            maxItems: 10
+                            x-oapi-codegen-extra-tags:
+                              binding: omitempty,min=1,max=10,dive
+                        example:
+                          type: project
+                          project_keys:
+                          - prj-a
+                      - title: Application Scope
+                        type: object
+                        required:
+                        - type
+                        - application_keys
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                            - application
+                            x-oapi-codegen-extra-tags:
+                              binding: required,oneof=application
+                          application_keys:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ResourceApplicationVersion/allOf/0/properties/key'
+                            minItems: 1
+                            maxItems: 1
+                            x-oapi-codegen-extra-tags:
+                              binding: required,min=1,max=1,dive
+                        example:
+                          type: application
+                          application_keys:
+                          - app-a
+                      discriminator:
+                        propertyName: type
+                        mapping:
+                          project: '#/components/schemas/PolicyScopeProject'
+                          application: '#/components/schemas/PolicyScopeApplication'
+                      example:
+                        type: project
+                        project_keys:
+                        - prj-security
+                      x-oapi-codegen-extra-tags:
+                        binding: required
+                    rule_ids:
+                      type: array
+                      items:
+                        $ref: '#/components/parameters/evaluationIdPathParam/schema'
+                      minItems: 1
+                      maxItems: 1
+                      description: 'A list of rule ids that the policy enforces.
+
+                        **Note:** Currently limit to 1 rule per policy.
+
+                        '
+                      x-oapi-codegen-extra-tags:
+                        binding: required,min=1,max=1,dive
+                  required:
+                  - enabled
+                  - mode
+                  - action
+                  - scope
+                  - rule_ids
+              - $ref: '#/components/schemas/Evaluation/properties/waivers/items/allOf/1'
+            - type: object
+              properties:
+                rules:
+                  readOnly: true
+                  type: array
+                  minItems: 1
+                  maxItems: 1
+                  items:
+                    description: 'Complete rule resource including system-managed
+                      identity fields and template details.
+
+                      Returned when the expand=template parameter is used.
+
+                      '
+                    allOf:
+                    - description: 'Complete rule resource including system-managed
+                        identity fields.
+
+                        The template field is optional and included when expand=template
+                        parameter is used.
+
+                        '
+                      allOf:
+                      - description: 'Rule data for create and update operations.
+
+                          Contains the rule configuration without system-managed fields.
+
+
+                          When creating a rule from a template:
+
+                          - template_id must be provided
+
+                          - rule parameters must match the template parameters
+
+                          - all template parameters must be provided
+
+                          '
+                        allOf:
+                        - $ref: '#/components/schemas/Evaluation/properties/policies/items/allOf/0/allOf/0/allOf/0'
+                        - type: object
+                          required:
+                          - template_id
+                          properties:
+                            template_id:
+                              $ref: '#/components/parameters/evaluationIdPathParam/schema'
+                            parameters:
+                              type: array
+                              items:
+                                allOf:
+                                - type: object
+                                  required:
+                                  - name
+                                  - value
+                                  properties:
+                                    name:
+                                      type: string
+                                      minLength: 1
+                                      maxLength: 100
+                                      pattern: ^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+                                      description: "Parameter name (must be unique\
+                                        \ within the template).\nMust begin and end\
+                                        \ with an alphanumeric character and may consist\
+                                        \ only of dashes, \nunderscores, dots and\
+                                        \ alphanumerics in between.\n"
+                                      example: severity_threshold
+                                      x-oapi-codegen-extra-tags:
+                                        binding: required,min=1,max=100,regex=^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+                                    value:
+                                      x-oapi-codegen-extra-tags:
+                                        binding: required
+                                      description: 'Parameter value (must match the
+                                        template parameter type).
+
+                                        The value format depends on the parameter
+                                        type:
+
+                                        - string: Any string value
+
+                                        - bool: "true" or "false"
+
+                                        - int: Integer number as string
+
+                                        - float: Floating point number as string
+
+                                        - object: JSON object as string
+
+                                        '
+                                      type: string
+                                      example: critical
+                                  description: 'Rule-specific parameter value.
+
+                                    When the rule is based on a template, the parameter
+                                    name must match a template parameter,
+
+                                    and the value must be compatible with the template
+                                    parameter''s type.
+
+                                    '
+                              description: 'Rule-specific parameter values.
+
+                                When template_id is provided, these must match the
+                                template parameters.
+
+                                All template parameters without default values must
+                                be provided.
+
+                                '
+                              maxItems: 20
+                              x-oapi-codegen-extra-tags:
+                                binding: omitempty,max=20,dive
+                      - description: 'Custom resource flag
+
+                          '
+                        type: object
+                        properties:
+                          is_custom:
+                            type: boolean
+                            description: Whether the resource is custom or built-in.
+                      - $ref: '#/components/schemas/Evaluation/properties/waivers/items/allOf/1'
+                    - type: object
+                      properties:
+                        template:
+                          description: 'Complete template resource including system-managed
+                            identity fields.
+
+                            Returned in all template response operations.
+
+                            '
+                          allOf:
+                          - description: 'Template data for create and update operations.
+
+                              Contains the template configuration without system-managed
+                              fields.
+
+                              '
+                            allOf:
+                            - description: 'Base template data without data_source_type
+                                field.
+
+                                Used as a base for both TemplatePayload and TemplateCreatePayload.
+
+                                '
+                              allOf:
+                              - $ref: '#/components/schemas/Evaluation/properties/policies/items/allOf/0/allOf/0/allOf/0'
+                              - type: object
+                                required:
+                                - version
+                                - category
+                                - rego
+                                - parameters
+                                properties:
+                                  version:
+                                    $ref: '#/components/schemas/ApplicationVersionEnrichment/properties/version'
+                                    x-oapi-codegen-extra-tags:
+                                      binding: required
+                                  category:
+                                    x-oapi-codegen-extra-tags:
+                                      binding: required
+                                    type: string
+                                    enum:
+                                    - security
+                                    - legal
+                                    - operational
+                                    - quality
+                                    - audit
+                                    - workflow
+                                    description: Type/category of the rule.
+                                    example: security
+                                  scanners:
+                                    type: array
+                                    items:
+                                      type: string
+                                      maxLength: 50
+                                      enum:
+                                      - secrets
+                                      - sca
+                                      - exposures
+                                      - contextual_analysis
+                                      - malicious_package
+                                      description: The type of scanner that the template's
+                                        Rego policy expects to evaluate.
+                                      example: sca
+                                      x-oapi-codegen-extra-tags:
+                                        binding: required,oneof=secrets sca exposures
+                                          contextual_analysis malicious_package,max=50
+                                    description: List of scanner types that this template
+                                      supports. Defaults to empty array if not provided.
+                                    minItems: 0
+                                    maxItems: 10
+                                    default: []
+                                    x-oapi-codegen-extra-tags:
+                                      binding: omitempty,min=0,max=10,dive,oneof=secrets
+                                        sca exposures contextual_analysis malicious_package
+                                  rego:
+                                    x-oapi-codegen-extra-tags:
+                                      binding: required
+                                    type: string
+                                    minLength: 1
+                                    maxLength: 65536
+                                    description: 'Rego policy language code for evaluation
+                                      (Open Policy Agent policy language).
+
+                                      Must be valid Rego syntax that defines evaluation
+                                      logic. The policy should define
+
+                                      an ''allow'' rule that returns a boolean value.
+
+
+                                      Rego supports all standard programming language
+                                      characters including:
+
+                                      - Alphanumeric characters (a-z, A-Z, 0-9)
+
+                                      - Special characters (!@#$%^&*()_+-=[]{}|;:''",.<>?/~`)
+
+                                      - Whitespace characters (spaces, tabs, newlines)
+
+                                      - Unicode characters for identifiers and string
+                                      literals
+
+
+                                      Syntax validation should be performed by an
+                                      OPA parser. This field only enforces
+
+                                      length constraints (1-65536 characters).
+
+
+                                      For Rego syntax reference, see: https://www.openpolicyagent.org/docs/latest/policy-language/
+
+                                      '
+                                    example: "package policy\n\ndefault allow = false\n\
+                                      \nallow {\n  input.parameters.severity_threshold\
+                                      \ == \"critical\"\n  count(input.vulnerabilities)\
+                                      \ <= input.parameters.max_vulnerabilities\n\
+                                      }\n"
+                                  parameters:
+                                    type: array
+                                    items:
+                                      allOf:
+                                      - type: object
+                                        required:
+                                        - name
+                                        - type
+                                        properties:
+                                          name:
+                                            $ref: '#/components/schemas/Evaluation/properties/policies/items/allOf/1/properties/rules/items/allOf/0/allOf/0/allOf/1/properties/parameters/items/allOf/0/properties/name'
+                                          type:
+                                            type: string
+                                            enum:
+                                            - string
+                                            - bool
+                                            - int
+                                            - float
+                                            - object
+                                            description: Data type of the parameter
+                                            example: string
+                                            x-oapi-codegen-extra-tags:
+                                              binding: required,oneof=string bool
+                                                int float object
+                                        description: 'Configurable parameter for a
+                                          template.
+
+                                          Templates can define parameters that can
+                                          be customized when creating rules from the
+                                          template.
+
+                                          '
+                                    description: List of configurable parameters for
+                                      the template
+                                    maxItems: 20
+                                    x-oapi-codegen-extra-tags:
+                                      binding: max=20,dive
+                            - type: object
+                              required:
+                              - data_source_type
+                              properties:
+                                data_source_type:
+                                  x-oapi-codegen-extra-tags:
+                                    binding: required
+                                  type: string
+                                  enum:
+                                  - noop
+                                  - evidence
+                                  - public_vulnerability
+                                  description: The type of data source that the template's
+                                    Rego policy expects to evaluate.
+                                  example: public_vulnerability
+                          - $ref: '#/components/schemas/Evaluation/properties/policies/items/allOf/1/properties/rules/items/allOf/0/allOf/1'
+                          - $ref: '#/components/schemas/Evaluation/properties/waivers/items/allOf/1'
+                  description: Complete rule objects when expand=rules is requested
+        decision:
+          $ref: '#/components/schemas/EvaluationDecision'
+        explanation:
+          $ref: '#/components/schemas/EvaluationExplanation'
+        decision_breakdown:
+          $ref: '#/components/schemas/EvaluationDecisionBreakdown'
+        waivers:
+          type: array
+          description: 'List of waivers that were applied to this evaluation.
+
+            When waivers are present, policy evaluation was bypassed and the decision
+            is PASS.
+
+            Empty array when no waivers apply.
+
+            '
+          items:
+            description: 'Complete waiver resource including system-managed identity
+              fields.
+
+              Returned in all waiver response operations.
+
+              '
+            allOf:
+            - type: object
+              required:
+              - status
+              - scopes
+              - expires_at
+              properties:
+                status:
+                  type: string
+                  description: 'Status of the waiver throughout its lifecycle:
+
+                    - pending: Awaiting approval decision
+
+                    - approved: Approved and currently bypassing policies (also referred
+                    to as "active")
+
+                    - rejected: Request denied by approver
+
+                    - canceled: Canceled by requester (from pending only)
+
+                    - expired: Was approved, expiration date passed
+
+                    - revoked: Revoked by approver (from approved)
+
+                    '
+                  enum:
+                  - pending
+                  - approved
+                  - rejected
+                  - canceled
+                  - expired
+                  - revoked
+                  example: pending
+                  x-oapi-codegen-extra-tags:
+                    binding: omitempty,oneof=pending approved rejected canceled expired
+                      revoked
+                scopes:
+                  type: array
+                  description: Array of waiver scopes.
+                  items:
+                    type: object
+                    description: Waiver scope definition with application and stage
+                      information.
+                    required:
+                    - application_key
+                    - stage_key
+                    - stage_gate
+                    properties:
+                      application_key:
+                        $ref: '#/components/schemas/ResourceApplicationVersion/allOf/0/properties/key'
+                      stage_key:
+                        $ref: '#/components/schemas/KeyGatePair/properties/key'
+                      stage_gate:
+                        $ref: '#/components/schemas/KeyGatePair/properties/gate'
+                    x-oapi-codegen-extra-tags:
+                      binding: required
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: When the waiver expires.
+                justification:
+                  type: string
+                  description: Requester's reason for the waiver.
+                  maxLength: 255
+                decided_at:
+                  type: string
+                  format: date-time
+                  description: When the decision was made.
+                decided_by:
+                  type: string
+                  maxLength: 255
+                  description: 'A human or system identifier that interacts with the
+                    API.
+
+                    Examples include usernames, email addresses, and system account
+                    identifiers.
+
+                    '
+                  example: john.doe
+                  x-oapi-codegen-extra-tags:
+                    binding: required,max=255
+                reason:
+                  type: string
+                  description: Approver's reason for the decision.
+                  maxLength: 255
+            - type: object
+              required:
+              - id
+              - created_at
+              - created_by
+              - updated_at
+              - updated_by
+              properties:
+                id:
+                  $ref: '#/components/parameters/evaluationIdPathParam/schema'
+                created_at:
+                  type: string
+                  format: date-time
+                  description: Timestamp when the resource was created
+                created_by:
+                  $ref: '#/components/schemas/Evaluation/properties/waivers/items/allOf/0/properties/decided_by'
+                updated_at:
+                  type: string
+                  format: date-time
+                  description: Timestamp when the resource was last updated
+                updated_by:
+                  $ref: '#/components/schemas/Evaluation/properties/waivers/items/allOf/0/properties/decided_by'
+              description: 'System-managed identity and audit trail fields for all
+                resources.
+
+                These fields are automatically managed by the system and cannot be
+                modified by clients.
+
+                Included in all resource response schemas to provide complete resource
+                information.
+
+                '
+    EvaluationExplanation:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: User friendly explanation for a specific evaluation.
+      example: Application version promotion evaluation blocked due to presence of
+        critical vulnerability
+    EvaluationDecision:
+      type: string
+      enum:
+      - fail
+      - warn
+      - pass
+      - error
+      description: The aggregated decision for a specific performed evaluation.
+      x-oapi-codegen-extra-tags:
+        binding: required,oneof=fail warn pass error
+    EvaluationResource:
+      description: 'Evaluation requested resource representation
+
+        '
+      type: object
+      required:
+      - hierarchy
+      properties:
+        identifier:
+          $ref: '#/components/schemas/Resource'
+        hierarchy:
+          $ref: '#/components/schemas/HierarchyEnrichment'
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
+    EvaluationDecisionBreakdown:
+      type: array
+      items:
+        $ref: '#/components/schemas/RuleEvaluation'
+    RuleEvaluation:
+      type: object
+      required:
+      - id
+      - timestamp
+      - rule_id
+      - resource
+      - input
+      - output
+      properties:
+        id:
+          $ref: '#/components/parameters/evaluationIdPathParam/schema'
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the resource was created
+        rule_id:
+          $ref: '#/components/parameters/evaluationIdPathParam/schema'
+        resource:
+          $ref: '#/components/schemas/Resource'
+        input:
+          $ref: '#/components/schemas/RuleInput'
+        output:
+          $ref: '#/components/schemas/RuleOutput'
+    HierarchyEnrichment:
+      type: object
+      properties:
+        project:
+          $ref: '#/components/schemas/ProjectEnrichment'
+        application:
+          $ref: '#/components/schemas/ApplicationEnrichment'
+        application_version:
+          $ref: '#/components/schemas/ApplicationVersionEnrichment'
+    ApplicationEnrichment:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/ResourceApplicationVersion/allOf/0/properties/key'
+          x-oapi-codegen-extra-tags:
+            binding: omitempty
+        labels:
+          type: array
+          items:
+            type: object
+            required:
+            - key
+            - value
+            properties:
+              key:
+                type: string
+                minLength: 1
+                maxLength: 255
+                pattern: ^[a-zA-Z0-9]([a-zA-Z0-9._\-]*[a-zA-Z0-9])?$
+                x-oapi-codegen-extra-tags:
+                  binding: required,min=1,max=255,regex=^[a-zA-Z0-9]([a-zA-Z0-9._\-]*[a-zA-Z0-9])?$
+              value:
+                type: string
+                minLength: 0
+                maxLength: 255
+                pattern: ^$|^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+                description: "Application label value.\nMust begin and end with an\
+                  \ alphanumeric character and may consist only of dashes, \nunderscores,\
+                  \ dots and alphanumerics in between. Can be empty or up to 255 characters.\n"
+                x-oapi-codegen-extra-tags:
+                  binding: required,min=0,max=255,regex=^$|^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$
+          x-oapi-codegen-extra-tags:
+            binding: omitempty
+    ApplicationVersionEnrichment:
+      type: object
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: ^[a-zA-Z0-9_.:-]*$
+          description: 'Resource version in the JFrog platform.
+
+            Must be 1-100 alphanumeric characters, underscores, hyphens, periods,
+            and colons.
+
+            Examples: "1.0.0", "v2.1.3", "1.0.0-beta.1"
+
+            '
+          example: 1.0.0
+          x-oapi-codegen-extra-tags:
+            binding: min=1,max=100,regex=^[a-zA-Z0-9_.:-]*$
+    ProjectEnrichment:
+      type: object
+      properties:
+        key:
+          $ref: '#/paths/~1evaluations/get/parameters/6/schema'
+          x-oapi-codegen-extra-tags:
+            binding: omitempty
+    RuleInput:
+      oneOf:
+      - $ref: '#/components/schemas/FindingsRuleInput'
+      - type: object
+    FindingsRuleInput:
+      type: object
+      properties:
+        findings:
+          type: array
+          items:
+            type: object
+    RuleOutput:
+      type: object
+      properties:
+        violated_findings:
+          type: array
+          items:
+            $ref: '#/components/parameters/evaluationIdPathParam/schema'
+        decision:
+          $ref: '#/components/schemas/EvaluationDecision'
+        explanation:
+          type: string
+    Finding:
+      type: object
+  requestBodies:
+    CreateEvaluationRequest:
+      description: Evaluation input object for create.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Evaluation'
+  responses:
+    EvaluationPaginatedResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            allOf:
+            - type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Evaluation'
+            - type: object
+              required:
+              - page_size
+              - offset
+              - limit
+              properties:
+                offset:
+                  $ref: '#/paths/~1evaluations/get/parameters/10/schema'
+                limit:
+                  $ref: '#/paths/~1evaluations/get/parameters/11/schema'
+                page_size:
+                  type: integer
+                  format: int32
+                  description: The number of items returned in the current page.
+                  minimum: 0
+                  example: 100
+                  x-oapi-codegen-extra-tags:
+                    binding: min=0
+                total_count:
+                  type: integer
+                  format: int64
+                  description: The total number of items in the database matching
+                    the filter criteria.
+                  minimum: 0
+                  example: 1000
+                  x-oapi-codegen-extra-tags:
+                    binding: min=0
+              x-oapi-codegen-extra-tags:
+                binding: required
+    EvaluationResponse:
+      description: The request has succeeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Evaluation'
+x-readme:
+  explorer-enabled: false

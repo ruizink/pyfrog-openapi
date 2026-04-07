@@ -1,0 +1,110 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - HTTP SSO API
+  description: 'HTTP SSO configuration APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** All APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: HTTP SSO
+  description: APIs for retrieving and configuring HTTP SSO settings in the JFrog
+    Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/httpsso:
+    get:
+      tags:
+      - HTTP SSO
+      summary: Get HTTP SSO Configuration
+      description: 'Get the HTTP SSO configuration.
+
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getHttpSsoConfiguration
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpSsoConfiguration'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - HTTP SSO
+      summary: Create or Update HTTP SSO Configuration
+      description: 'Create or update the HTTP SSO configuration (upsert).
+
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: upsertHttpSsoConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HttpSsoConfiguration'
+      responses:
+        '200':
+          description: HTTP SSO configuration created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HttpSsoConfiguration'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    HttpSsoConfiguration:
+      type: object
+      properties:
+        http_sso_proxied:
+          type: boolean
+        auto_create_user:
+          type: boolean
+        allow_user_to_access_profile:
+          type: boolean
+        remote_user_request_variable:
+          type: string
+        sync_ldap_groups:
+          type: boolean
+x-readme:
+  explorer-enabled: false

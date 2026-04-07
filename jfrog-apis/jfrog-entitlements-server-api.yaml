@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: JFrog Entitlements Service API
+  description: 'REST API for the JFrog Entitlements Service (`jes.jfrog.io`).
+
+
+    This is an **external** JFrog service hosted at `https://jes.jfrog.io`. It is
+    not part of your JFrog Platform Deployment (JPD). You must call this API from
+    a machine that has connectivity to the Internet.
+
+
+    This API is used as part of the air-gapped entitlements workflow to exchange an
+    offline request token (obtained from the JFConnect microservice on the air-gapped
+    JPD) for entitlements data.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://jes.jfrog.io
+tags:
+- name: Entitlements
+  description: Offline entitlements registration APIs
+security: []
+paths:
+  /api/v1/offline_register:
+    post:
+      tags:
+      - Entitlements
+      summary: Post Offline Request Token to JFrog Entitlements Service
+      description: "Posts the offline request token from the air-gapped JPD to the\
+        \ JFrog Entitlements Service and returns the entitlements in JSON format.\n\
+        \nYou must run this API from a machine that has connectivity to the Internet.\n\
+        \nThe `offline_response_token` needed for applying entitlements is returned\
+        \ as a response header.\n\n**Example 1 - Save the entitlements to a file:**\n\
+        ```\ncurl -v -L 'https://jes.jfrog.io/api/v1/offline_register' \\\n  -H 'Content-Type:\
+        \ application/json' \\\n  --data '{\"offline_request_token\": \"<offline_request_token>\"\
+        }' \\\n  > entitlements.json\n\n```\nThe `-v` flag prints the response headers\
+        \ (including `offline_response_token`) to stderr while saving the response\
+        \ body to `entitlements.json`.\n\n**Example 2 - Extract only the `offline_response_token`:**\n\
+        ```\ncurl -s -L 'https://jes.jfrog.io/api/v1/offline_register' \\\n  -H 'Content-Type:\
+        \ application/json' \\\n  --data '{\"offline_request_token\": \"<offline_request_token>\"\
+        }' \\\n  -o /dev/null -D - | grep offline_response_token\n\n```\nThis discards\
+        \ the response body and prints only the `offline_response_token` header value\
+        \ to the screen.\n\nYou need **both** the `entitlements.json` file and the\
+        \ `offline_response_token` header value to complete the next step: applying\
+        \ entitlements to the air-gapped JPD using the JFConnect Apply Entitlements\
+        \ API.\n\n**Warning:** If you save the response manually instead of directing\
+        \ the response body to an `entitlements.json` file, ensure that there are\
+        \ no spaces or any modifications. Any change in the response fails checksum\
+        \ validation when you apply entitlements.\n"
+      operationId: postOfflineRequestToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfflineTokenRequest'
+            example:
+              offline_request_token: <offline_request_token>
+      responses:
+        '200':
+          description: Success - Token processed
+          headers:
+            offline_response_token:
+              description: The offline response token to be used when applying entitlements
+                to the air-gapped JPD
+              schema:
+                type: string
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Entitlements data to be saved as entitlements.json and
+                  applied to the air-gapped JPD
+        '400':
+          description: Bad Request - Invalid token
+        '500':
+          description: Internal Server Error
+components:
+  schemas:
+    OfflineTokenRequest:
+      type: object
+      properties:
+        offline_request_token:
+          type: string
+          description: The offline request token obtained from the start register
+            endpoint on the air-gapped JPD
+x-readme:
+  explorer-enabled: false

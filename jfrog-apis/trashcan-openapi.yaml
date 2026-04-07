@@ -1,0 +1,338 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Trash Can/Garbage Collection API
+  description: REST API for managing trash can and garbage collection in JFrog Artifactory
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Trash Can
+  description: Trash can management operations
+- name: Garbage Collection
+  description: Garbage collection operations
+paths:
+  /trash/empty:
+    post:
+      tags:
+      - Trash Can
+      summary: Empty Trash Can
+      description: 'Permanently deletes the entire contents of the Trash Can.
+
+
+        **Notes:** Requires Artifactory Pro.
+
+
+        **Security:** Requires a valid admin user.
+
+        '
+      operationId: emptyTrashCan
+      responses:
+        '202':
+          description: Successfully deleted all trashcan item
+        '400':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 400
+                  message: Permission Denied
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+  /trash/clean/{repoPath}:
+    delete:
+      tags:
+      - Trash Can
+      summary: Delete Item From Trash Can
+      description: 'Permanently deletes an item from the trash can. Requires Artifactory
+        Pro.
+
+
+        **Security:** Requires a valid admin user, project admin user, or user with
+        Manage or Delete permissions.
+
+        '
+      operationId: deleteItemFromTrashCan
+      parameters:
+      - name: repoPath
+        in: path
+        description: Repository name and path (e.g., npm-local or npm-local/path/to/item)
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Item deleted from trash can successfully
+        '400':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 400
+                  message: Permission Denied
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+  /trash/restore/{fromPath}:
+    post:
+      tags:
+      - Trash Can
+      summary: Restore Item from Trash Can
+      description: 'Restore an item from the trash can.
+
+
+        **Notes:** Requires Artifactory Pro.
+
+
+        **Security:** Requires a valid admin user, project admin user, or user with
+        Manage permissions.
+
+        '
+      operationId: restoreItemFromTrashCan
+      parameters:
+      - name: fromPath
+        in: path
+        description: Source path in trash can (e.g., npm-local)
+        required: true
+        schema:
+          type: string
+      - name: to
+        in: query
+        description: Destination path where the item should be restored (e.g., npm-local2)
+        required: true
+        schema:
+          type: string
+      - name: transaction-size
+        in: query
+        required: false
+        description: 'Number of items to process in each database transaction during
+          the restore operation.
+
+          '
+        schema:
+          type: integer
+          minimum: 1
+          example: 1000
+      responses:
+        '202':
+          description: Item restored successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Successfully restored trash items
+        '400':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 400
+                  message: Permission Denied
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '404':
+          description: Not Found - The specified item does not exist in the trash
+            can.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 404
+                  message: Item does not exist
+  /system/storage/gc:
+    post:
+      tags:
+      - Garbage Collection
+      summary: Run Garbage Collection
+      description: 'Deletes from the Trash Can artifacts with a retention time that
+        has expired and deletes orphan binaries when the full garbage collection cycle
+        runs. The full garbage collection runs after a certain number of iterations
+        and this number can be changed by the user. The default value is 20.
+
+
+        **Security:** Requires an admin user.
+
+        '
+      operationId: runGarbageCollection
+      responses:
+        '200':
+          description: Garbage collection executed successfully
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 403
+                  message: Forbidden
+  /deleteDirectoryTrashProperty/start:
+    post:
+      tags:
+      - Trash Can
+      summary: Delete Redundant Records to Trash Can Directories
+      description: This REST API is called to delete redundant records to Trash Can
+        directories. The redundant metadata of a Trash Can directory slows down the
+        Small Garbage Collection process and can eventually cause an overall degradation
+        in database performance. Calling this API alleviates this problem
+      operationId: deleteRedundantRecordsToTrashCanDirectories
+      requestBody:
+        required: false
+        description: Optional parameters for the deletion process
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteDirectoryTrashPropertyRequest'
+      responses:
+        '202':
+          description: Accepted - The deletion task has been submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteDirectoryTrashPropertyResponse'
+              example:
+                info: Remove Directories Trashcan Time task has been submitted
+        '400':
+          description: Bad Request - The request body is malformed or contains invalid
+            parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+              - status: 400
+                message: Should be non-negative integer
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 401
+                  message: Authentication is required
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                errors:
+                - status: 403
+                  message: Forbidden
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetails'
+    ErrorDetails:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: HTTP status code
+        message:
+          type: string
+          description: Error message
+    DeleteDirectoryTrashPropertyRequest:
+      type: object
+      properties:
+        batchSize:
+          type: integer
+          format: int32
+          minimum: 1
+          default: 1000
+          description: Optional parameter. The number of records to retrieve for a
+            single DB query, should be an integer greater than 0.
+        pauseBetweenBatchesMs:
+          type: integer
+          format: int32
+          minimum: 1
+          default: 1000
+          description: Optional parameter. This parameter defines the pause (in milliseconds)
+            between successive DB query executions. Should be an integer greater than
+            0.
+        batchesCount:
+          type: integer
+          format: int32
+          default: -1
+          description: Optional parameter. This parameter limits the maximum number
+            of DB query executions. For example, if batchesCount = 20 and batchSize
+            is 1,000, then a maximum of (20 * 1,000) = 20,000 records can be deleted
+    DeleteDirectoryTrashPropertyResponse:
+      type: object
+      properties:
+        info:
+          type: string
+          description: Information message about the submitted task
+          example: Remove Directories Trashcan Time task has been submitted
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication
+security:
+- bearerAuth: []
+- basicAuth: []

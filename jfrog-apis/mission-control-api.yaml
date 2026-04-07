@@ -1,0 +1,1107 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Mission Control API
+  description: 'Mission Control APIs for JPD and license management.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** Unless otherwise specified, all APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Mission Control
+  description: APIs for managing JPDs, license buckets, and Access Federation configuration
+    in the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /mc/api/v1/jpds:
+    post:
+      tags:
+      - Mission Control
+      summary: Add JPD
+      description: "Add a new JPD to Mission Control.\n\n**Prerequisites:**\n\nBefore\
+        \ adding a JPD, you must generate a pairing token on the target JPD.\n\n**Steps\
+        \ to add a JPD:**\n\n1. On the **target JPD** (the JPD you want to register),\
+        \ create a pairing token:\n   ```\n   POST https://{target-jpd-url}/access/api/v1/service_trust/pairing/mission-control\n\
+        \   ```\n   See [Create Pairing Token](https://docs.jfrog.com/administration/update/reference/createpairingtoken)\
+        \ for details.\n\n2. Use the returned `pairing_token` in the `token` field\
+        \ of this request.\n\n3. Mission Control will validate the pairing token by\
+        \ connecting to the target JPD.\n\n**Note:** The `token` field accepts either\
+        \ a pairing token (JWT) or a join key.\n\n**Security:** Requires admin privileges.\n"
+      operationId: addJpd
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JpdCreate'
+      responses:
+        '201':
+          description: JPD added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Jpd'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    get:
+      tags:
+      - Mission Control
+      summary: Get JPD List
+      description: 'Get all JPDs.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getJpdList
+      parameters:
+      - name: name
+        in: query
+        schema:
+          type: string
+        description: Filter by name
+      - name: tag
+        in: query
+        schema:
+          type: string
+        description: Filter by tag
+      - name: url
+        in: query
+        schema:
+          type: string
+        description: Filter by URL
+      - name: status
+        in: query
+        schema:
+          $ref: '#/components/schemas/JpdStatusCode'
+        description: Filter by status
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Jpd'
+        '400':
+          description: Bad Request - Invalid status query value
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /mc/api/v1/jpds/{id}:
+    get:
+      tags:
+      - Mission Control
+      summary: Get JPD by id
+      description: 'Get a JPD by ID.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getJpdById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The JPD ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Jpd'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - JPD not found
+    put:
+      tags:
+      - Mission Control
+      summary: Update JPD
+      description: 'Update a JPD.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateJpd
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The JPD ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JpdCreate'
+      responses:
+        '204':
+          description: JPD updated successfully
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - JPD not found
+    delete:
+      tags:
+      - Mission Control
+      summary: Delete JPD
+      description: 'Delete a JPD.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteJpd
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The JPD ID
+      responses:
+        '204':
+          description: JPD deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - JPD not found
+  /mc/api/v1/buckets:
+    get:
+      tags:
+      - Mission Control
+      summary: Get Buckets
+      description: 'Retrieves all the license buckets in the system.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getLicenseBuckets
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LicenseBucket'
+              example:
+              - identifier: '12345'
+                name: bucket-test-1
+                size: 10
+                license_type: ENTERPRISE
+              - identifier: '1234567'
+                name: bucket-test-2
+                size: 5
+                license_type: EDGE
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Mission Control
+      summary: Upload Bucket
+      description: "Creates a new License Bucket. Supports two modes:\n\n**JSON mode**\
+        \ (`Content-Type: application/json`): Provide a URL from which Mission Control\n\
+        will download the encrypted bucket file, along with the decryption key.\n\n\
+        **Multipart mode** (`Content-Type: multipart/form-data`): Upload the encrypted\
+        \ bucket file\ndirectly from your environment, along with the decryption key.\n\
+        \nBoth modes return the same response.\n\n**Multipart mode example:**\n```\n\
+        curl -X POST 'https://<server>/mc/api/v1/buckets' \\\n  -H 'Authorization:\
+        \ Bearer <token>' \\\n  -H 'Content-Type: multipart/form-data' \\\n  -F 'file=@/path/to/bucket-file.json;type=application/octet-stream'\
+        \ \\\n  -F 'key=<decryption-key>' \\\n  -F 'name=mybucket'\n```\n\n**Security:**\
+        \ Requires admin privileges.\n"
+      operationId: uploadLicenseBucket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LicenseBucketCreate'
+            example:
+              name: main-bucket
+              url: https://bintray.jfrog.com/license-buckets/test_jfrog.com/12345678/12345678.json?expiry=1528199600307&id=ABCDEFGhiJkLmNoPQR
+              key: 16629dbf7fefc9d179b36ba005685c2dd8376aad3278178e735da1633c6bd3c6
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - name
+              - file
+              - key
+              properties:
+                name:
+                  type: string
+                  description: Bucket's name in Mission Control
+                file:
+                  type: string
+                  format: binary
+                  description: The encrypted bucket file
+                key:
+                  type: string
+                  description: Key used to decrypt the bucket
+      responses:
+        '201':
+          description: Bucket created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseBucketUploadResponse'
+              example:
+                subject: JFrog
+                product_name: Artifactory
+                product_id: 6
+                license_type: HA
+                issued_date: '2016-04-12T16:02:55.549+03:00'
+                valid_date: '2017-04-12T16:02:54.759+03:00'
+                quantity: 10
+                identifier: bucket-test-1
+                signature: 06307c34405e6ab70c5d249a7ba7cffd81947d5f
+                name: main-bucket
+                used: 0
+        '400':
+          description: Your bucket file could not be used. Please verify that the
+            file is correct and that the key is valid.
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '409':
+          description: 'Conflict. Possible messages:
+
+            - "Name ''<bucket_name>'' already exists"
+
+            - "Url ''<bucket_url>'' already exists"
+
+            '
+  /mc/api/v1/buckets/{name}:
+    delete:
+      tags:
+      - Mission Control
+      summary: Delete Bucket
+      description: 'Delete a license bucket.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteLicenseBucket
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bucket name
+      responses:
+        '204':
+          description: Bucket deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Bucket not found
+  /mc/api/v1/buckets/{name}/report:
+    get:
+      tags:
+      - Mission Control
+      summary: Get Bucket Status
+      description: 'Get bucket status report.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getLicenseBucketStatus
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bucket name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Bucket not found
+  /mc/api/v1/buckets/{name}/deploy:
+    post:
+      tags:
+      - Mission Control
+      summary: Attach License
+      description: 'Attaches a license from a bucket to the specified JPD.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: attachLicense
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bucket name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachLicenseRequest'
+            example:
+              jpd_id: JPD-12
+              license_count: 1
+      responses:
+        '200':
+          description: License attached successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachLicenseResponse'
+              example:
+                success: true
+                message: Assigned 1 license from bucket bucket-test-1 to JPD-12.
+        '400':
+          description: JPD not found (e.g., "JPD with id <jpd_id> was not found.")
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Bucket not found (e.g., "The entity 'LicenseBucket'
+            with identifier '<name>' was not found")
+        '500':
+          description: Cannot deploy licenses from bucket (e.g., "Cannot deploy licenses
+            from bucket <bucket_name> to <jpd_id>")
+  /mc/api/v1/buckets/{name}/acquire:
+    post:
+      tags:
+      - Mission Control
+      summary: Acquire License
+      description: 'Acquires one or several license(s) from a bucket and returns them.
+
+        Those licenses are marked as used in the bucket report under the "Unknown
+        usage" section.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: acquireLicense
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bucket name
+      - name: remove_new_line
+        in: query
+        required: false
+        schema:
+          type: boolean
+        description: If set to true, automatically removes line breaks from the provided
+          license contents.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcquireLicenseRequest'
+            example:
+              name: team-A-license
+              license_count: 1
+      responses:
+        '200':
+          description: License acquired successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcquireLicenseResponse'
+              example:
+                license_keys:
+                - <license-key>
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Bucket not found (e.g., "The entity 'LicenseBucket'
+            with identifier '<name>' was not found")
+  /mc/api/v1/buckets/{name}/release:
+    post:
+      tags:
+      - Mission Control
+      summary: Release License
+      description: 'Releases a license from a bucket given the JPD id or label previously
+        used by an "acquire" call.
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: releaseLicense
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The bucket name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseLicenseRequest'
+            example:
+              name: team-A-license
+      responses:
+        '204':
+          description: License released successfully (No Content)
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Bucket not found (e.g., "The entity 'LicenseBucket'
+            with identifier '<name>' was not found")
+        '409':
+          description: 'Conflict. Possible messages:
+
+            - "The Jpd must be offline before you can detach its license"
+
+            - "No licenses to release for bucket: <bucket_id>, instance name: <jpd_id
+            or label>"
+
+            '
+  /mc/api/v1/federation/{jpdId}:
+    get:
+      tags:
+      - Mission Control
+      summary: Get Access Federation Configuration for a Single JPD
+      description: 'Get access federation configuration for a specific JPD.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getMcFederationConfig
+      parameters:
+      - name: jpdId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The JPD ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessFederationConfiguration'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - JPD not found
+    put:
+      tags:
+      - Mission Control
+      summary: Configure Access Federation on a JPD
+      description: 'Configure access federation on a JPD.
+
+
+
+        **Note:** Mission Control acts as a centralized orchestrator, and is the recommended
+        way to manage Access Federation configuration across multiple JPDs from a
+        single control plane. To manage federation settings directly on an individual
+        JPD, you can also use the [Access Federation APIs](https://docs.jfrog.com/administration/reference/registeraccessfederation).
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: configureMcFederation
+      parameters:
+      - name: jpdId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The JPD ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessFederationConfiguration'
+      responses:
+        '200':
+          description: Federation configured (response is a list of per-operation
+            results)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FederationOperationResult'
+        '400':
+          description: Bad Request - Invalid input or federation setup errors reported
+            in the response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FederationOperationResult'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - JPD not found
+  /mc/api/v1/federation:
+    get:
+      tags:
+      - Mission Control
+      summary: Get Access Federation Configuration for All JPDs
+      description: 'Get access federation configuration for all JPDs.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getAllMcFederationConfigs
+      parameters:
+      - name: include_non_configured
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: 'When true, include JPDs with no (or default) federation configuration.
+          Query parameter name matches the Mission Control API (`include_non_configured`).
+
+          '
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessFederationListItem'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /mc/api/v1/federation/candidates:
+    get:
+      tags:
+      - Mission Control
+      summary: Get Access Federation Candidates
+      description: 'Get access federation candidates.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getMcFederationCandidates
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /mc/api/v1/system/backup/export:
+    put:
+      tags:
+      - Mission Control
+      summary: Export Mission Control Configuration
+      description: 'Export Mission Control configuration.
+
+
+
+        **Note:** This API is available only in Self-hosted instances.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: exportMcConfiguration
+      responses:
+        '200':
+          description: Configuration exported
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /mc/api/v1/system/backup/import:
+    put:
+      tags:
+      - Mission Control
+      summary: Import Mission Control Data
+      description: 'Import Mission Control data from a JSON file encrypted with the
+        master
+
+        key.
+
+
+
+        **Note:**
+
+        - This API is available only in Self-hosted instances.
+
+        - Before importing, you must rename the export.json file to import.json.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: importMcData
+      responses:
+        '204':
+          description: Successfully imported JSON file into the database
+        '400':
+          description: JSON file is not in the correct format
+        '500':
+          description: Error during import
+  /mc/api/v1/system/ping:
+    get:
+      tags:
+      - Mission Control
+      summary: System Health Check
+      description: Mission Control system health check.
+      operationId: mcSystemPing
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    JpdStatusCode:
+      type: string
+      description: JPD status code (Mission Control)
+      enum:
+      - ONLINE
+      - OFFLINE
+      - PARTIAL
+      - UNAUTHORIZED
+    AccessFederationEntityType:
+      type: string
+      description: Access federation entity type to synchronize
+      enum:
+      - USERS
+      - GROUPS
+      - PERMISSIONS
+      - TOKENS
+    AccessFederationPermissionFilters:
+      type: object
+      description: Optional permission-name include/exclude patterns for a federation
+        target
+      properties:
+        include_patterns:
+          type: array
+          items:
+            type: string
+          description: Include patterns (sorted set in the API; represented as JSON
+            array)
+        exclude_patterns:
+          type: array
+          items:
+            type: string
+          description: Exclude patterns (sorted set in the API; represented as JSON
+            array)
+    AccessFederationTarget:
+      type: object
+      description: 'Outbound federation target. Mission Control resolves the target
+        using `id`, and/or `url` / `code` as applicable.
+
+        '
+      properties:
+        id:
+          type: string
+          description: Target JPD ID when known
+        code:
+          type: string
+          description: Access service identifier / target code
+        url:
+          type: string
+          description: Target base URL
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessFederationEntityType'
+          description: Entity types to sync for this target (optional per-target override)
+        permission_filters:
+          $ref: '#/components/schemas/AccessFederationPermissionFilters'
+    AccessFederationConfiguration:
+      type: object
+      required:
+      - entities
+      - targets
+      description: 'Access federation configuration (snake_case JSON). Used as the
+        GET response for one JPD and as the PUT request body when configuring star
+        federation. Both `entities` and `targets` are required on PUT.
+
+        '
+      properties:
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessFederationEntityType'
+          description: Entity types to federate from the source JPD
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessFederationTarget'
+          description: Outbound federation targets from the source JPD (star topology)
+    AccessFederationListItem:
+      type: object
+      description: 'One row from GET /federation. Matches Mission Control JSON where
+        `AccessFederationConfiguration` is unwrapped together with `source` and optional
+        `error`.
+
+        '
+      properties:
+        source:
+          type: string
+          description: Source JPD id or display name
+        error:
+          type: string
+          nullable: true
+          description: Error message when the configuration could not be retrieved
+            from this JPD
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessFederationEntityType'
+          nullable: true
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessFederationTarget'
+          nullable: true
+    FederationOperationResult:
+      type: object
+      description: Result entry from configure-federation operations (snake_case JSON)
+      properties:
+        label:
+          type: string
+          description: Operation or step label
+        status:
+          type: string
+          enum:
+          - OK
+          - WARNING
+          - ERROR
+          description: Result severity
+        status_message:
+          type: string
+          nullable: true
+          description: Detail message when status is WARNING or ERROR
+    Jpd:
+      type: object
+      properties:
+        id:
+          type: string
+          description: JPD ID
+        name:
+          type: string
+          description: JPD name
+        url:
+          type: string
+          description: JPD URL
+        status:
+          $ref: '#/components/schemas/JpdStatusCode'
+        tags:
+          type: array
+          items:
+            type: string
+    JpdCreate:
+      type: object
+      required:
+      - name
+      - url
+      - location
+      properties:
+        name:
+          type: string
+          description: JPD name
+        url:
+          type: string
+          description: JPD URL (e.g., https://example.jfrog.io)
+        location:
+          type: object
+          description: Geographic location of the JPD
+          required:
+          - city_name
+          - country_code
+          - latitude
+          - longitude
+          properties:
+            city_name:
+              type: string
+              description: City name
+            country_code:
+              type: string
+              description: Two-letter country code (ISO 3166-1 alpha-2)
+            latitude:
+              type: number
+              format: double
+              description: Latitude coordinate
+            longitude:
+              type: number
+              format: double
+              description: Longitude coordinate
+        token:
+          type: string
+          description: 'Pairing token (JWT) or join key for authentication.
+
+
+            To obtain a pairing token, call the Create Pairing Token API on the target
+            JPD:
+
+            POST /access/api/v1/service_trust/pairing/mission-control
+
+
+            See [Create Pairing Token](https://docs.jfrog.com/administration/update/reference/createpairingtoken)
+            for details.
+
+            '
+        username:
+          type: string
+          description: Username for basic authentication (alternative to token, for
+            legacy services only)
+        password:
+          type: string
+          description: Password for basic authentication (alternative to token, for
+            legacy services only)
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags for categorizing the JPD
+    LicenseBucket:
+      type: object
+      properties:
+        identifier:
+          type: string
+          description: Bucket identifier
+          example: bucket-test-1
+        name:
+          type: string
+          description: Bucket name
+          example: Test-bucket-name
+        size:
+          type: integer
+          description: Number of licenses in the bucket
+          example: 10
+        license_type:
+          type: string
+          description: License type
+          enum:
+          - ENTERPRISE
+          - EDGE
+          example: ENTERPRISE
+    LicenseBucketUploadResponse:
+      type: object
+      properties:
+        subject:
+          type: string
+          example: JFrog
+        product_name:
+          type: string
+          example: Artifactory
+        product_id:
+          type: integer
+          example: 6
+        license_type:
+          type: string
+          example: HA
+        issued_date:
+          type: string
+          format: date-time
+          example: '2016-04-12T16:02:55.549+03:00'
+        valid_date:
+          type: string
+          format: date-time
+          example: '2017-04-12T16:02:54.759+03:00'
+        quantity:
+          type: integer
+          example: 10
+        identifier:
+          type: string
+          example: bucket-test-1
+        signature:
+          type: string
+          example: 06307c34405e6ab70c5d249a7ba7cffd81947d5f
+        name:
+          type: string
+          example: Test-bucket-name
+        used:
+          type: integer
+          example: 0
+    LicenseBucketCreate:
+      type: object
+      required:
+      - name
+      - url
+      - key
+      properties:
+        name:
+          type: string
+          description: Bucket's name in Mission Control
+          example: main-bucket
+        url:
+          type: string
+          description: URL to download the encrypted bucket file
+          example: https://bintray.jfrog.com/license-buckets/test_jfrog.com/12345678/12345678.json?expiry=1528199600307&id=ABCDEFGhiJkLmNoPQR
+        key:
+          type: string
+          description: Key used to decrypt the bucket
+          example: 16629dbf7fefc9d179b36ba005685c2dd8376aad3278178e735da1633c6bd3c6
+    AttachLicenseRequest:
+      type: object
+      required:
+      - jpd_id
+      - license_count
+      properties:
+        jpd_id:
+          type: string
+          description: The ID of the JPD to attach the license to
+          example: JPD-12
+        license_count:
+          type: integer
+          description: Number of licenses to upload to Artifactory
+          example: 1
+    AttachLicenseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the license attachment was successful
+          example: true
+        message:
+          type: string
+          description: Result message
+          example: Assigned 1 license from bucket bucket-test-1 to JPD-12.
+    ReleaseLicenseRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: The JPD id or the free text label previously used by an "acquire"
+            call
+          example: team-A-license
+    AcquireLicenseRequest:
+      type: object
+      required:
+      - name
+      - license_count
+      properties:
+        name:
+          type: string
+          description: Name to identify the acquired license
+          example: team-A-license
+        license_count:
+          type: integer
+          description: Number of licenses to acquire from the bucket
+          example: 1
+    AcquireLicenseResponse:
+      type: object
+      properties:
+        license_keys:
+          type: array
+          description: List of acquired license keys
+          items:
+            type: string
+x-readme:
+  explorer-enabled: false

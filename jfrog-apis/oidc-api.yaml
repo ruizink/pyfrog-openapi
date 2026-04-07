@@ -1,0 +1,561 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - OIDC API
+  description: 'OpenID Connect integration APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** Unless otherwise specified, all APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: OIDC
+  description: APIs for managing OIDC provider configurations, identity mappings,
+    and token exchange in the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/oidc:
+    post:
+      tags:
+      - OIDC
+      summary: Create OIDC Configuration
+      description: 'Creates a new OIDC configuration.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: createOidcConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcConfiguration'
+      responses:
+        '200':
+          description: OIDC configuration created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OidcConfiguration'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    get:
+      tags:
+      - OIDC
+      summary: Get all OIDC Configuration
+      description: 'Get details of all OIDC configurations.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: getAllOidcConfigurations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OidcConfiguration'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/oidc/{name}:
+    get:
+      tags:
+      - OIDC
+      summary: Get OIDC Configuration
+      description: 'Get details of an OIDC configuration by provider name.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: getOidcConfiguration
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OidcConfiguration'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - OIDC configuration not found
+    put:
+      tags:
+      - OIDC
+      summary: Update OIDC Configuration
+      description: 'Updates an existing OIDC configuration.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateOidcConfiguration
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcConfiguration'
+      responses:
+        '200':
+          description: OIDC configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OidcConfiguration'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    delete:
+      tags:
+      - OIDC
+      summary: Delete OIDC Configuration
+      description: 'Delete an OIDC configuration.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteOidcConfiguration
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name to delete
+      responses:
+        '204':
+          description: OIDC configuration deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - OIDC configuration not found
+  /access/api/v1/oidc/{provider_name}/identity_mappings:
+    post:
+      tags:
+      - OIDC
+      summary: Create an Identity Mapping
+      description: 'Creates an identity mapping for an OIDC configuration.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: createOidcIdentityMapping
+      parameters:
+      - name: provider_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcIdentityMapping'
+      responses:
+        '200':
+          description: Identity mapping created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OidcIdentityMappingResponse'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    get:
+      tags:
+      - OIDC
+      summary: Get all Identity Mappings by Provider Name
+      description: 'Get all identity mappings for an OIDC configuration.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: getOidcIdentityMappings
+      parameters:
+      - name: provider_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name
+      - name: project_key
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Optional project key to filter identity mappings
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OidcIdentityMappingResponse'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - OIDC configuration not found
+  /access/api/v1/oidc/{provider_name}/identity_mappings/{mapping_name}:
+    get:
+      tags:
+      - OIDC
+      summary: Get Identity Mappings by Mapping Name
+      description: 'Get an identity mapping for an OIDC configuration by mapping name.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: getOidcIdentityMappingByName
+      parameters:
+      - name: provider_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name
+      - name: mapping_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The identity mapping name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OidcIdentityMappingResponse'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Identity mapping not found
+    put:
+      tags:
+      - OIDC
+      summary: Update OIDC Identity Mapping
+      description: 'Updates an existing OIDC identity mapping.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: updateOidcIdentityMapping
+      parameters:
+      - name: provider_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name
+      - name: mapping_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The identity mapping name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcIdentityMapping'
+      responses:
+        '200':
+          description: Identity mapping updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OidcIdentityMappingResponse'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Identity mapping not found
+    delete:
+      tags:
+      - OIDC
+      summary: Delete Identity Mapping
+      description: 'Delete an identity mapping of an OIDC configuration.
+
+
+
+        **Security:** Requires admin or Project Admin privileges.
+
+        '
+      operationId: deleteOidcIdentityMapping
+      parameters:
+      - name: provider_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The OIDC provider name
+      - name: mapping_name
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The identity mapping name to delete
+      responses:
+        '204':
+          description: Identity mapping deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Identity mapping not found
+  /access/api/v1/oidc/token:
+    post:
+      tags:
+      - OIDC
+      summary: OIDC Token Exchange
+      description: "Exposes the token endpoint to retrieve a temporary access token.\
+        \ \nThe scope of the token is determined using identity mappings.\n"
+      operationId: oidcTokenExchange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OidcTokenExchangeRequest'
+      responses:
+        '200':
+          description: Token exchanged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OidcTokenExchangeResponse'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    OidcConfiguration:
+      type: object
+      properties:
+        name:
+          type: string
+          description: OIDC provider name
+        issuer_url:
+          type: string
+          description: OIDC issuer URL
+        audience:
+          type: string
+          description: Audience
+        description:
+          type: string
+          description: Description
+        provider_type:
+          type: string
+          description: Provider type (e.g., generic, github)
+        token_issuer:
+          type: string
+          description: Token issuer (organization)
+        enable_permissive_configuration:
+          type: boolean
+          description: Enable permissive configuration
+        use_default_proxy:
+          type: boolean
+          description: Use default proxy
+        azure_app_id:
+          type: string
+          description: Azure Application ID
+    OidcIdentityMapping:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Identity mapping name
+        description:
+          type: string
+          description: Identity mapping description
+        claims:
+          type: object
+          description: Claims filter as JSON object
+          additionalProperties: true
+        token_spec:
+          $ref: '#/components/schemas/TokenSpec'
+        priority:
+          type: integer
+          description: Mapping priority
+    OidcIdentityMappingResponse:
+      type: object
+      allOf:
+      - $ref: '#/components/schemas/OidcIdentityMapping'
+      - type: object
+        properties:
+          project_key:
+            type: string
+            description: Project key
+    TokenSpec:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username
+        scope:
+          type: string
+          description: Token scope
+        audience:
+          type: string
+          description: Token audience
+        expires_in:
+          type: integer
+          format: int64
+          description: Token expiry in seconds
+        username_pattern:
+          type: string
+          description: Username pattern
+        groups_pattern:
+          type: string
+          description: Groups pattern
+        self_revocable:
+          type: boolean
+          description: Whether the token is self-revocable
+    OidcTokenExchangeRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          description: The grant type
+        subject_token_type:
+          type: string
+          description: The subject token type
+        subject_token:
+          type: string
+          description: The subject token
+        provider_name:
+          type: string
+          description: The OIDC provider name
+        project_key:
+          type: string
+          description: Project key
+        application_key:
+          type: string
+          description: Application key
+        identity_mapping_name:
+          type: string
+          description: Identity mapping name
+        include_reference_token:
+          type: boolean
+          description: Whether to include reference token
+        provider_type:
+          type: string
+          description: Provider type
+        job_id:
+          type: string
+          description: Job ID
+        run_id:
+          type: string
+          description: Run ID
+        repo:
+          type: string
+          description: Repository
+        revision:
+          type: string
+          description: Revision
+        branch:
+          type: string
+          description: Branch
+    OidcTokenExchangeResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: The access token
+        token_type:
+          type: string
+          description: The token type
+        expires_in:
+          type: integer
+          description: Token expiry in seconds
+        issued_token_type:
+          type: string
+          description: The issued token type
+        username:
+          type: string
+          description: The username
+        reference_token:
+          type: string
+          description: The reference token
+x-readme:
+  explorer-enabled: false

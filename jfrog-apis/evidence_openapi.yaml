@@ -1,0 +1,619 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Evidence API
+  description: REST API for managing evidence records in JFrog Artifactory. Evidence
+    records are secure, verifiable attestations about your software artifacts. They
+    are crucial for establishing a chain of custody and ensuring compliance throughout
+    your software supply chain.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/evidence/api/v1
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Evidence
+  description: Evidence management operations
+paths:
+  /subject/{subjectRepoPath}:
+    post:
+      tags:
+      - Evidence
+      summary: Deploy Evidence
+      description: Deploys an evidence file for the designated subject that complies
+        with the DSSE framework and the in-toto Attestation Framework. This API endpoint
+        deploys an external evidence file that was created elsewhere. An efficient
+        method for attaching evidence to a subject, such as an artifact, is to use
+        the Create Evidence CLI. This feature is supported with the Enterprise+ license.
+      operationId: deployEvidence
+      parameters:
+      - name: subjectRepoPath
+        in: path
+        description: Subject repository path (e.g., commons-dev-generic-local/commons/1.0.0/file.txt)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: providerId
+        in: query
+        description: Evidence provider identifier
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        description: Evidence file in JSON format (DSSE envelope with in-toto attestation)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DSSEEnvelope'
+      responses:
+        '201':
+          description: Created - Evidence deployed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceView'
+        '401':
+          description: Bad Credentials - The request failed because the authentication
+            token is invalid or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The request failed because the authenticated
+            user does not have the required Read and Annotate permissions for the
+            subject repository path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified subject does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - Evidence
+      summary: Get Evidence by Subject
+      description: Retrieves all evidence records associated with the specified subject.
+        The subject is identified by its repository path.
+      operationId: getEvidenceBySubject
+      parameters:
+      - name: subjectRepoPath
+        in: path
+        description: Subject repository path (e.g., commons-dev-generic-local/commons/1.0.0/file.txt)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: predicate_categories
+        in: query
+        description: Comma-separated list of predicate categories to filter by (e.g.,
+          security,quality)
+        required: false
+        schema:
+          type: string
+      - name: include
+        in: query
+        description: 'Comma-separated list of additional fields to include in the
+          response: predicates, signatures'
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - Evidence records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceListResponse'
+        '400':
+          description: Bad Request - Invalid selector or query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The request failed because the authentication
+            token is invalid or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The request failed because the authenticated
+            user does not have the required Read permissions for the subject repository
+            path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /evidence/{selector}:
+    delete:
+      tags:
+      - Evidence
+      summary: Delete Evidence
+      description: Deletes the specified evidence file and its database record.
+      operationId: deleteEvidence
+      parameters:
+      - name: selector
+        in: path
+        description: Evidence selector path (e.g., my-repo/path/to/artifact.jar/evidence-file.json)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '204':
+          description: Deleted - Evidence deleted successfully
+        '400':
+          description: Bad Request - Invalid selector format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The request failed because the authentication
+            token is invalid or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The request failed because the authenticated
+            user does not have the required Read and Delete permissions for the subject
+            repository path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified evidence does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /evidence-by-id/{id}:
+    get:
+      tags:
+      - Evidence
+      summary: Get Evidence by ID
+      description: Retrieves a single evidence record by its unique identifier.
+      operationId: getEvidenceById
+      parameters:
+      - name: id
+        in: path
+        description: Unique evidence identifier (SHA-256 based, max 64 characters)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 64
+      - name: include
+        in: query
+        description: 'Comma-separated list of additional fields to include in the
+          response: predicates, signatures'
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - Evidence record retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceView'
+        '400':
+          description: Bad Request - Invalid ID format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The request failed because the authentication
+            token is invalid or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified evidence does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /evidence-search:
+    get:
+      tags:
+      - Evidence
+      summary: Search Evidence
+      description: Searches for evidence records using query parameters. Returns a
+        paginated list of evidence records matching the specified filters.
+      operationId: searchEvidence
+      parameters:
+      - name: repository_key
+        in: query
+        description: Filter by subject repository key
+        required: false
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: Filter by subject path within the repository
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        description: Filter by subject file name
+        required: false
+        schema:
+          type: string
+      - name: sha256
+        in: query
+        description: Filter by subject SHA-256 checksum
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        description: Maximum number of results to return
+        required: false
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        description: Number of results to skip for pagination
+        required: false
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK - Search results returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceListResponse'
+        '400':
+          description: Bad Request - Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The request failed because the authentication
+            token is invalid or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /evidence/prepare:
+    post:
+      tags:
+      - Evidence
+      summary: Prepare Evidence for Signing
+      description: 'Prepares an in-toto statement for external signing. Returns the
+        DSSE payload (base64-encoded) and the URL to POST the signed envelope to.
+
+
+        This is the first step in a two-step evidence creation flow:
+
+        1. Call this endpoint to prepare the statement and receive the DSSE payload
+
+        2. Sign the payload externally and POST the signed DSSE envelope to the returned
+        `post_url`
+
+        '
+      operationId: prepareEvidence
+      parameters:
+      - name: include_pae
+        in: query
+        description: When set to true, includes the Pre-Authentication Encoding (PAE)
+          string in the response
+        required: false
+        schema:
+          type: string
+          enum:
+          - 'true'
+          - 'false'
+      requestBody:
+        required: true
+        description: In-toto statement generation request containing the predicate,
+          predicate type, and subject information
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrepareEvidenceRequest'
+      responses:
+        '200':
+          description: OK - Statement prepared successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrepareEvidenceResponse'
+        '400':
+          description: Bad Request - Invalid request body or subject information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The request failed because the authentication
+            token is invalid or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    EvidenceView:
+      type: object
+      description: Evidence record with full details
+      properties:
+        id:
+          type: string
+          description: Unique evidence identifier (SHA-256 based)
+        repository:
+          type: string
+          description: Subject repository key
+        path:
+          type: string
+          description: Subject path within the repository
+        subject:
+          $ref: '#/components/schemas/SubjectView'
+        name:
+          type: string
+          description: Evidence file name
+        uri:
+          type: string
+          description: Full URI to the evidence file
+        sha256:
+          type: string
+          description: SHA-256 checksum of the evidence file
+        predicate_category:
+          type: string
+          description: Category of the predicate (e.g., security, quality)
+        predicate_type:
+          type: string
+          description: URI type associated with the predicate
+        predicate_slug:
+          type: string
+          description: Simplified version of the predicate type for readability
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the evidence was created (ISO-8601)
+        created_by:
+          type: string
+          description: User or server who created the evidence
+        verified:
+          type: boolean
+          description: Indicates whether the evidence signature has been verified
+            using the public key
+        signing_key:
+          $ref: '#/components/schemas/SigningKeyView'
+        signatures:
+          type: array
+          items:
+            $ref: '#/components/schemas/Signature'
+          description: DSSE signatures (returned when include=signatures)
+        predicate:
+          type: object
+          additionalProperties: true
+          description: Predicate JSON payload (returned when include=predicates)
+        provider_id:
+          type: string
+          description: The ID of the system that provided the evidence
+        stage:
+          type: string
+          description: Evidence stage
+        attachments:
+          type: array
+          maxItems: 1
+          items:
+            $ref: '#/components/schemas/AttachmentView'
+          description: 'Attachments linked to this evidence (empty if none, max 1).
+            Requires Artifactory >= 7.142.0.
+
+            '
+    AttachmentView:
+      type: object
+      description: Metadata for an attachment file linked to an evidence record
+      properties:
+        name:
+          type: string
+          description: Original filename of the attachment
+        sha256:
+          type: string
+          description: SHA-256 checksum of the attachment file
+        type:
+          type: string
+          description: MIME type of the attachment (e.g. application/pdf)
+        download_path:
+          type: string
+          description: Artifactory path to download the attachment file
+    SubjectView:
+      type: object
+      description: Subject name and version information
+      properties:
+        name:
+          type: string
+          description: Subject name
+        version:
+          type: string
+          description: Subject version
+    SigningKeyView:
+      type: object
+      description: The key used to sign the evidence
+      properties:
+        alias:
+          type: string
+          description: The alias of the signing key
+    Signature:
+      type: object
+      description: DSSE signature
+      properties:
+        keyid:
+          type: string
+          description: Signing key identifier
+        sig:
+          type: string
+          description: Signature value
+    DSSEEnvelope:
+      type: object
+      description: DSSE (Dead Simple Signing Envelope) containing an in-toto attestation
+      required:
+      - payload
+      - payloadType
+      - signatures
+      properties:
+        payload:
+          type: string
+          description: Base64-encoded in-toto statement payload
+        payloadType:
+          type: string
+          description: Media type of the payload (e.g., application/vnd.in-toto+json)
+        signatures:
+          type: array
+          items:
+            $ref: '#/components/schemas/Signature'
+          description: One or more DSSE signatures over the payload
+    EvidenceListResponse:
+      type: object
+      description: Wrapper containing a list of evidence records
+      properties:
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceView'
+          description: List of evidence records
+    PrepareEvidenceRequest:
+      type: object
+      description: Request to prepare an in-toto statement for external signing
+      required:
+      - predicate
+      - predicate_type
+      - subject
+      properties:
+        predicate:
+          type: object
+          description: The in-toto predicate JSON object containing the attestation
+            claims
+        predicate_type:
+          type: string
+          description: Predicate type URI (e.g., https://slsa.dev/provenance/v0.2)
+        markdown:
+          type: string
+          description: Optional markdown representation of the evidence
+        provider_id:
+          type: string
+          description: Evidence provider identifier
+        subject:
+          $ref: '#/components/schemas/SubjectInput'
+        project_key:
+          type: string
+          description: JFrog project key
+    SubjectInput:
+      type: object
+      description: Subject information identifying the artifact, build, package, release
+        bundle, or application version
+      required:
+      - subject_type
+      properties:
+        subject_type:
+          type: string
+          enum:
+          - artifact
+          - build
+          - package
+          - release_bundle
+          - application_version
+          description: Type of subject
+        subject_sha256:
+          type: string
+          description: SHA-256 checksum of the subject
+        repo_path:
+          type: string
+          description: Repository path (required when subject_type=artifact)
+        build_name:
+          type: string
+          description: Build name (required when subject_type=build)
+        build_number:
+          type: string
+          description: Build number (required when subject_type=build)
+        build_timestamp:
+          type: string
+          description: Build timestamp, numeric only (optional when subject_type=build)
+        release_bundle_name:
+          type: string
+          description: Release bundle name (required when subject_type=release_bundle)
+        release_bundle_version:
+          type: string
+          description: Release bundle version (required when subject_type=release_bundle)
+        application_key:
+          type: string
+          description: Application key (required when subject_type=application_version)
+        application_version:
+          type: string
+          description: Application version (required when subject_type=application_version)
+        package_repo:
+          type: string
+          description: Package repository (required when subject_type=package)
+        package_name:
+          type: string
+          description: Package name (required when subject_type=package)
+        package_version:
+          type: string
+          description: Package version (required when subject_type=package)
+    PrepareEvidenceResponse:
+      type: object
+      description: Response containing the prepared DSSE payload for external signing
+      properties:
+        post_url:
+          type: string
+          description: URL to POST the signed DSSE envelope to after signing
+        dsse_payload:
+          type: string
+          description: Base64-encoded in-toto statement JSON to be signed
+        dsse_payload_type:
+          type: string
+          description: DSSE payload type (application/vnd.in-toto+json)
+        pre_authentication_encoding:
+          type: string
+          description: Pre-Authentication Encoding (PAE) string (returned when include_pae=true)
+    ErrorResponse:
+      type: object
+      description: Standard JFrog error envelope
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication
+security:
+- bearerAuth: []
+- basicAuth: []
+x-readme:
+  explorer-enabled: false

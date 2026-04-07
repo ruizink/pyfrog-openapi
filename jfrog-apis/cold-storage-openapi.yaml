@@ -1,0 +1,1042 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Cold Storage API
+  description: REST API for managing cold storage archive policies in JFrog Artifactory.
+    Cold Storage feature is available only for Artifactory Enterprise and Enterprise+
+    users.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api/retention
+  description: Cold Storage API base path
+tags:
+- name: Archive Policies
+  description: Archive policy management operations
+paths:
+  /archive/policies/{policyKey}:
+    post:
+      tags:
+      - Archive Policies
+      summary: Create an Archive Policy
+      description: Creates a new archive policy in Artifactory using the provided
+        policy configuration. This Cold Storage feature is available only for Artifactory
+        Enterprise and Enterprise+ users.
+      operationId: createArchivePolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique policy key that identifies the policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchivePolicyRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchivePolicyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Archive Policies
+      summary: Update an Archive Policy
+      description: Updates an existing archive policy based on the policy key. This
+        Cold Storage feature is available only for Artifactory Enterprise and Enterprise+
+        users.
+      operationId: updateArchivePolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique policy key that identifies the policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchivePolicyRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchivePolicyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+      - Archive Policies
+      summary: Get an Archive Policy
+      description: Returns an archive policy based on the policy key. This Cold Storage
+        feature is available only for Artifactory Enterprise and Enterprise+ users.
+      operationId: getArchivePolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The policy key for which the archive policy details need to be
+          retrieved.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchivePolicyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Archive Policies
+      summary: Delete an Archive Policy
+      description: Deletes an existing archive policy based on policy key. This Cold
+        Storage feature is available only for Artifactory Enterprise and Enterprise+
+        users.
+      operationId: deleteArchivePolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Key of the policy that needs to be deleted.
+      responses:
+        '200':
+          description: Success - Policy deleted successfully.
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                default:
+                  value: Retention policy example-policy-key was deleted successfully.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /archive/policies:
+    get:
+      tags:
+      - Archive Policies
+      summary: Get All Archive Policies
+      description: Returns a list of all available archive policies. This Cold Storage
+        feature is available only for Artifactory Enterprise and Enterprise+ users.
+      operationId: getAllArchivePolicies
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArchivePolicyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /archive/policies/{policyKey}/trigger:
+    post:
+      tags:
+      - Archive Policies
+      summary: Run an Archive Policy
+      description: Runs an archive policy based on the provided policy key. This Cold
+        Storage feature is available only for Artifactory Enterprise and Enterprise+
+        users.
+      operationId: runArchivePolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Key of the policy that needs to be run.
+      responses:
+        '202':
+          description: Accepted - Execution was submitted successfully and will start
+            in the background.
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                default:
+                  value: Execution was submitted successfully and will start in the
+                    background.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /archive/policies/{policyKey}/stop:
+    post:
+      tags:
+      - Archive Policies
+      summary: Stop Policy Execution
+      description: Stops the execution of an archive policy based on the policy key.
+        This Cold Storage feature is available only for Artifactory Enterprise and
+        Enterprise+ users.
+      operationId: stopArchivePolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Unique policy key that identifies the policy to be stopped.
+      responses:
+        '202':
+          description: Accepted - Policy stop request has been accepted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /archive/policies/{policyKey}/preview:
+    post:
+      tags:
+      - Archive Policies
+      summary: Preview Retention Policy by Policy Key
+      description: Provides an estimated count and total size of archive candidates
+        based on the provided retention policy key. This Cold Storage feature is available
+        only for Artifactory Enterprise and Enterprise+ users.
+      operationId: previewArchivePolicyByKey
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The policy key for which you want to get a preview.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviewResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /archive/policies/preview:
+    post:
+      tags:
+      - Archive Policies
+      summary: Preview Retention Policy by Policy Model
+      description: Provides an estimated count and total size of archive candidates
+        based on the provided retention policy model. This Cold Storage feature is
+        available only for Artifactory Enterprise and Enterprise+ users.
+      operationId: previewArchivePolicyByModel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                key:
+                  type: string
+                  description: Unique policy key that identifies the policy.
+                enabled:
+                  type: boolean
+                  description: Enable/disable policy. If disabled, policy execution
+                    is blocked.
+                cronExp:
+                  type: string
+                  description: The Cron expression for scheduling the policy.
+                aqlQuery:
+                  type: string
+                  description: Search for artifacts to be archived using Artifactory
+                    Query Language (AQL). This can be used instead of searchCriteriaForm
+                    to include/exclude artifacts in the retention policy.
+                searchCriteriaForm:
+                  type: object
+                  description: This can be used instead of aqlQuery to include/exclude
+                    artifacts in the retention policy.
+                packageRetention:
+                  type: boolean
+                  description: Determines whether the archive policy works on packages
+                    (true) or artifacts (false). The default value is false.
+                packageSearchCriteriaForm:
+                  type: object
+                  description: Package Search Criteria Form for package retention
+                    policies.
+                durationInMinutes:
+                  type: integer
+                  format: int64
+                  description: The maximum duration (in minutes) for policy execution.
+                expirationTimeInMonths:
+                  type: integer
+                  format: int64
+                  description: The expiration period (in months) that it takes for
+                    archived artifacts to be cleaned up from the Cold instance.
+                skipTrashcan:
+                  type: boolean
+                  description: Prevent the transfer of the artifacts to the trash
+                    can repository, and allow the artifacts to be deleted by a full
+                    GC cleanup. Default value is false.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    format: int64
+                    description: Archive candidates count
+                  totalSize:
+                    type: integer
+                    format: int64
+                    description: Total size in bytes
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /archive/policies/convertToAql:
+    post:
+      tags:
+      - Archive Policies
+      summary: Convert Search Criteria Form to AQL
+      description: Generates an AQL query according to the given search criteria form.
+        The generated AQL query can then be used to perform a search. This Cold Storage
+        feature is available only for Artifactory Enterprise and Enterprise+ users.
+      operationId: convertSearchCriteriaToAql
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: Search Criteria Form JSON
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Generated AQL query
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /search:
+    post:
+      tags:
+      - Archive Policies
+      summary: Search for Archives
+      description: Search for archived artifacts based on AQL query. This Cold Storage
+        feature is available only for Artifactory Enterprise and Enterprise+ users.
+      operationId: searchArchives
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: AQL query string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  range:
+                    type: object
+                    properties:
+                      start_pos:
+                        type: integer
+                      end_pos:
+                        type: integer
+                      total:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /searchPackages:
+    post:
+      tags:
+      - Archive Policies
+      summary: Search for Package Archives
+      description: Search for archived artifacts based on AQL query. This Cold Storage
+        feature is available only for Artifactory Enterprise and Enterprise+ users.
+      operationId: searchPackageArchives
+      parameters:
+      - name: projectKey
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Optional. If provided, searches policies only for the specified
+          project. If not provided, searches all global-level policies.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - packageType
+              - repositories
+              - name
+              properties:
+                packageType:
+                  type: string
+                  description: The package type to search for (for example, Docker).
+                repositories:
+                  type: array
+                  items:
+                    type: string
+                  description: The repositories to include in the search results.
+                name:
+                  type: string
+                  description: The package name pattern to include in the search results.
+                version:
+                  type: string
+                  description: The package version to include in the search results.
+                archiveTimeFrom:
+                  type: integer
+                  format: int64
+                  description: The earliest archive time to include in the search
+                    results.
+                archiveTimeTo:
+                  type: integer
+                  format: int64
+                  description: The latest archive time to include in the search results.
+      responses:
+        '200':
+          description: Completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchPackagesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /namespace:
+    get:
+      tags:
+      - Archive Policies
+      summary: Get Namespace
+      description: Get the namespace that was generated for all the repositories during
+        the archive process. This namespace is required when sending a request for
+        restoring artifacts. This Cold Storage feature is available only for Artifactory
+        Enterprise and Enterprise+ users.
+      operationId: getNamespace
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jfrogColdStorageNamespaceId:
+                    type: string
+                    description: The namespace ID
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /restore:
+    post:
+      tags:
+      - Archive Policies
+      summary: Restore from Archive
+      description: Triggers restoration of multiple items from the Archive. An admin
+        can choose one of the following options - Restore items to the original location
+        and provide fallback repository in case the original location was deprecated.
+        Restore to a dedicated central repository. Important Restore operation only
+        moves the items back to the Warm instance location and does not delete them
+        from the Cold instance. This Cold Storage feature is available only for Artifactory
+        Enterprise and Enterprise+ users.
+      operationId: restoreFromArchive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - restoreType
+              - itemsToRestore
+              properties:
+                restoreType:
+                  type: string
+                  description: Determines whether to restore a package (PACKAGE_RESTORE)
+                    or artifacts (ARTIFACT_RESTORE). The default value is ARTIFACT_RESTORE.
+                  enum:
+                  - PACKAGE_RESTORE
+                  - ARTIFACT_RESTORE
+                restoreToOriginal:
+                  type: boolean
+                  description: Set whether or not to restore to the original artifact
+                    location (saved on the Cold instance). Required if centralDestinationPath
+                    is not set.
+                fallbackDestinationPath:
+                  type: string
+                  description: If restoreToOriginal is set as true and the original
+                    location does not exist anymore, restore to this fallback location.
+                    fallbackDestinationPath must contain at least the repository key.
+                    Required if restoreToOriginal is set.
+                centralDestinationPath:
+                  type: string
+                  description: The repository key where the files need to be restored.
+                    The files will be restored to this repository according to its
+                    original path hierarchy. Required if restoreToOriginal is not
+                    set.
+                addNamespace:
+                  type: boolean
+                  description: This is set as true by default and you do not have
+                    to include the namespace when adding items for itemsToRestore.
+                    When set as false, you must include the namespace when adding
+                    items for itemsToRestore.
+                itemsToRestore:
+                  type: array
+                  items:
+                    type: string
+                  description: Comma-separated list of the items or paths to be restored.
+                    Format - ["<repository_name>/path/to/file", "<repository_name>/path/to/folder/",
+                    ...]. Note, Folder paths must end with a / while file paths must
+                    not.
+      responses:
+        '202':
+          description: Accepted - Restore process was initialized successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestoreResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /archive/executions:
+    get:
+      tags:
+      - Archive Policies
+      summary: Get Archive Policy Status
+      description: Returns the status of an archive policy based on the specified
+        duration and policy key. This Cold Storage feature is available only for Artifactory
+        Enterprise and Enterprise+ users.
+      operationId: getArchivePolicyStatus
+      parameters:
+      - name: from
+        in: query
+        schema:
+          type: string
+        description: The date range (in epoch format) for the archive status.
+      - name: to
+        in: query
+        schema:
+          type: string
+        description: The date range (in epoch format) for the archive status.
+      - name: searchStr
+        in: query
+        schema:
+          type: string
+        description: Get the status for a specific policy.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /restore/executions:
+    get:
+      tags:
+      - Archive Policies
+      summary: Get Restore Process Status
+      description: Returns the status of the restore process based on the specified
+        duration and policy key. This Cold Storage feature is available only for Artifactory
+        Enterprise and Enterprise+ users.
+      operationId: getRestoreProcessStatus
+      parameters:
+      - name: from
+        in: query
+        schema:
+          type: string
+        description: The date range (in epoch format) for the restore status.
+      - name: to
+        in: query
+        schema:
+          type: string
+        description: The date range (in epoch format) for the restore status.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Bad Credentials - The provided authentication is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Permission Denied - The user does not have the necessary permissions
+        to perform this action.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not Found - The specified resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflict - Resource already exists.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+    ArchivePolicyRequest:
+      type: object
+      required:
+      - key
+      - enabled
+      - cronExp
+      properties:
+        key:
+          type: string
+          description: Unique policy key that identifies the policy.
+        enabled:
+          type: boolean
+          description: Enable/disable policy. If disabled, policy execution is blocked.
+        cronExp:
+          type: string
+          description: The Cron expression for scheduling the policy.
+        description:
+          type: string
+          description: Description for the policy.
+        packageRetention:
+          type: boolean
+          description: Determines whether the archive policy works on packages (true)
+            or artifacts (false). The default value is false.
+        aqlQuery:
+          type: string
+          description: Search for artifacts to be archived using Artifactory Query
+            Language (AQL). This can be used instead of searchCriteriaForm to include/exclude
+            artifacts in the retention policy. aqlQuery cannot be used for packages.
+            Required if searchCriteriaForm is not provided.
+        searchCriteriaForm:
+          $ref: '#/components/schemas/SearchCriteriaForm'
+          description: Search Criteria Form for retention policy. This can be used
+            instead of aqlQuery to include/exclude artifacts in the retention policy.
+            Required if aqlQuery is not provided.
+        packageSearchCriteriaForm:
+          $ref: '#/components/schemas/PackageSearchCriteriaForm'
+          description: Package Search Criteria Form for package retention policies.
+        durationInMinutes:
+          type: integer
+          format: int64
+          description: The maximum duration (in minutes) for policy execution. If
+            policy execution exceeds this period, it is stopped.
+        expirationTimeInMonths:
+          type: integer
+          format: int64
+          description: The expiration period (in months) that it takes for archived
+            artifacts to be cleaned up from the Cold instance.
+        skipTrashcan:
+          type: boolean
+          description: Prevent the transfer of the artifacts to the Trash Can Settings
+            repository, and allow the artifacts to be deleted by a full GC cleanup.
+            Default value is false.
+    ArchivePolicyResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Unique policy key that identifies the policy.
+        enabled:
+          type: boolean
+          description: If the policy is enabled/disabled for execution.
+        cronExp:
+          type: string
+          description: The Cron expression used for scheduling the archive policy.
+        description:
+          type: string
+          description: Description for the policy.
+        packageRetention:
+          type: boolean
+          description: Determines whether the archive policy works on packages (true)
+            or artifacts (false).
+        aqlQuery:
+          type: string
+          description: The Artifactory Query Language query used to search for the
+            artifacts to be archived.
+        searchCriteriaForm:
+          $ref: '#/components/schemas/SearchCriteriaForm'
+        packageSearchCriteriaForm:
+          $ref: '#/components/schemas/PackageSearchCriteriaForm'
+        durationInMinutes:
+          type: integer
+          format: int64
+          description: The maximum duration (in minutes) for policy execution.
+        expirationTimeInMonths:
+          type: integer
+          format: int64
+          description: The expiration period (in months) that it takes for archived
+            artifacts to be cleaned up from the Cold instance.
+        skipTrashcan:
+          type: boolean
+          description: If the transfer of the artifacts to the trash can repository
+            is enabled or disabled.
+        lastRunStatus:
+          $ref: '#/components/schemas/LastRunStatus'
+          description: Shows the status of the last policy run.
+        nextExecutionTime:
+          type: integer
+          format: int64
+          description: Time when the policy is scheduled to run next. This depends
+            on the cronExp and the previous execution time.
+    SearchCriteriaForm:
+      type: object
+      description: Search Criteria Form for retention policy.
+    PackageSearchCriteriaForm:
+      type: object
+      description: Package Search Criteria Form for package retention policies.
+      properties:
+        packageType:
+          type: string
+          description: The package type to be archived (for example, Docker).
+        componentName:
+          type: string
+          description: Wildcards are supported.
+        version:
+          type: string
+          description: Wildcards are supported.
+        packageRepos:
+          type: array
+          items:
+            type: string
+          description: List of repository keys included in the package to be archived.
+        createdBefore:
+          type: integer
+          format: int64
+          description: Include all items that were created before the time provided
+            (in ms).
+        downloadedBefore:
+          type: integer
+          format: int64
+          description: Include all items that were last downloaded before the time
+            provided (in ms).
+    PreviewResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          format: int64
+          description: Archive candidates count
+        totalSize:
+          type: integer
+          format: int64
+          description: Total size in bytes
+    RestoreRequest:
+      type: object
+      properties:
+        paths:
+          type: array
+          items:
+            type: string
+          description: List of artifact paths to restore
+    RestoreResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: Response message indicating the status of the restore operation.
+        restore_operation_id:
+          type: string
+          description: Restore operation identifier.
+    LastRunStatus:
+      type: object
+      properties:
+        migrationIdentifier:
+          type: string
+          description: The migration identifier for the policy run.
+        state:
+          type: string
+          enum:
+          - PENDING
+          - IN_PROGRESS
+          - IN_PROGRESS_WITH_ERRORS
+          - COMPLETE
+          - COMPLETE_WITH_ERRORS
+          - FAILED
+          description: The status of the last policy run.
+        completedNumberOfArtifacts:
+          type: integer
+          format: int64
+          description: Total number of artifacts that were successfully archived.
+        failedNumberOfArtifacts:
+          type: integer
+          format: int64
+          description: Total number of artifacts that could not be archived.
+        totalNumberOfArtifacts:
+          type: integer
+          format: int64
+          description: Total number of artifacts to be archived.
+        progressPercentage:
+          type: integer
+          description: The progress of the archive policy (in percentage).
+        startTime:
+          type: integer
+          format: int64
+          description: Time when the policy started executing. Value is in Unix epoch
+            time in milliseconds.
+        finishTime:
+          type: integer
+          format: int64
+          description: Time when the policy finished executing. Value is in Unix epoch
+            time in milliseconds.
+        totalByteSize:
+          type: integer
+          format: int64
+          description: The total size of the artifacts included in the policy.
+        successByteSize:
+          type: integer
+          format: int64
+          description: The size of the artifacts that were archived.
+        failureByteSize:
+          type: integer
+          format: int64
+          description: The size of the artifacts that couldn't be archived.
+        triggeredBy:
+          type: string
+          description: The username of the person who triggered the policy execution.
+        policyName:
+          type: string
+          description: The name of the policy.
+    ExecutionStatus:
+      type: object
+      properties:
+        policyKey:
+          type: string
+          description: Unique policy key that identifies the policy.
+        state:
+          type: string
+          enum:
+          - PENDING
+          - IN_PROGRESS
+          - IN_PROGRESS_WITH_ERRORS
+          - COMPLETE
+          - COMPLETE_WITH_ERRORS
+          - FAILED
+          description: The status of the policy execution.
+        completedNumberOfArtifacts:
+          type: integer
+          format: int64
+          description: Total number of artifacts that were successfully archived.
+        failedNumberOfArtifacts:
+          type: integer
+          format: int64
+          description: Total number of artifacts that could not be archived.
+        totalNumberOfArtifacts:
+          type: integer
+          format: int64
+          description: Total number of artifacts to be archived.
+        progressPercentage:
+          type: integer
+          description: The progress of the policy (in percentage).
+        startTime:
+          type: integer
+          format: int64
+          description: Time when the policy started executing. Value is in Unix epoch
+            time in milliseconds.
+        finishTime:
+          type: integer
+          format: int64
+          description: Time when the policy finished executing. Value is in Unix epoch
+            time in milliseconds.
+        totalByteSize:
+          type: integer
+          format: int64
+          description: The total size of the artifacts included in the policy.
+        successByteSize:
+          type: integer
+          format: int64
+          description: The size of the artifacts that were archived.
+        failureByteSize:
+          type: integer
+          format: int64
+          description: The size of the artifacts that couldn't be archived.
+        destination:
+          type: string
+          description: The destination from which the artifacts were restored (for
+            restore operations).
+        destinationConfiguration:
+          type: string
+          description: The destination configuration. It can be one of':' Original/Central,
+            Fallback Location.
+    SearchPackagesResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              manifestName:
+                type: string
+                description: The manifest file name.
+              packageType:
+                type: string
+                description: The package type.
+              packageName:
+                type: string
+                description: The package name.
+              version:
+                type: string
+                description: The package version.
+              originalRepository:
+                type: string
+                description: The original repository where the package was located
+                  before archiving.
+              archivingTime:
+                type: integer
+                format: int64
+                description: The timestamp when the package was archived (in milliseconds).
+        range:
+          type: object
+          properties:
+            start_pos:
+              type: integer
+              description: The starting position in the result set.
+            end_pos:
+              type: integer
+              description: The ending position in the result set.
+            total:
+              type: integer
+              description: The total number of results.
+x-readme:
+  explorer-enabled: false

@@ -1,0 +1,1394 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - MyJFrog Portal API
+  description: "MyJFrog Portal REST APIs for managing JFrog Cloud platform resources.\n\
+    \nThe MyJFrog Portal REST APIs provide a set of interfaces for interacting with\
+    \ the MyJFrog Portal.\nThese APIs provide interfaces for managing cloud NAT IPs,\
+    \ regions, servers, IP allowlists, \ncustom domain names, and private link connections.\n\
+    \n**Authentication:**\n- Access Tokens as bearer token in authorization header\
+    \ (Authorization: Bearer <token>)\n\n**Note:** Only a Primary Admin can generate\
+    \ MyJFrog tokens. For more information, see Generate a Token in MyJFrog.\n\n**Subscription:**\
+    \ This feature is supported on the Cloud (SaaS) platform, with an Enterprise X\
+    \ or Enterprise+ license.\n"
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://my.jfrog.com
+tags:
+- name: Platform Info
+  description: Platform cloud information APIs
+- name: IP Allowlist
+  description: IP allowlist management APIs
+- name: Custom Domain
+  description: Custom domain name and SSL certificate management APIs
+- name: Private Link
+  description: Private link connection management APIs
+security:
+- BearerAuth: []
+paths:
+  /api/jmis/v1/ip-ranges:
+    get:
+      tags:
+      - Platform Info
+      summary: GET Platform Cloud NAT IPs
+      description: "Get the list of JFrog Cloud Platform NAT IPs.\n\nTo assure proper\
+        \ communications are established with external services (like LDAP and SSO),\
+        \ \nyou need to whitelist JFrog Platform Cloud NAT IPs on the external service.\n\
+        \nSecurity: Does not require authentication.\n"
+      operationId: getCloudNatIps
+      security: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IpRange'
+              example:
+              - cidr:
+                - 34.86.118.153/32
+                - 34.145.193.114/32
+                region: us-east4
+                service: jfrog_cloud_cidr
+                cloud: gcp
+              - cidr:
+                - 35.194.79.117/32
+                - 34.150.215.121/32
+                region: us-east4
+                service: jfrog_pipelines_build_plane_cidr
+                cloud: gcp
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/regions:
+    get:
+      tags:
+      - Platform Info
+      summary: Get Available Regions by Cloud Provider
+      description: "Returns a list of the geographical regions in each provider's\
+        \ cloud that are available \nfor deployment of a JFrog platform. Filter or\
+        \ sort the list as your application requires.\n\nSecurity: Does not require\
+        \ authentication.\n"
+      operationId: getAvailableRegions
+      security: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionsResponse'
+              example:
+                regions:
+                - cloud: aws
+                  region_name: Sydney
+                  region_code: p-aws-prod-apse2
+                - cloud: azure
+                  region_name: Central India (Pune)
+                  region_code: p-azure-prod-cin
+                - cloud: gcp
+                  region_name: Hong Kong
+                  region_code: p-gcp-prod-ape2
+        '500':
+          description: Failed
+  /api/jmis/v1/servers:
+    get:
+      tags:
+      - Platform Info
+      summary: Get JFrog Server List
+      description: "Returns a list of all the JFrog servers defined in your subscription.\
+        \ \nFilter or sort the list as your application requires.\n\nFor each server,\
+        \ the list reports the following fields:\n- server_name: the name of the server\n\
+        - server_type: the type you chose when you created the server (Platform, Distribution\
+        \ Edge, Smart Archive)\n- cloud_provider: the Cloud vendor that hosts the\
+        \ server\n- region: the geographical location of the server in the vendor\
+        \ cloud\n\nRelated documentation: [Manage Your Cloud Topology](/docs/manage-your-cloud-topology).\n\
+        \nSecurity: Requires a valid token\n\n**Subscription:** This feature is supported\
+        \ on the Cloud (SaaS) platform, with an Enterprise X or Enterprise+ license.\n"
+      operationId: getServerList
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServersResponse'
+              example:
+                servers:
+                - server_name: myServer01
+                  server_type: Platform
+                  cloud_provider: Amazon Web Services
+                  region: EU Central
+                - server_name: myServer02
+                  server_type: Distribution Edge
+                  cloud_provider: Google Cloud Platform
+                  region: Hong Kong
+                - server_name: myServer03
+                  server_type: Smart Archive
+                  cloud_provider: Amazon Web Services
+                  region: EU Central
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /api/usage/v1/export/{scenario}:
+    get:
+      tags:
+      - Platform Info
+      summary: GET MyJFrog Usage Data
+      description: "Returns a CSV file containing usage data for the subscription\
+        \ over a specified time period. \nYou can define data filters and output settings\
+        \ for the exported report.\n\nRelated Documentation: This API parallels the\
+        \ filtering and reporting features of the MyJFrog portal's [Usage Explorer\
+        \ tab](/docs/manage-your-cloud-usage).\n\nSecurity: Requires a valid token\n\
+        \n**Subscription:** This feature is supported on the Cloud (SaaS) platform\
+        \ for all licenses.\n\n## Filter and Group Keys\n\nThe following keys are\
+        \ valid for the optional filter_by and group_by parameters:\n- action: Valid\
+        \ values are upload or download\n- artifact_path: you can group data in blocks\
+        \ of 32 days or more\n- ip: you can group data in blocks of 32 days or more\n\
+        - package_type\n- project\n- repo_type (repository type)\n- repository\n-\
+        \ server_name\n- service\n- username\n\n## Rate Limiting\n\nThis API request\
+        \ can generate significant processing loads. To retrieve a large data set,\
+        \ define a series of API requests with date ranges or filters.\n\nThe following\
+        \ limits are imposed on consecutive submissions of this request:\n\nIP-based\
+        \ limits:\n- 10 requests within 10 minutes\n- 20 requests per hour\n\nToken-based\
+        \ limits:\n- 5 requests within 5 minutes\n- 10 requests per hour\n\n**Note:**\
+        \ Rate limits may vary from these defaults in response to network conditions\
+        \ and service priorities.\n\n## Response\n\nThe response payload contains\
+        \ a CSV file named `JFrog-data-transfer-YYYYMMDD-yyyymmdd.csv`\nwhere YYYYMMDD\
+        \ is the value of start_date and yyyymmdd is the value of non_inclusive_end_date.\n\
+        All timestamps in the CSV file are UTC.\n"
+      operationId: getUsageData
+      parameters:
+      - name: scenario
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - traffic
+        description: "The type of data requested. Currently only the value \"traffic\"\
+          \ is supported, \nwhich corresponds to the Data Transfer usage reports of\
+          \ the MyJFrog portal.\n"
+      - name: format
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Output format. Currently only "csv" is supported.
+      - name: start_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+        description: "The earliest date for which data is reported (YYYY-MM-DD format).\
+          \ \nMust be within the last 558 days.\n"
+      - name: non_inclusive_end_date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+        description: The latest date for which data is reported (YYYY-MM-DD format).
+      - name: partition_by
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+        description: 'Granularity of data aggregation:
+
+          - day: report average and/or peak values several times per day (date range
+          cannot exceed 3 months)
+
+          - month: report average and/or peak values several times per month (date
+          range cannot exceed 12 months)
+
+          '
+      - name: partition_group_limit
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1999
+        description: Number of daily or monthly data samples (valid range 1-1999).
+      - name: filter_by
+        in: query
+        required: false
+        style: deepObject
+        explode: true
+        schema:
+          type: object
+          properties:
+            action:
+              type: string
+              enum:
+              - upload
+              - download
+              description: Filter by transfer action type. By default, unfiltered
+                reports include both uploads and downloads.
+            artifact_path:
+              type: string
+              description: Filter by artifact path. Date range must be 32 days or
+                more.
+            ip:
+              type: string
+              description: Filter by IP address. Date range must be 32 days or more.
+            package_type:
+              type: string
+              description: Filter by package type (e.g., docker, maven, npm).
+            project:
+              type: string
+              description: Filter by project key.
+            repo_type:
+              type: string
+              description: Filter by repository type.
+            repository:
+              type: string
+              description: Filter by repository name.
+            server_name:
+              type: string
+              description: Filter by server name (JPD name).
+            service:
+              type: string
+              description: Filter by service.
+            username:
+              type: string
+              description: Filter by username.
+        description: 'Optional filter to include only records matching the specified
+          values.
+
+          Example: filter_by[package_type]=docker includes only docker packages.
+
+          Multiple filters can be applied simultaneously. You can also define multiple
+          values for the same key to broaden the filter (e.g., filter_by[server_name]=myserver1&filter_by[server_name]=myserver2).
+
+          '
+      - name: group_by
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - action
+            - artifact_path
+            - ip
+            - package_type
+            - project
+            - repo_type
+            - repository
+            - server_name
+            - service
+            - username
+        style: form
+        explode: true
+        description: 'Optional grouping of reported data based on the specified keys.
+
+          Example: group_by=username groups together data records for each user account.
+
+          Multiple grouping criteria can be specified by repeating the parameter.
+
+          Note: artifact_path and ip grouping require date ranges of 32 days or more.
+
+          '
+      responses:
+        '200':
+          description: Success - CSV attached to return message
+          content:
+            text/csv:
+              schema:
+                type: string
+                description: CSV formatted usage data file named JFrog-data-transfer-YYYYMMDD-yyyymmdd.csv
+              example: 'Date,Total Data Transfer (B),Number Of Files Transferred
+
+                2025-11-03,1073741824,150
+
+                2025-11-04,2147483648,320
+
+                '
+        '400':
+          description: Bad Request - Invalid parameters supplied
+        '401':
+          description: Unauthorized user - Missing or invalid bearer token
+        '403':
+          description: 'Forbidden:
+
+            - User lacks the required view_usage permission
+
+            - User not authenticated for this SaaS subscription
+
+            '
+        '429':
+          description: Request Denied - Request rate exceeded. Too many/too frequent
+            API requests were submitted.
+        '500':
+          description: Internal Server Error - An unexpected error occurred
+  /api/jmis/v1/allowlist/{serverName}:
+    get:
+      tags:
+      - IP Allowlist
+      summary: Get the JPD IP Allowlist
+      description: "Returns the list of IPs in the JPD allowlist.\n\nAn IP/CIDR allowlist\
+        \ provides access to selected IP addresses and programs that your \nnetwork\
+        \ server policy could typically block.\n\n**Note:** If your JFrog URL is myserver.jfrog.io,\
+        \ the serverName is myserver.\n\nSecurity: Requires a valid token\n\n## Limitations\n\
+        - Maximum Allowlist Count: 4500 unique IP/CIDR values per subscription\n-\
+        \ Private IPs (RFC 1918) cannot be added: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16\n"
+      operationId: getIpAllowlist
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The server name (e.g., if URL is myserver.jfrog.io, use "myserver")
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllowlistGetResponse'
+              example:
+                status: COMPLETED
+                ips:
+                - ip: 2.2.2.7/1
+                - ip: 1.1.1.7/1
+        '401':
+          description: Unauthorized user
+        '403':
+          description: User forbidden
+        '500':
+          description: Internal Server Error
+    post:
+      tags:
+      - IP Allowlist
+      summary: Add IP to IP Allowlist
+      description: "Adds a new IP or a list of new IPs to the JPD allowlist. \nThe\
+        \ existing IPs in the allowlist are not affected.\n\nSecurity: Requires a\
+        \ valid token\n\n## Limitations\n- A single POST request can contain up to\
+        \ 2500 unique IP/CIDR values\n- Maximum Allowlist Count: 4500 unique IP/CIDR\
+        \ values per subscription\n- Private IPs (RFC 1918) cannot be added\n"
+      operationId: addIpToAllowlist
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The server name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllowlistModifyRequest'
+            example:
+              ips:
+              - 2.2.2.7/1
+              - 1.1.1.7/1
+      responses:
+        '200':
+          description: Success - IP addition in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllowlistModifyResponse'
+              example:
+                status: IN_PROGRESS
+                message: Success, the action will take a few minutes to complete
+                errors:
+                - message: Existing IPs
+                  details:
+                  - 2.2.2.7/1
+                - message: Invalid IPs
+                  details:
+                  - text
+        '400':
+          description: Failed - Also returned when addition would exceed maximum allowlist
+            length
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Server Blocked / Valid token does not match the server name
+        '409':
+          description: Another IP action is in progress (try again in a few minutes)
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal Server Error
+    delete:
+      tags:
+      - IP Allowlist
+      summary: Delete IP from IP Allowlist
+      description: 'Deletes an IP or list of IPs from the JPD allowlist.
+
+
+        Security: Requires a valid token
+
+
+        ## Limitations
+
+        - A single DELETE request can contain up to 2500 unique IP/CIDR values
+
+        '
+      operationId: deleteIpFromAllowlist
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The server name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllowlistModifyRequest'
+            example:
+              ips:
+              - 2.2.2.7/1
+      responses:
+        '200':
+          description: Success - IP deletion in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllowlistModifyResponse'
+              example:
+                status: IN_PROGRESS
+                message: Success, the action will take a few minutes to complete
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Server Blocked / Valid token does not match the server name
+        '429':
+          description: Too many requests
+        '500':
+          description: Failed
+  /api/jmis/v1/ssl:
+    get:
+      tags:
+      - Custom Domain
+      summary: Get SSL Objects
+      description: Get all SSL certificate objects.
+      operationId: getSslObjects
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ssl_certificates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SslObject'
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/ssl/submit:
+    post:
+      tags:
+      - Custom Domain
+      summary: Create SSL Object
+      description: 'Create a new SSL certificate object.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: createSslObject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SslCreateRequest'
+            example:
+              certificate_name: my-certificate
+              certificate_body: '-----BEGIN CERTIFICATE-----
+
+                MIIFYDCCBEigAwIBAgIQQAF3ITfU6UK47naqPGQKtzANBgkqhkiG9w0BAQsFADA/
+
+                ...'
+              certificate_private_key: '-----BEGIN RSA PRIVATE KEY-----
+
+                MIIEowIBAAKCAQEAqXrUanF4BBsrqqgqjlylYmMMmsmghWWwnrEgIPBTXkOkCaiA
+
+                ...'
+              certificate_chain: ''
+              domains_under_certificate:
+              - url: servername01.com
+                server_name: serverName01
+                type: platform_base_url
+      responses:
+        '200':
+          description: SSL object created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request - Invalid certificate or key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SslErrorResponse'
+              example:
+                status: BAD_REQUEST
+                statusCode: 400
+                errors:
+                - Your private key does not match your certificate body
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/ssl/delete/{certificate_id}:
+    delete:
+      tags:
+      - Custom Domain
+      summary: Delete SSL Object
+      description: Delete an SSL certificate object.
+      operationId: deleteSslObject
+      parameters:
+      - name: certificate_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The certificate ID
+      responses:
+        '200':
+          description: SSL object deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/ssl/renew:
+    post:
+      tags:
+      - Custom Domain
+      summary: Renew SSL Object
+      description: 'Renew an SSL certificate object.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: renewSslObject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SslRenewRequest'
+            example:
+              certificate_id: cert-id-123
+              certificate_name: my-certificate
+              certificate_body: '-----BEGIN CERTIFICATE-----
+
+                MIIFYDCCBEigAwIBAgIQQAF3ITfU6UK47naqPGQKtzANBgkqhkiG9w0BAQsFADA/
+
+                ...'
+              certificate_private_key: '-----BEGIN RSA PRIVATE KEY-----
+
+                MIIEowIBAAKCAQEAqXrUanF4BBsrqqgqjlylYmMMmsmghWWwnrEgIPBTXkOkCaiA
+
+                ...'
+              certificate_chain: ''
+              domains_under_certificate:
+              - url: servername01.com
+                server_name: serverName01
+                type: platform_base_url
+      responses:
+        '200':
+          description: SSL object renewed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/ssl/validate:
+    post:
+      tags:
+      - Custom Domain
+      summary: Validate SSL Object
+      description: 'Validate an SSL certificate object.
+
+
+        If certificate_id is provided, validates for renewal. Otherwise, validates
+        new certificate elements.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: validateSslObject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SslValidateRequest'
+            example:
+              certificate_name: my-certificate
+              certificate_body: '-----BEGIN CERTIFICATE-----
+
+                MIIFYDCCBEigAwIBAgIQQAF3ITfU6UK47naqPGQKtzANBgkqhkiG9w0BAQsFADA/
+
+                ...'
+              certificate_private_key: '-----BEGIN RSA PRIVATE KEY-----
+
+                MIIEowIBAAKCAQEAqXrUanF4BBsrqqgqjlylYmMMmsmghWWwnrEgIPBTXkOkCaiA
+
+                ...'
+              certificate_chain: ''
+      responses:
+        '200':
+          description: SSL object validated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Validation failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/ssl/manage_domains:
+    post:
+      tags:
+      - Custom Domain
+      summary: Manage Domain
+      description: 'Add or delete the defined domains associated to JPDs under a valid
+        SSL certificate.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: manageDomains
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManageDomainsRequest'
+            example:
+              certificate_id: cert-id-123
+              domains_under_certificate:
+              - url: servername01.com
+                server_name: serverName01
+                type: platform_base_url
+              - url: servername02.com
+                server_name: serverName02
+                type: platform_base_url
+      responses:
+        '200':
+          description: Success - Domain management request submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: in_progress
+                  message:
+                    type: string
+                    example: successfully submitted
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '409':
+          description: Another action is in progress (try again in a few minutes)
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/private-link/servers/{serverName}:
+    get:
+      tags:
+      - Private Link
+      summary: Get Private Links by Server Name
+      description: 'Retrieve all private links associated with a specific server.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: getPrivateLinksByServer
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The server name
+        example: my-server-01
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerPrivateLinks'
+              example:
+                serverName: myServer01
+                private_links:
+                - privateLinkId: pl-abc123def456
+                  status: connected
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/private-link/{privateLinkId}:
+    get:
+      tags:
+      - Private Link
+      summary: Get Servers by Private Link ID
+      description: 'Retrieve all servers associated with a specific private link.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: getServersByPrivateLink
+      parameters:
+      - name: privateLinkId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The private link ID
+        example: pl-abc123def456
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivateLinkServers'
+              example:
+                privateLinkId: pl-abc123def456
+                servers:
+                - serverName: myServer01
+                  privateLinkStatus: connected
+                - serverName: myServer02
+                  privateLinkStatus: connected
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/private-link/add:
+    post:
+      tags:
+      - Private Link
+      summary: Add Private Link to Servers
+      description: 'Add a private link configuration to one or more servers.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: addPrivateLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivateLinkAddRequest'
+            example:
+              privateLinkId: pl-abc123def456
+              serverNames:
+              - my-server-01
+              - my-server-02
+      responses:
+        '200':
+          description: Private link added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivateLinkAddResponse'
+              example:
+                privateLinkId: pl-abc123def456
+                results:
+                - serverName: my-server-01
+                  privateLinkStatus: connecting
+                - serverName: my-server-02
+                  privateLinkStatus: connecting
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/private-link/fix:
+    post:
+      tags:
+      - Private Link
+      summary: Fix Private Link
+      description: "Replace an existing private link with a new one across affected\
+        \ servers. \n\nOnly private links in status \"Failed: not found\" or \"Failed\"\
+        \ may be replaced.\n\nSecurity: Requires a valid token\n"
+      operationId: fixPrivateLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivateLinkFixRequest'
+            example:
+              fromPrivateLinkId: pl-old123abc456
+              toPrivateLinkId: pl-new789xyz012
+      responses:
+        '200':
+          description: Private link fix initiated successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PrivateLinkFixResult'
+              example:
+              - serverName: my-server-01
+                results:
+                - fromPrivateLinkId: pl-old123abc456
+                  toPrivateLinkId: pl-new789xyz012
+                  status: connecting
+              - serverName: my-server-02
+                results:
+                - fromPrivateLinkId: pl-old123abc456
+                  toPrivateLinkId: pl-new789xyz012
+                  status: connecting
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+  /api/jmis/v1/private-link/delete:
+    delete:
+      tags:
+      - Private Link
+      summary: Delete Private Link from Servers
+      description: 'Remove a private link configuration from one or more servers.
+
+
+        Security: Requires a valid token
+
+        '
+      operationId: deletePrivateLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivateLinkDeleteRequest'
+            example:
+              privateLinkId: pl-abc123def456
+              serverNames:
+              - my-server-01
+              - my-server-02
+      responses:
+        '200':
+          description: Private link deletion initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivateLinkDeleteResponse'
+              example:
+                privateLinkId: pl-abc123def456
+                results:
+                - serverName: my-server-01
+                  privateLinkStatus: removing
+                - serverName: my-server-02
+                  privateLinkStatus: removing
+        '400':
+          description: Failed
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Account is not permitted for this action
+        '500':
+          description: Internal Server Error
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token (Only a Primary Admin can generate
+        MyJFrog tokens)
+  schemas:
+    IpRange:
+      type: object
+      properties:
+        cidr:
+          type: array
+          items:
+            type: string
+          description: List of CIDR blocks
+        region:
+          type: string
+          description: Cloud region
+        service:
+          type: string
+          description: Service type (e.g., jfrog_cloud_cidr, jfrog_pipelines_build_plane_cidr)
+        cloud:
+          type: string
+          description: Cloud provider (aws, azure, gcp)
+    RegionsResponse:
+      type: object
+      properties:
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Region'
+    Region:
+      type: object
+      properties:
+        cloud:
+          type: string
+          description: Cloud provider (aws, azure, gcp)
+        region_name:
+          type: string
+          description: Region display name
+        region_code:
+          type: string
+          description: Region code identifier
+    ServersResponse:
+      type: object
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Server'
+    Server:
+      type: object
+      properties:
+        server_name:
+          type: string
+          description: The name of the server
+        server_type:
+          type: string
+          description: The type of server
+          enum:
+          - Platform
+          - Distribution Edge
+          - Smart Archive
+        cloud_provider:
+          type: string
+          description: The Cloud vendor that hosts the server
+        region:
+          type: string
+          description: The geographical location of the server in the vendor cloud
+    AllowlistGetResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the request
+          example: COMPLETED
+        ips:
+          type: array
+          items:
+            type: object
+            properties:
+              ip:
+                type: string
+                description: IP address or CIDR block
+    AllowlistModifyRequest:
+      type: object
+      required:
+      - ips
+      properties:
+        ips:
+          type: array
+          items:
+            type: string
+          description: List of IP addresses or CIDR blocks
+          maxItems: 2500
+    AllowlistModifyResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the request
+          example: IN_PROGRESS
+        message:
+          type: string
+          description: Status message
+          example: Success, the action will take a few minutes to complete
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error type (e.g., "Existing IPs", "Invalid IPs", "Nonexistent
+                  IPs")
+              details:
+                type: array
+                items:
+                  type: string
+                description: List of affected IPs
+    SslObject:
+      type: object
+      properties:
+        certificate_name:
+          type: string
+          description: Certificate name
+        certificate_id:
+          type: string
+          description: Certificate ID
+        certificate_body:
+          type: string
+          description: PEM-encoded certificate body
+        certificate_chain:
+          type: string
+          description: PEM-encoded certificate chain
+        certificate_private_key:
+          type: string
+          description: PEM-encoded private key (typically omitted in responses)
+        expiry:
+          type: integer
+          format: int64
+          description: Unix timestamp of certificate expiration
+        certificate_status:
+          type: string
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - PENDING
+          - FAILED
+          description: Certificate status
+        domains_under_certificate:
+          type: array
+          items:
+            type: string
+          description: List of domain names associated with this certificate
+        domains_in_use:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomainUnderCertificate'
+          description: Detailed list of domains currently in use
+    SslCreateRequest:
+      type: object
+      required:
+      - certificate_name
+      - certificate_body
+      - certificate_private_key
+      - domains_under_certificate
+      properties:
+        certificate_name:
+          type: string
+          description: Name for the certificate
+          maxLength: 225
+        certificate_body:
+          type: string
+          description: PEM-encoded certificate body
+        certificate_private_key:
+          type: string
+          description: PEM-encoded private key (optional but recommended for creation)
+        certificate_chain:
+          type: string
+          description: PEM-encoded certificate chain (can be empty string)
+        domains_under_certificate:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomainUnderCertificate'
+          description: List of domains to associate with this certificate
+          minItems: 1
+    SslRenewRequest:
+      allOf:
+      - $ref: '#/components/schemas/SslCreateRequest'
+      - type: object
+        required:
+        - certificate_id
+        properties:
+          certificate_id:
+            type: string
+            description: The ID of the certificate to renew
+    SslValidateRequest:
+      type: object
+      required:
+      - certificate_name
+      - certificate_body
+      - certificate_private_key
+      properties:
+        certificate_id:
+          type: string
+          description: Optional - if provided, validates for renewal of existing certificate
+        certificate_name:
+          type: string
+          description: Certificate name (alphanumeric and special characters allowed)
+          maxLength: 225
+          pattern: ^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':\"|,.<>/? ]+$
+        certificate_private_key:
+          type: string
+          description: PEM-encoded private key
+        certificate_body:
+          type: string
+          description: PEM-encoded certificate body
+        certificate_chain:
+          type: string
+          description: PEM-encoded certificate chain (optional)
+    DomainUnderCertificate:
+      type: object
+      required:
+      - url
+      - server_name
+      - type
+      properties:
+        url:
+          type: string
+          description: Domain URL
+        server_name:
+          type: string
+          description: Server name associated with the domain
+        type:
+          type: string
+          enum:
+          - platform_base_url
+          - docker_sub_domain
+          description: Domain type
+        docker_repository_name_override:
+          type: string
+          description: Override for Docker repository name (only applicable for docker_sub_domain
+            type)
+    SslErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Error status
+          example: BAD_REQUEST
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 400
+        errors:
+          type: array
+          items:
+            type: string
+          description: List of error messages
+    ManageDomainsRequest:
+      type: object
+      required:
+      - certificate_id
+      - domains_under_certificate
+      properties:
+        certificate_id:
+          type: string
+          description: Certificate ID
+        domains_under_certificate:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomainUnderCertificate'
+          description: List of domains to associate with the certificate
+    ServerPrivateLinks:
+      type: object
+      properties:
+        serverName:
+          type: string
+          description: Server name
+        private_links:
+          type: array
+          items:
+            type: object
+            properties:
+              privateLinkId:
+                type: string
+                description: Private link ID
+              status:
+                type: string
+                description: 'Private link status. Possible values:
+
+                  - connected: Private link is active and functioning
+
+                  - connecting: Private link is being configured
+
+                  - removing: Private link is being removed
+
+                  - FAILED (not found): Failed connection - Endpoint not found. Please
+                  verify the endpoint ID exists in the provider
+
+                  - FAILED (internal issue): Failed connection - Please contact support@jfrog.com
+
+                  '
+    PrivateLinkServers:
+      type: object
+      properties:
+        privateLinkId:
+          type: string
+          description: Private link ID
+        servers:
+          type: array
+          items:
+            type: object
+            properties:
+              serverName:
+                type: string
+                description: Server name
+              privateLinkStatus:
+                type: string
+                description: Private link status for this server
+    PrivateLinkAddRequest:
+      type: object
+      required:
+      - privateLinkId
+      - serverNames
+      properties:
+        privateLinkId:
+          type: string
+          description: The private link ID to add
+          maxLength: 255
+        serverNames:
+          type: array
+          items:
+            type: string
+          description: List of server names to add the private link to
+    PrivateLinkAddResponse:
+      type: object
+      properties:
+        privateLinkId:
+          type: string
+          description: The private link ID
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              serverName:
+                type: string
+                description: Server name
+              privateLinkStatus:
+                type: string
+                description: Status of the private link for this server
+    PrivateLinkFixRequest:
+      type: object
+      required:
+      - fromPrivateLinkId
+      - toPrivateLinkId
+      properties:
+        fromPrivateLinkId:
+          type: string
+          description: The old private link ID to replace
+          maxLength: 255
+        toPrivateLinkId:
+          type: string
+          description: The new private link ID
+          maxLength: 255
+    PrivateLinkFixResult:
+      type: object
+      properties:
+        serverName:
+          type: string
+          description: Server name
+        message:
+          type: string
+          description: Additional message about the fix operation result
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              fromPrivateLinkId:
+                type: string
+                description: Old private link ID
+              toPrivateLinkId:
+                type: string
+                description: New private link ID
+              status:
+                type: string
+                description: Status of the fix operation
+    PrivateLinkDeleteRequest:
+      type: object
+      required:
+      - privateLinkId
+      - serverNames
+      properties:
+        privateLinkId:
+          type: string
+          description: The private link ID to delete
+          maxLength: 255
+        serverNames:
+          type: array
+          items:
+            type: string
+          description: List of server names to remove the private link from
+    PrivateLinkDeleteResponse:
+      type: object
+      properties:
+        privateLinkId:
+          type: string
+          description: The private link ID
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              serverName:
+                type: string
+                description: Server name
+              privateLinkStatus:
+                type: string
+                description: Status of the deletion for this server
+x-readme:
+  explorer-enabled: false

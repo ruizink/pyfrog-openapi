@@ -1,0 +1,1806 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Searches API
+  description: "REST API for searching artifacts, builds, and other items in JFrog\
+    \ Artifactory using various search methods including AQL, GAVC, property search,\
+    \ checksum search, and more.\n\n> :bulb: **Important Note on Search Result Limits**\n\
+    >\n> All searches return limited results for internal and anonymous users (same\
+    \ limits as in the user interface).\n> To modify the default limit results, edit\
+    \ the `artifactory.system.properties` file with:\n> - `artifactory.search.limitAnonymousUsersOnly=false`\
+    \ (default is `true`)\n> - `artifactory.search.userQueryLimit` (default is `1000`)\n\
+    >\n> This applies to the following search APIs: Artifact Search, Archive Entries\
+    \ Search, GAVC Search, Property Search, Checksum Search (limited by UI max results),\
+    \ \n> Artifacts Not Downloaded Since, Artifacts With Date in Date Range, Artifacts\
+    \ Created in Date Range\n"
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Searches
+  description: Search operations for artifacts and builds
+paths:
+  /search/aql:
+    post:
+      tags:
+      - Searches
+      summary: Artifactory Query Language (AQL)
+      description: 'Flexible and high performance search using Artifactory Query Language.
+
+
+        Since: 3.5.0
+
+
+        Security: Requires an authenticated user. Certain domains/queries may require
+        Admin access.
+
+        '
+      operationId: searchAql
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: AQL query string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  range:
+                    type: object
+                    properties:
+                      start_pos:
+                        type: integer
+                      end_pos:
+                        type: integer
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      notification:
+                        type: string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/artifact:
+    get:
+      tags:
+      - Searches
+      summary: Artifact Search (Quick Search)
+      description: "Artifact search by part of file name. Searches return file info\
+        \ URIs. Can limit search to specific repositories (local or caches). \n\n\
+        Note: The search must be performed on the actual source repository (local\
+        \ or remote). Virtual repositories are not supported.\n\nSince: 2.2.0\n\n\
+        Security: Requires a privileged user (can be anonymous)\n"
+      operationId: searchArtifact
+      parameters:
+      - name: name
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Part of file name to search for
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      - name: X-Result-Detail
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - info
+          - properties
+          - info, properties
+        description: 'Optional header to include additional details: ''info'' (adds
+          all extra information of the found artifact), ''properties'' (gets the properties
+          of the found artifact), ''info, properties'' (for both)'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/archive:
+    get:
+      tags:
+      - Searches
+      summary: Archive Entries Search (Class Search)
+      description: "Search archive for classes or any other resources within an archive.\
+        \ Can limit search to specific repositories (local or caches). \n\n**Deprecation\
+        \ Notice**: This API is deprecated and is scheduled for removal in a future\
+        \ version of Artifactory. We strongly recommend using Artifactory Query Language\
+        \ (AQL) for all new development.\n\nSince: 2.2.0\n\nSecurity: Requires a privileged\
+        \ user (can be anonymous)\n"
+      operationId: searchArchive
+      parameters:
+      - name: name
+        in: query
+        schema:
+          type: string
+        description: Archive entry name pattern (e.g., *Logger.class)
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        entry:
+                          type: string
+                        archiveUris:
+                          type: array
+                          items:
+                            type: string
+                            format: uri
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/gavc:
+    get:
+      tags:
+      - Searches
+      summary: GAVC Search
+      description: "Search by Maven coordinates - GroupId, ArtifactId, Version & Classifier.\
+        \ The search must contain at least one argument. The search can be limited\
+        \ to specific repositories (local and remote-cache). \n\nNote: This endpoint\
+        \ requires a repository type or layout that supports GAVC, including Maven,\
+        \ Gradle, Ivy, and SBT.\n\nImportant: The exact GroupId and ArtifactId must\
+        \ be provided to search remote repositories.\n\nSince: 2.2.0\n\nSecurity:\
+        \ Requires a privileged user (can be anonymous)\n"
+      operationId: searchGavc
+      parameters:
+      - name: g
+        in: query
+        schema:
+          type: string
+        description: GroupId
+      - name: a
+        in: query
+        schema:
+          type: string
+        description: ArtifactId
+      - name: v
+        in: query
+        schema:
+          type: string
+        description: Version
+      - name: c
+        in: query
+        schema:
+          type: string
+        description: Classifier
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      - name: specific
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: From Artifactory version 7.37.9, this attribute was added to
+          support virtual and remote repositories. Once set to true, the output will
+          be minimized to only include downloadUrl, ext, version, and classifier.
+      - name: X-Result-Detail
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - info
+          - properties
+          - info, properties
+        description: 'Optional header to include additional details: ''info'' (adds
+          all extra information of the found artifact), ''properties'' (gets the properties
+          of the found artifact), ''info, properties'' (for both)'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+                        downloadUri:
+                          type: string
+                          format: uri
+                        ext:
+                          type: string
+                        version:
+                          type: string
+                        classifier:
+                          type: string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/prop:
+    get:
+      tags:
+      - Searches
+      summary: Property Search
+      description: 'Search by properties. If no value is specified for a property
+        - assume ''*''. Can limit search to specific repositories (local, remote-cache
+        or virtual).
+
+
+        Since: 2.2.0
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchProperty
+      parameters:
+      - name: p1
+        in: query
+        schema:
+          type: string
+        description: Property key-value pairs in format p1=v1,v2
+      - name: p2
+        in: query
+        schema:
+          type: string
+        description: Additional property key-value pairs
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      - name: X-Result-Detail
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - info
+          - properties
+          - info, properties
+        description: 'Optional header to include additional details: ''info'' (adds
+          all extra information of the found artifact), ''properties'' (gets the properties
+          of the found artifact), ''info, properties'' (for both)'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/checksum:
+    get:
+      tags:
+      - Searches
+      summary: Checksum Search
+      description: 'Artifact search by checksum (md5, sha1, or sha256). Searches return
+        file info URIs. Can limit search to specific repositories (local, remote-cache
+        or virtual).
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Since: 2.3.0
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchChecksum
+      parameters:
+      - name: md5
+        in: query
+        schema:
+          type: string
+        description: MD5 checksum
+      - name: sha1
+        in: query
+        schema:
+          type: string
+        description: SHA1 checksum
+      - name: sha256
+        in: query
+        schema:
+          type: string
+        description: SHA256 checksum
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      - name: X-Result-Detail
+        in: header
+        required: false
+        schema:
+          type: string
+          enum:
+          - info
+          - properties
+          - info, properties
+        description: 'Optional header to include additional details: ''info'' (adds
+          all extra information of the found artifact), ''properties'' (gets the properties
+          of the found artifact), ''info, properties'' (for both)'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/badChecksum:
+    get:
+      tags:
+      - Searches
+      summary: Bad Checksum Search
+      description: 'Find all artifacts that have bad or missing client checksum values
+        (md5 or sha1). Searches return file info URIs. Can limit the search to specific
+        repositories (local, remote-cache, or virtual).
+
+
+        Important: The response is limited to a maximum of 10,000 results.
+
+
+        Notes: Requires Artifactory Pro or higher
+
+
+        Since: 2.3.4
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchBadChecksum
+      parameters:
+      - name: type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - md5
+          - sha1
+        description: Checksum type to search for
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      responses:
+        '200':
+          description: Success. Note - The response is limited to a maximum of 10000
+            results.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+                        serverMd5:
+                          type: string
+                        clientMd5:
+                          type: string
+                          description: On missing checksum this element will be an
+                            empty string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/usage:
+    get:
+      tags:
+      - Searches
+      summary: Artifacts Not Downloaded Since
+      description: 'Returns all artifacts not downloaded since the specified Java
+        epoch in milliseconds. Optionally include only artifacts created before the
+        specified createdBefore date, otherwise only artifacts created before notUsedSince
+        are returned. Can limit search to specific repositories (local or caches).
+
+
+        Since: 2.2.4
+
+
+        Security: Requires a privileged non-anonymous user
+
+        '
+      operationId: searchUsage
+      parameters:
+      - name: notUsedSince
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+        description: Java epoch in milliseconds
+      - name: createdBefore
+        in: query
+        schema:
+          type: integer
+          format: int64
+        description: Java epoch in milliseconds
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+                        lastDownloaded:
+                          type: string
+                          format: date-time
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/dates:
+    get:
+      tags:
+      - Searches
+      summary: Artifacts With Date in Date Range
+      description: 'Get all artifacts with specified dates within the given range.
+        Search can be limited to specific repositories (local or caches).
+
+
+        Since: 3.2.1
+
+
+        Security: Requires a privileged non-anonymous user
+
+        '
+      operationId: searchDates
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          oneOf:
+          - type: integer
+            format: int64
+          - type: string
+            format: date-time
+        description: The from parameter can be either a long value for the java epoch
+          (milliseconds since the epoch), or an ISO8601 string value.
+      - name: to
+        in: query
+        schema:
+          oneOf:
+          - type: integer
+            format: int64
+          - type: string
+            format: date-time
+        description: The to parameter can be either a long value for the java epoch
+          (milliseconds since the epoch), or an ISO8601 string value. If to is not
+          provided, now() will be used instead.
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      - name: dateFields
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        description: Comma-separated list of date fields that specify which fields
+          the from and to values should be applied to. The supported date fields are
+          created, lastModified, lastDownloaded.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+                        created:
+                          type: string
+                          format: date-time
+                        lastModified:
+                          type: string
+                          format: date-time
+                        lastDownloaded:
+                          type: string
+                          format: date-time
+        '400':
+          description: Bad Request - If both parameters are omitted, 400 bad request
+            is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/creation:
+    get:
+      tags:
+      - Searches
+      summary: Artifacts Created in Date Range
+      description: 'Get All Artifacts Created in Date Range. If ''to'' is not specified
+        use now(). Can limit search to specific repositories (local or remote-cache).
+
+
+        Since: 2.2.0
+
+
+        Security: Requires a privileged non-anonymous user
+
+        '
+      operationId: searchCreation
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+        description: Java epoch in milliseconds
+      - name: to
+        in: query
+        schema:
+          type: integer
+          format: int64
+        description: Java epoch in milliseconds
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+                        created:
+                          type: string
+                          format: date-time
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/pattern:
+    get:
+      tags:
+      - Searches
+      summary: Pattern Search
+      description: 'Get all artifacts matching the given Ant path pattern. Pattern
+        "**" is not supported to avoid overloading search results.
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Since: 2.2.4
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchPattern
+      parameters:
+      - name: pattern
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Ant path pattern in format repo-key:this/is/a/*pattern*.war
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repositoryUri:
+                    type: string
+                    format: uri
+                  sourcePattern:
+                    type: string
+                  files:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/dependency:
+    get:
+      tags:
+      - Searches
+      summary: Builds for Dependency
+      description: 'Find all the builds an artifact is a dependency of (where the
+        artifact is included in the build-info dependencies).
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Since: 2.3.4
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchDependency
+      parameters:
+      - name: sha1
+        in: query
+        required: true
+        schema:
+          type: string
+        description: SHA1 checksum
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/license:
+    get:
+      tags:
+      - Searches
+      summary: License Search
+      description: 'Search for artifacts that were already tagged with license information
+        and their respective licenses. To search by specific license values use Property
+        Search with the ''artifactory.licenses'' property. When the autofind parameter
+        is specified Artifactory will try to automatically find new license information
+        and return it as part of the result in the found field. Default parameter
+        values when unspecified unapproved=1, unknown=1, notfound=0, neutral=0, approved=0,
+        autofind=0. Can limit search to specific repositories (local, remote-cache
+        or virtual).
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Since: 2.3.0
+
+
+        Security: Requires an admin user
+
+        '
+      operationId: searchLicense
+      parameters:
+      - name: unapproved
+        in: query
+        schema:
+          type: integer
+          default: 1
+        description: Include unapproved licenses
+      - name: unknown
+        in: query
+        schema:
+          type: integer
+          default: 1
+        description: Include unknown licenses
+      - name: notfound
+        in: query
+        schema:
+          type: integer
+          default: 0
+        description: Include not found licenses
+      - name: neutral
+        in: query
+        schema:
+          type: integer
+          default: 0
+        description: Include neutral licenses
+      - name: approved
+        in: query
+        schema:
+          type: integer
+          default: 0
+        description: Include approved licenses
+      - name: autofind
+        in: query
+        schema:
+          type: integer
+          default: 0
+        description: Automatically find new license information
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          description: URI of the artifact (may contain spaces)
+                        license:
+                          type: string
+                        found:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                          - approved
+                          - unapproved
+                          - neutral
+                          - unknown
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/versions:
+    get:
+      tags:
+      - Searches
+      summary: Artifact Version Search
+      description: 'Search for all available artifact versions by GroupId and ArtifactId
+        in local, remote or virtual repositories. Search can be limited to specific
+        repositories (local, remote and virtual) by settings the repos parameter.
+        Release/integration versions Unless the version parameter is specified, both
+        release and integration versions are returned. When version is specified,
+        e.g. 1.0-SNAPSHOT, result includes only integration versions. Remote searches
+        By default only local and cache repositories are used. When specifying remote=1,
+        Artifactory searches for versions on remote repositories. Filtering results
+        (Artifactory 3.0.2+) The version parameter can accept the * and/or ? wildcards
+        which will then filter the final result to match only those who match the
+        given version pattern.
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Since: 2.6.0
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchVersions
+      parameters:
+      - name: g
+        in: query
+        schema:
+          type: string
+        description: GroupId
+      - name: a
+        in: query
+        schema:
+          type: string
+        description: ArtifactId
+      - name: v
+        in: query
+        schema:
+          type: string
+        description: Version pattern (supports wildcards * and ?)
+      - name: remote
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+        description: When specifying remote=1, Artifactory searches for versions on
+          remote repositories. NOTE! that this can dramatically slow down the search.
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        version:
+                          type: string
+                        integration:
+                          type: boolean
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/latestVersion:
+    get:
+      tags:
+      - Searches
+      summary: Artifact Latest Version Search Based on Layout
+      description: 'Search for the latest artifact version by groupId and artifactId,
+        based on the definitions in the Repository Layouts. This API is based on a
+        Maven-specific algorithm for sorting versions. Search can be limited to specific
+        repositories (local, remote-cache, or virtual) by settings the repos parameter.
+        Latest release vs. latest integration Unless the version parameter is specified,
+        the search returns the latest artifact release version. When version is specified,
+        e.g. 1.0-SNAPSHOT, the result is the latest integration version. Remote searches
+        By default only local and cache repositories will be used. When specifying
+        remote=1, Artifactory searches for versions on remote repositories. Filtering
+        results (Artifactory 3.0.2+) The version parameter can accept the * and/or
+        ? wildcards which will then filter the final result to match only those who
+        match the given version pattern. Artifact path pattern The [org] and [module]
+        fields must be specified in the artifact path pattern of the repository layout
+        for this call to work.
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Since: 2.6.0
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchLatestVersion
+      parameters:
+      - name: g
+        in: query
+        schema:
+          type: string
+        description: GroupId
+      - name: a
+        in: query
+        schema:
+          type: string
+        description: ArtifactId
+      - name: v
+        in: query
+        schema:
+          type: string
+        description: Version pattern (supports wildcards * and ?)
+      - name: remote
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+        description: When specifying remote=1, Artifactory searches for versions on
+          remote repositories.
+      - name: repos
+        in: query
+        schema:
+          type: string
+        description: Comma-separated list of repository keys to limit search to
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Latest version string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /versions/{repo}/{path}:
+    get:
+      tags:
+      - Searches
+      summary: Artifact Latest Version Search Based on Properties
+      description: "Search for artifacts with the latest value in the version property.\
+        \ Only artifacts with the version property expressly defined in lowercase\
+        \ will be returned. \n\nThis API is based on a Maven-specific algorithm for\
+        \ sorting versions. \n\nResults can be filtered by specifying additional properties.\
+        \ \n\n- {repo} Specify a repository to search through or replace with \"_any\"\
+        \ to search through all repositories. \n- {path} Specify a path to search\
+        \ through or replace with \"_any\" to search through all paths. \n- listFiles=0\
+        \ (default) Artifactory will only retrieve the latest version. \n- listFiles=1\
+        \ Artifactory will retrieve the latest version and the corresponding files.\
+        \ \n\nYou may specify filters to restrict the set of artifacts that are searched\
+        \ by adding any properties to your search URL.\n\nNotes: Requires Artifactory\
+        \ Pro\n\nSince: 3.1.1\n\nSecurity: Requires a privileged user (can be anonymous)\n"
+      operationId: searchLatestVersionByProperties
+      parameters:
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Specify a repository to search through or replace with "_any"
+          to search through all repositories
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Specify a path to search through or replace with "_any" to search
+          through all paths
+      - name: listFiles
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          default: 0
+        description: listFiles=0 (default) Artifactory will only retrieve the latest
+          version. listFiles=1 Artifactory will retrieve the latest version and the
+          corresponding files.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  artifacts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uri:
+                          type: string
+                          format: uri
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /search/buildArtifacts:
+    post:
+      tags:
+      - Searches
+      summary: Build Artifacts Search
+      description: 'Find all the artifacts related to a specific build.
+
+
+        Notes: Requires Artifactory Pro
+
+
+        Since: 2.6.5
+
+
+        Security: Requires a privileged user (can be anonymous)
+
+        '
+      operationId: searchBuildArtifacts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                buildName:
+                  type: string
+                  description: The build name for search by
+                buildNumber:
+                  type: string
+                  description: The build number to search by, can be LATEST to search
+                    for the latest build number
+                buildStatus:
+                  type: string
+                  description: Optionally search by latest build status (e.g "Released")
+                repos:
+                  type: array
+                  items:
+                    type: string
+                  description: Optionally refine search for specific repos, omit to
+                    search within all repositories
+                mappings:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      input:
+                        type: string
+                        description: Regexp pattern to search by
+                  description: Optionally refine the search by providing a list of
+                    regexp patterns to search by
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        downloadUri:
+                          type: string
+                          format: uri
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /docker/{repo-key}/v2/{imageName}/parentManifests:
+    post:
+      tags:
+      - Searches
+      summary: Find Parent Manifest Lists
+      description: Finds all parent manifest lists that include a specific Docker
+        manifest. Since 7.119.0
+      operationId: findParentManifestLists
+      parameters:
+      - name: repo-key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Docker repository key
+      - name: imageName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Docker image name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - dockerRepository
+              - tag
+              properties:
+                dockerRepository:
+                  type: string
+                  description: Docker repository name
+                tag:
+                  type: string
+                  description: Docker tag
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  parentManifestLists:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        dockerRepository:
+                          type: string
+                        digest:
+                          type: string
+                        tags:
+                          type: array
+                          items:
+                            type: string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /docker/{repo-key}/v2/_catalog:
+    get:
+      tags:
+      - Searches
+      summary: List Docker Repositories
+      description: Lists all Docker repositories (the registry's _catalog) hosted
+        in an Artifactory Docker repository. Since 4.4.3. The n and last pagination
+        parameters are supported from version 5.4.6. Both parameters refer to an integer.
+      operationId: listDockerRepositories
+      parameters:
+      - name: repo-key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Docker repository key
+      - name: n
+        in: query
+        schema:
+          type: integer
+        description: Number of consecutive repositories
+      - name: last
+        in: query
+        schema:
+          type: string
+        description: Last tag value from previous response
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repositories:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+  /docker/{repo-key}/v2/{imageName}/tags/list:
+    get:
+      tags:
+      - Searches
+      summary: List Docker Tags
+      description: Lists all tags of the specified Artifactory Docker repository.
+        Since 4.4.3. The n and last pagination parameters are supported from version
+        5.4.6.
+      operationId: listDockerTags
+      parameters:
+      - name: repo-key
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Docker repository key
+      - name: imageName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Docker image name
+      - name: n
+        in: query
+        schema:
+          type: integer
+        description: Number of consecutive tags
+      - name: last
+        in: query
+        schema:
+          type: integer
+        description: Last tag position (numeric) from previous response
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  tags:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad Request - Missing required parameters or invalid query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+        '404':
+          description: Not Found - The specified resource was not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+                description: HTTP status code
+              message:
+                type: string
+                description: Error message

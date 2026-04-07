@@ -1,0 +1,1052 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Repository Replication API
+  description: REST API for managing repository replication in JFrog Artifactory
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api
+  description: JFrog Platform
+  variables:
+    jfrog_url:
+      default: myserver.jfrog.io
+      description: Your JFrog Platform hostname (e.g., mycompany.jfrog.io)
+tags:
+- name: Repository Replication
+  description: Repository replication management operations
+- name: System Replication
+  description: System-wide replication configuration operations
+- name: Checksum Replication
+  description: Checksum replication configuration operations
+paths:
+  /replications/{repoKey}:
+    get:
+      tags:
+      - Repository Replication
+      summary: Get Repository Replication Configuration
+      description: Returns the replication configuration for the given repository
+        key, if found. Supported by local and remote repositories
+      operationId: getRepositoryReplicationConfiguration
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Successfully retrieved replication configuration
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/ReplicationConfigRequest'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/ReplicationConfigRequest'
+              examples:
+                single:
+                  summary: Single replication configuration
+                  value:
+                    url: http://localhost:8081/artifactory/remote-repo
+                    socketTimeoutMillis: 15000
+                    username: admin
+                    password: password
+                    enableEventReplication: false
+                    enabled: true
+                    cronExp: 0 0 12 * * ?
+                    syncDeletes: true
+                    syncProperties: true
+                    syncStatistics: false
+                    repoKey: libs-release-local
+                    replicationKey: generic-local_http__5d00703ade
+                    includePathPrefixPattern: /path/to/repo
+                    excludePathPrefixPattern: /path/to/repo
+                    checkBinaryExistenceInFilestore: false
+                multiple:
+                  summary: Multiple replication configurations (Enterprise)
+                  value:
+                  - url: http://localhost:8081/artifactory/remote-repo
+                    socketTimeoutMillis: 15000
+                    username: admin
+                    password: password
+                    enableEventReplication: false
+                    enabled: true
+                    cronExp: 0 0 12 * * ?
+                    syncDeletes: true
+                    syncProperties: true
+                    syncStatistics: false
+                    repoKey: libs-release-local
+                    replicationKey: generic-local_http__5d00703ade
+                    includePathPrefixPattern: /path/to/repo
+                    excludePathPrefixPattern: /path/to/repo
+                    checkBinaryExistenceInFilestore: false
+        '400':
+          description: Bad Request - Repository not found or invalid key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified repository does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+      - Repository Replication
+      summary: Set Repository Replication Configuration
+      description: Add or replace replication configuration for given repository key.
+        Supported by local and remote repositories. Accepts the JSON payload returned
+        from Get Repository Replication Configuration for a single and an array of
+        configurations. If the payload is an array of replication configurations,
+        then values for cronExp and enableEventReplication in the first element in
+        the array will determine the corresponding values when setting the repository
+        replication configuration. Requires Artifactory Pro.
+      operationId: setRepositoryReplicationConfiguration
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      requestBody:
+        required: true
+        description: Replication configuration (single object or array)
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/ReplicationConfigRequest'
+              - type: array
+                items:
+                  $ref: '#/components/schemas/ReplicationConfigRequest'
+      responses:
+        '200':
+          description: Replication configuration set successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Repository Replication
+      summary: Update Repository Replication Configuration
+      description: Update existing replication configuration for given repository
+        key, if found. Supported by local and remote repositories. Requires Artifactory
+        Pro
+      operationId: updateRepositoryReplicationConfiguration
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      requestBody:
+        required: true
+        description: Full or partial replication configuration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplicationConfigRequest'
+      responses:
+        '200':
+          description: Replication configuration updated successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified repository or replication configuration
+            does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Repository Replication
+      summary: Delete Repository Replication Configuration
+      description: Delete existing replication configuration for given repository
+        key. Supported by local and local-cached repositories. Requires Artifactory
+        Pro.
+      operationId: deleteRepositoryReplicationConfiguration
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: url
+        in: query
+        description: URL of the replicated repository. If omitted, all multi-push
+          replication configurations for the source repository are deleted.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Replication configuration deleted successfully
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified repository or replication configuration
+            does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /replication/{repoPath}:
+    get:
+      tags:
+      - Repository Replication
+      summary: Get Replication Status
+      description: Returns the replication status for the specified repository path.
+        Returns status based on replication properties annotated on the artifact.
+        Supported by local, local-cached, and remote repositories. Requires Artifactory
+        Pro.
+      operationId: getReplicationStatus
+      parameters:
+      - name: repoPath
+        in: path
+        description: Repository path (e.g., repo-key/path/to/artifact)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Successfully retrieved replication status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplicationStatus'
+              example:
+                status: ok
+                lastCompleted: '2015-12-27T15:08:49.050+02:00'
+                targets:
+                - url: http://remote_host/remote-libs1
+                  repoKey: remote-libs1
+                  status: ok
+                  lastCompleted: '2015-12-27T15:07:49.050+02:00'
+                repositories:
+                  remote-libs1:
+                    status: ok
+                    lastCompleted: '2015-12-27T15:07:49.050+02:00'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have read permission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified repository does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /replication/execute/{repoPath}:
+    post:
+      tags:
+      - Repository Replication
+      summary: Pull/Push Replication
+      description: Schedules immediate content replication between two Artifactory
+        instances. Replication can optionally include properties and delete items
+        if they do not exist in the source repository. Pull Replication - pulls content
+        from a remote Artifactory repository to a local cache of the remote repository.
+        Push Replication - pushes content from a local repository into a local repository
+        of another Artifactory instance. Multi-push Replication - pushes content from
+        a local repository into a local repository of several Artifactory instances
+        (Enterprise only). The type of replication initiated depends on the type of
+        repository specified in the repoPath parameter. If repoPath is a local repository,
+        a push replication will be triggered. If repoPath is a remote repository cache,
+        a pull replication will be triggered. If no repositories are provided in the
+        payload, Artifactory will trigger all existing replication configurations.
+      operationId: executePullPushReplication
+      parameters:
+      - name: repoPath
+        in: path
+        description: Repository path (local repository for push, remote repository
+          cache for pull)
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      - name: strategy
+        in: query
+        description: Replication strategy to use
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: false
+        description: Array of replication targets. If omitted, all existing replication
+          configurations will be triggered.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReplicationRequest'
+      responses:
+        '200':
+          description: Replication executed successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /replications/multiple/{repoKey}:
+    put:
+      tags:
+      - Repository Replication
+      summary: Create or Replace Local Multi-push Replication
+      description: Creates or replaces a local multi-push replication configuration.
+        Supported by local repositories. Requires an enterprise license
+      operationId: createOrReplaceMultiPushReplication
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      requestBody:
+        required: true
+        description: Multiple replication configuration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipleReplicationConfigRequest'
+      responses:
+        '200':
+          description: Multi-push replication configuration created or replaced successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Repository Replication
+      summary: Update Local Multi-push Replication
+      description: Updates a local multi-push replication configuration. Supported
+        by local repositories. Requires an enterprise license.
+      operationId: updateMultiPushReplication
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      requestBody:
+        required: true
+        description: Multiple replication configuration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipleReplicationConfigRequest'
+      responses:
+        '200':
+          description: Multi-push replication configuration updated successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /replications/{action}:
+    post:
+      tags:
+      - Repository Replication
+      summary: Enable or Disable Multiple Replications
+      description: Enables/disables multiple replication tasks by repository or Artifactory
+        server based on include and exclude patterns where include and exclude patterns
+        should be target repository URLs. Requires Artifactory Pro.
+      operationId: enableOrDisableMultipleReplications
+      parameters:
+      - name: action
+        in: path
+        description: Action to perform (enable or disable)
+        required: true
+        schema:
+          type: string
+          enum:
+          - enable
+          - disable
+      requestBody:
+        required: true
+        description: Include and exclude patterns
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplicationEnableDisableRequest'
+      responses:
+        '200':
+          description: Replications enabled/disabled successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /replications/channels/{repoKey}:
+    get:
+      tags:
+      - Repository Replication
+      summary: Get Remote Repositories Registered for Replication
+      description: This endpoint, which is run against a local repository, returns
+        a list of all the instances subscribed for event-based pull replication by
+        a remote repository. Requires Artifactory Pro.
+      operationId: getRemoteRepositoriesRegisteredForReplication
+      parameters:
+      - name: repoKey
+        in: path
+        description: Repository key
+        required: true
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Successfully retrieved registered repositories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+              - 100.0.0.50#jfrt@01jcpqq1sytjs50aj5cc1c10bz_test-maven_test-maven
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /replications/channels/release:
+    post:
+      tags:
+      - Repository Replication
+      summary: Close all event based pull replication subscribed channels
+      description: Close the connection of all the event based pull replication instances
+        subscribed to this Artifactory, which force them to try to reopen connection.
+        Requires Artifactory Pro.
+      operationId: closeEventBasedPullReplicationChannels
+      responses:
+        '200':
+          description: Channels released successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/replications:
+    get:
+      tags:
+      - System Replication
+      summary: Get Global System Replication Configuration
+      description: Returns the global system replication configuration status, i.e.
+        if push and pull replications are blocked or unblocked. Requires Artifactory
+        Pro.
+      operationId: getGlobalSystemReplicationConfiguration
+      responses:
+        '200':
+          description: Successfully retrieved global system replication configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalSystemReplicationConfig'
+              example:
+                blockPullReplications: false
+                blockPushReplications: false
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/replications/block:
+    post:
+      tags:
+      - System Replication
+      summary: Block System Replication
+      description: Blocks replications globally. Push and pull are true by default.
+        If false, replication for the corresponding type is not blocked. Requires
+        Artifactory Pro.
+      operationId: blockSystemReplication
+      parameters:
+      - name: push
+        in: query
+        description: Whether to block push replications (accepts "true" or "false")
+        required: false
+        schema:
+          type: string
+          default: 'true'
+      - name: pull
+        in: query
+        description: Whether to block pull replications (accepts "true" or "false")
+        required: false
+        schema:
+          type: string
+          default: 'true'
+      responses:
+        '200':
+          description: Replications blocked successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Successfully blocked all replications, no replication will
+                be triggered.
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /system/replications/unblock:
+    post:
+      tags:
+      - System Replication
+      summary: Unblock System Replication
+      description: Unblocks replications globally. Push and pull are true by default.
+        If false, replication for the corresponding type is not unblocked. Requires
+        Artifactory Pro.
+      operationId: unblockSystemReplication
+      parameters:
+      - name: push
+        in: query
+        description: Whether to unblock push replications (accepts "true" or "false")
+        required: false
+        schema:
+          type: string
+          default: 'true'
+      - name: pull
+        in: query
+        description: Whether to unblock pull replications (accepts "true" or "false")
+        required: false
+        schema:
+          type: string
+          default: 'true'
+      responses:
+        '200':
+          description: Replications unblocked successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Successfully unblocked all replications
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /config/storage/checksumReplication:
+    put:
+      tags:
+      - Checksum Replication
+      summary: Configure Checksum Replication
+      description: Configures metadata replication of artifacts between the source
+        Artifactory and target Artifactory while artifact replication is done with
+        storage-level replication. The API can also set the number of days to trust
+        the replication, which allows the transfer for a limited number of days. Allows
+        the usage of the checkBinaryExistenceInFilestore flag in the Pull/Push Replication
+        API on the source Artifactory. This feature is available for customers in
+        Self-Hosted environments.
+      operationId: configureChecksumReplication
+      requestBody:
+        required: true
+        description: Checksum replication configuration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChecksumReplicationConfig'
+      responses:
+        '200':
+          description: Checksum replication configured successfully
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags:
+      - Checksum Replication
+      summary: Get Checksum Replication
+      description: Gets the checksum replication status on the target Artifactory.
+        The API returns the replication status and the date until which the trust
+        expires. This REST API is supported on Self-Hosted platforms only.
+      operationId: getChecksumReplication
+      responses:
+        '200':
+          description: Successfully retrieved checksum replication status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChecksumReplicationStatus'
+              example:
+                checkBinaryExistenceAllowed: true
+                trustUntil: 2023-03-25 21:46:46 +0200
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have admin permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Standard JFrog error envelope
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+    ReplicationConfigRequest:
+      type: object
+      description: Replication configuration for creating/updating replications. Note
+        that repoKey and replicationKey are returned in responses but not required
+        in requests.
+      properties:
+        url:
+          type: string
+          description: URL of the remote repository (required for local replication)
+        socketTimeoutMillis:
+          type: integer
+          format: int32
+          description: Socket timeout in milliseconds
+        username:
+          type: string
+          description: Username for authentication
+        password:
+          type: string
+          description: Password for authentication
+        enableEventReplication:
+          type: boolean
+          description: Enable event-based replication (refers to both push and pull
+            replication)
+        enabled:
+          type: boolean
+          description: Whether replication is enabled
+        cronExp:
+          type: string
+          description: Cron expression for scheduled replication
+        syncDeletes:
+          type: boolean
+          description: Whether to sync deletions (default false)
+        syncProperties:
+          type: boolean
+          description: Whether to sync properties (default true)
+        syncStatistics:
+          type: boolean
+          description: Whether to sync statistics
+        repoKey:
+          type: string
+          description: Repository key (returned in response, not required in request)
+          readOnly: true
+        replicationKey:
+          type: string
+          description: Replication key (returned in response, not required in request)
+          readOnly: true
+        includePathPrefixPattern:
+          type: string
+          description: Include path prefix pattern (added in Artifactory 7.24.4)
+        excludePathPrefixPattern:
+          type: string
+          description: Exclude path prefix pattern (added in Artifactory 7.24.4)
+        proxy:
+          type: string
+          description: Proxy ID
+        disableProxy:
+          type: boolean
+          description: When true, disables proxy usage for this replication
+        checkBinaryExistenceInFilestore:
+          type: boolean
+          description: When true, enables distributed checksum storage. Requires Enterprise+
+            license.
+    ReplicationStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - unknown
+          - never_run
+          - incomplete
+          - error
+          - warn
+          - ok
+          - inconsistent
+          - partial_failure
+          description: Status of the replication
+        lastCompleted:
+          type: string
+          format: date-time
+          description: Last completion time in ISO8601 format (yyyy-MM-dd'T'HH:mm:ss.SSSZ),
+            or null if never completed
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReplicationTarget'
+        repositories:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ReplicationRepositoryStatus'
+    ReplicationTarget:
+      type: object
+      properties:
+        url:
+          type: string
+          description: Target URL
+        repoKey:
+          type: string
+          description: Repository key
+        status:
+          type: string
+          enum:
+          - unknown
+          - never_run
+          - incomplete
+          - error
+          - warn
+          - ok
+          - inconsistent
+          - partial_failure
+          description: Status of the replication
+        lastCompleted:
+          type: string
+          format: date-time
+          description: Last completion time in ISO8601 format
+    ReplicationRepositoryStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - unknown
+          - never_run
+          - incomplete
+          - error
+          - warn
+          - ok
+          - inconsistent
+          - partial_failure
+          description: Status of the replication
+        lastCompleted:
+          type: string
+          format: date-time
+          description: Last completion time in ISO8601 format
+    ReplicationRequest:
+      type: object
+      description: Request object for executing immediate replication. All fields
+        are optional for pull replication; url, username, password are needed only
+        for push replication.
+      properties:
+        url:
+          type: string
+          description: URL of the repository at the remote Artifactory instance. Used
+            only by push replication.
+        username:
+          type: string
+          description: Username at the remote Artifactory instance. Used only by push
+            replication.
+        password:
+          type: string
+          description: Password at the remote Artifactory instance. Used only by push
+            replication.
+        proxy:
+          type: string
+          description: Name of the proxy (if used) at the remote Artifactory instance.
+            Used only by push replication.
+        disableProxy:
+          type: boolean
+          description: When true, disables proxy usage for this replication
+        properties:
+          type: boolean
+          description: When true, properties of replicated artifacts will be synchronized
+            also (default true)
+          default: true
+        delete:
+          type: boolean
+          description: When true, items that were deleted remotely will also be deleted
+            locally (including properties metadata) (default false)
+          default: false
+        includePathPrefixPattern:
+          type: string
+          description: Include path prefix pattern for filtering artifacts to replicate
+        excludePathPrefixPattern:
+          type: string
+          description: Exclude path prefix pattern for filtering artifacts to replicate
+        checkBinaryExistenceInFilestore:
+          type: boolean
+          description: When true, enables distributed checksum storage. Requires Enterprise+
+            license.
+    MultipleReplicationConfigRequest:
+      type: object
+      required:
+      - cronExp
+      - enableEventReplication
+      - replications
+      properties:
+        cronExp:
+          type: string
+          description: Cron expression for scheduled replication
+        enableEventReplication:
+          type: boolean
+          description: Enable event-based replication
+        replications:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReplicationConfigRequest'
+    ReplicationEnableDisableRequest:
+      type: object
+      properties:
+        include:
+          type: array
+          items:
+            type: string
+          description: Include patterns (target repository URLs)
+        exclude:
+          type: array
+          items:
+            type: string
+          description: Exclude patterns (target repository URLs)
+    GlobalSystemReplicationConfig:
+      type: object
+      properties:
+        blockPullReplications:
+          type: boolean
+          description: Whether pull replications are blocked
+        blockPushReplications:
+          type: boolean
+          description: Whether push replications are blocked
+    ChecksumReplicationConfig:
+      type: object
+      required:
+      - checkBinaryExistenceAllowed
+      properties:
+        checkBinaryExistenceAllowed:
+          type: boolean
+          description: Allows the usage of the checkBinaryExistenceInFilestore flag
+            in the Pull/Push Replication API on the source Artifactory
+        daysToTrust:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 30
+          default: 0
+          description: The number of days for which the full checksum from source
+            Artifactory is trusted. Useful for migration process. The value cannot
+            be more than 30 days. The default is 0.
+    ChecksumReplicationStatus:
+      type: object
+      properties:
+        checkBinaryExistenceAllowed:
+          type: boolean
+          description: Whether checkBinaryExistence is allowed
+        trustUntil:
+          type: string
+          description: Date until which the trust expires (format varies)
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication
+security:
+- bearerAuth: []
+- basicAuth: []

@@ -1,0 +1,1272 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Projects API
+  description: 'Manage projects in the JFrog Platform, including project members,
+    groups, roles, and repository assignments.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (`Authorization:
+    Bearer <token>`).
+
+
+    **Security:** Security requirements vary per operation. See individual operation
+    descriptions for details.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Projects
+  description: Create, retrieve, update, and delete projects.
+- name: Members
+  description: Manage project members, including users and groups.
+- name: Roles
+  description: Manage project roles and permissions.
+- name: Repositories
+  description: Assign, share, and unshare repositories across projects.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/projects:
+    get:
+      tags:
+      - Projects
+      summary: Get Projects List
+      description: "Returns all projects the requesting user manages. Platform Admin\
+        \ users can view all projects; non-admin users can only view projects they\
+        \ manage.\n\n\n**Availability:** Artifactory 7.117.5+. \n\n\n**Security:**\
+        \ Requires a valid token or a scoped token with `project:<project_key>:r`\
+        \ scope.\n"
+      operationId: getProjectsList
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Projects
+      summary: Create Project
+      description: 'Creates a new project.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+      responses:
+        '201':
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '409':
+          description: Conflict - Project with the same key already exists
+  /access/api/v2/projects:
+    get:
+      tags:
+      - Projects
+      summary: Get Projects List for a Global Role
+      description: 'Returns a list of projects where a specific global role is used.
+
+
+
+        **Availability:** Artifactory 7.117.0+
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: getProjectsForRole
+      parameters:
+      - name: role_name
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Filter results by role. Only global roles are supported.
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1000
+        description: Allows you to control the number of results. The valid value
+          is a minimum of 1, and the default value is 1,000.
+      - name: descending_order
+        in: query
+        schema:
+          type: boolean
+        description: When set to true, the result will be ordered by project name.
+      - name: cursor
+        in: query
+        schema:
+          type: string
+        description: Divides the list of results and shows those that fall after the
+          cursor for pagination purposes.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: The project display name
+                        projectKey:
+                          type: string
+                          description: The project key
+                  cursor:
+                    type: string
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - The request payload was not found
+  /access/api/v1/projects/{projectKey}:
+    get:
+      tags:
+      - Projects
+      summary: Get Project
+      description: 'Returns the requested project.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin privileges.
+
+        '
+      operationId: getProject
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+    put:
+      tags:
+      - Projects
+      summary: Update Existing Project Properties
+      description: 'Updates an existing project''s properties.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: updateProject
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+      responses:
+        '200':
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+    delete:
+      tags:
+      - Projects
+      summary: Delete Existing Project
+      description: 'Deletes an existing project.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: deleteProject
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      responses:
+        '204':
+          description: Project deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+  /access/api/v1/projects/{projectKey}/users:
+    get:
+      tags:
+      - Members
+      summary: Get Project Users
+      description: 'Returns all users associated with the project.
+
+
+
+        **Security:** Requires Platform Admin, Project Admin with Manage Members privilege,
+        or a scoped token with `project:<project_key>/members/**:r` scope.
+
+        '
+      operationId: getProjectUsers
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectUser'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+  /access/api/v1/projects/{projectKey}/users/{user}:
+    get:
+      tags:
+      - Members
+      summary: Get Project User
+      description: 'Returns the requested user associated with the project.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: getProjectUser
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: user
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectUser'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or user not found
+    put:
+      tags:
+      - Members
+      summary: Add or Update User in Project
+      description: 'Adds or updates a user in a project.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: addOrUpdateProjectUser
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: user
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUserUpdate'
+      responses:
+        '200':
+          description: User added/updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectUserUpdate'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+    delete:
+      tags:
+      - Members
+      summary: Delete Existing Project's User
+      description: 'Deletes an existing project''s user.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: deleteProjectUser
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: user
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      responses:
+        '204':
+          description: User removed from project
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or user not found
+  /access/api/v1/projects/{projectKey}/groups:
+    get:
+      tags:
+      - Members
+      summary: Get Projects Groups
+      description: 'Returns all groups associated with the project.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: getProjectGroups
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectGroup'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+  /access/api/v1/projects/{projectKey}/groups/{group}:
+    get:
+      tags:
+      - Members
+      summary: Get Projects Group
+      description: 'Returns the requested group associated with the project.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: getProjectGroup
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: group
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroup'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or group not found
+    put:
+      tags:
+      - Members
+      summary: Update Group in Project
+      description: 'Updates the group in the project.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: updateProjectGroup
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: group
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectGroupUpdate'
+      responses:
+        '200':
+          description: Group added/updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectGroupUpdate'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+    delete:
+      tags:
+      - Members
+      summary: Delete Existing Project's Group
+      description: 'Deletes the existing project group.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: deleteProjectGroup
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: group
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The group name
+      responses:
+        '204':
+          description: Group removed from project
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or group not found
+  /access/api/v1/projects/{projectKey}/roles:
+    get:
+      tags:
+      - Roles
+      summary: Get Roles List
+      description: 'Returns all project roles.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin privileges.
+
+        '
+      operationId: getProjectRoles
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectRole'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+    post:
+      tags:
+      - Roles
+      summary: Create Role
+      description: 'Adds a new role to the project.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: createProjectRole
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRoleCreate'
+      responses:
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectRole'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project not found
+  /access/api/v1/projects/{projectKey}/roles/{role}:
+    get:
+      tags:
+      - Roles
+      summary: Get Project Role
+      description: 'Returns the requested project role.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin privileges.
+
+        '
+      operationId: getProjectRole
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The role name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectRole'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or role not found
+    put:
+      tags:
+      - Roles
+      summary: Update an Existing Project Role
+      description: 'Updates an existing project role.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: updateProjectRole
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The role name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRoleUpdate'
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectRole'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or role not found
+    delete:
+      tags:
+      - Roles
+      summary: Delete an Existing Role
+      description: 'Deletes an existing project role.
+
+
+
+        **Security:** Requires Platform Admin or Project Admin with Manage Members
+        privilege.
+
+        '
+      operationId: deleteProjectRole
+      parameters:
+      - name: projectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The project key
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The role name
+      responses:
+        '204':
+          description: Role deleted
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Project or role not found
+  /access/api/v1/projects/_/attach/repositories/{repoName}/{targetProjectKey}:
+    put:
+      tags:
+      - Repositories
+      summary: Move Repository in a Project
+      description: 'If not assigned, assigns a repository to a project. If already
+        assigned, moves the project repository to the specified location, and unassigns
+        the repository from the previous project.
+
+
+
+        **Note:** When you assign a resource to a project, the project owns and manages
+        the resource. When you share a resource with a project, the project does not
+        own the resource.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: attachRepositoryToProject
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: targetProjectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The target project key
+      - name: force
+        in: query
+        schema:
+          type: boolean
+        description: Indicates a force move if the repository is already assigned
+          to an actual project.
+      responses:
+        '204':
+          description: Repository attached
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Repository or project not found
+  /access/api/v1/projects/_/repositories/{repoName}:
+    get:
+      tags:
+      - Repositories
+      summary: Get Status of Project Repository
+      description: 'Returns the status of a repository and whether it was assigned
+        and/or shared to a project, to multiple projects, or to all projects.
+
+
+
+        **Note:** When you assign a resource to a project, the project owns and manages
+        the resource. When you share a resource with a project, the project does not
+        own the resource.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: getProjectRepositoryStatus
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resource_name:
+                    type: string
+                    description: The repository name
+                  assigned_to:
+                    type: string
+                    description: The project key the repository is assigned to
+                  environments:
+                    type: array
+                    items:
+                      type: string
+                    description: Environments the repository belongs to
+                  shared_with_projects:
+                    type: array
+                    items:
+                      type: string
+                    description: List of project keys the repository is shared with
+                  shared_with_all_projects:
+                    type: boolean
+                    description: Whether the repository is shared with all projects
+                  shared_read_only:
+                    type: boolean
+                    description: Whether the repository is shared as read-only
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Repository not found
+  /access/api/v1/projects/_/share/repositories/{repoName}:
+    put:
+      tags:
+      - Repositories
+      summary: Share Repository with All Projects
+      description: 'Shares a local or remote repository across all projects, allowing
+        members in more than one project to access the repository. Project members
+        are granted actions according to their roles in the target project.
+
+
+
+        **Note:** When you assign a resource to a project, the project owns and manages
+        the resource. When you share a resource with a project, the project does not
+        own the resource.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: shareRepositoryWithAllProjects
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '204':
+          description: Repository shared
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Repository not found
+    delete:
+      tags:
+      - Repositories
+      summary: Unshare Repository with All Projects
+      description: 'Unshares a shared local or remote repository. The repository is
+        not deleted but remains assigned to the source project.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: unshareRepositoryWithAllProjects
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '204':
+          description: Repository unshared
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Repository not found
+  /access/api/v1/projects/_/share/repositories/{repoName}/{targetProjectKey}:
+    put:
+      tags:
+      - Repositories
+      summary: Share Repository with Target Project
+      description: 'Shares a local or remote repository with a specific target project.
+        Project members of the target project are granted actions according to their
+        roles in the target project.
+
+
+
+        **Note:** When you assign a resource to a project, the project owns and manages
+        the resource. When you share a resource with a project, the project does not
+        own the resource.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: shareRepositoryWithTargetProject
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: targetProjectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The target project key
+      - name: readOnly
+        in: query
+        schema:
+          type: boolean
+        description: When set to true, the target project has read-only access to
+          the repository and cannot modify its content.
+      responses:
+        '204':
+          description: Repository shared
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Repository or project not found
+    delete:
+      tags:
+      - Repositories
+      summary: Unshare Repository with Target Project
+      description: 'Unshares a local or remote repository with a specific target project.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: unshareRepositoryWithTargetProject
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      - name: targetProjectKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The target project key
+      responses:
+        '204':
+          description: Repository unshared
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Repository or project not found
+  /access/api/v1/projects/_/attach/repositories/{repoName}:
+    delete:
+      tags:
+      - Repositories
+      summary: Unassign a Project from a Repository
+      description: 'Unassigns a project from a repository.
+
+
+
+        **Note:** You can assign a project to a repository using the Move Repository
+        operation.
+
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: unassignProjectFromRepository
+      parameters:
+      - name: repoName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The repository name
+      responses:
+        '204':
+          description: Project unassigned
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Repository not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    Project:
+      type: object
+      properties:
+        project_key:
+          type: string
+          description: The project key
+        display_name:
+          type: string
+          description: Display name
+        description:
+          type: string
+          description: Project description
+        admin_privileges:
+          type: object
+          properties:
+            manage_members:
+              type: boolean
+            manage_resources:
+              type: boolean
+            index_resources:
+              type: boolean
+            manage_remote_repository:
+              type: boolean
+        storage_quota_bytes:
+          type: integer
+          description: Storage quota in bytes
+        soft_limit:
+          type: boolean
+          description: Whether the storage quota is a soft limit
+        storage_quota_email_notification:
+          type: boolean
+          description: Whether to send email notifications when storage quota is exceeded
+    ProjectCreateRequest:
+      type: object
+      required:
+      - project_key
+      - display_name
+      properties:
+        project_key:
+          type: string
+          description: The project key
+        display_name:
+          type: string
+          description: Display name
+        description:
+          type: string
+          description: Project description
+        admin_privileges:
+          type: object
+          properties:
+            manage_members:
+              type: boolean
+              default: true
+            manage_resources:
+              type: boolean
+              default: true
+            index_resources:
+              type: boolean
+              default: true
+            manage_remote_repository:
+              type: boolean
+              default: true
+        storage_quota_bytes:
+          type: integer
+          description: Storage quota in bytes
+    ProjectUpdateRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+        description:
+          type: string
+        admin_privileges:
+          type: object
+          properties:
+            manage_members:
+              type: boolean
+            manage_resources:
+              type: boolean
+            index_resources:
+              type: boolean
+            manage_remote_repository:
+              type: boolean
+        storage_quota_bytes:
+          type: integer
+    ProjectUser:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Username
+        roles:
+          type: array
+          items:
+            type: string
+          description: User roles in the project
+    ProjectUserUpdate:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            type: string
+          description: Roles to assign to the user
+    ProjectGroup:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Group name
+        roles:
+          type: array
+          items:
+            type: string
+          description: Group roles in the project
+    ProjectGroupUpdate:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            type: string
+          description: Roles to assign to the group
+    ProjectRole:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Role name
+        description:
+          type: string
+          description: Role description
+        type:
+          type: string
+          description: Role type
+        environments:
+          type: array
+          items:
+            type: string
+          description: Environments for the role
+        actions:
+          type: array
+          items:
+            type: string
+          description: Actions permitted by this role
+    ProjectRoleCreate:
+      type: object
+      required:
+      - name
+      - type
+      properties:
+        name:
+          type: string
+          description: Role name
+        description:
+          type: string
+          description: Role description
+        type:
+          type: string
+          description: Role type
+        environments:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          items:
+            type: string
+    ProjectRoleUpdate:
+      type: object
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          description: Role type. Must be 'CUSTOM' for project-specific roles. Only
+            custom roles can be updated.
+        description:
+          type: string
+        environments:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          items:
+            type: string
+x-readme:
+  explorer-enabled: false

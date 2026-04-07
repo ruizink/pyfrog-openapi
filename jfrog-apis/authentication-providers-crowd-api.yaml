@@ -1,0 +1,115 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Crowd API
+  description: 'Crowd configuration APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** All APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Crowd
+  description: APIs for retrieving and configuring Atlassian Crowd integration settings
+    in the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/crowd:
+    get:
+      tags:
+      - Crowd
+      summary: Get Crowd Configuration
+      description: 'Get the Crowd configuration.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getCrowdConfiguration
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrowdConfiguration'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    put:
+      tags:
+      - Crowd
+      summary: Create or Update Crowd Configuration
+      description: 'Create or update the Crowd configuration (upsert).
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: upsertCrowdConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrowdConfiguration'
+      responses:
+        '200':
+          description: Crowd configuration created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrowdConfiguration'
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    CrowdConfiguration:
+      type: object
+      properties:
+        enable_integration:
+          type: boolean
+        server_url:
+          type: string
+        application_name:
+          type: string
+        password:
+          type: string
+        session_validation_interval:
+          type: integer
+          format: int64
+        use_default_proxy:
+          type: boolean
+        auto_user_creation:
+          type: boolean
+        allow_user_to_access_profile:
+          type: boolean
+        custom_cookie_token_key:
+          type: string
+        direct_authentication:
+          type: boolean
+        override_all_groups_upon_login:
+          type: boolean
+x-readme:
+  explorer-enabled: false

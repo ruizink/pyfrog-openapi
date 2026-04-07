@@ -1,0 +1,1919 @@
+openapi: 3.1.0
+info:
+  title: JFrog Artifactory Cleanup Policies API
+  description: REST API for managing cleanup policies in JFrog Artifactory. This includes
+    cleanup policies for Packages, Release Bundles V2, and Builds.
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/artifactory/api/cleanup
+  description: Cleanup Policies API base path
+tags:
+- name: Package Cleanup Policies
+  description: Package cleanup policy management operations
+- name: Release Bundle Cleanup Policies
+  description: Release bundle cleanup policy management operations
+- name: Build Cleanup Policies
+  description: Build cleanup policy management operations
+- name: Common Cleanup Policies
+  description: Common cleanup policy operations
+security:
+- BasicAuth: []
+- ApiKeyAuth: []
+- BearerAuth: []
+paths:
+  /packages/policies/{policyKey}:
+    post:
+      tags:
+      - Package Cleanup Policies
+      summary: Create a Package Cleanup Policy
+      description: This API is called to create a new package-level cleanup policy.
+        Packages Cleanup Policies APIs are supported on Artifactory version 7.98.2
+        and later.
+      operationId: createPackageCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: An ID that is used to identify the cleanup policy. A minimum
+          of three characters is required and can include letters, numbers, underscore
+          and hyphen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackageCleanupPolicyRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackageCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Package Cleanup Policies
+      summary: Update a Package-Level Cleanup Policy
+      description: This REST API is called to update configuration settings for an
+        existing package-level cleanup policy. A policy cannot be updated if it is
+        currently running.
+      operationId: updatePackageCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackageCleanupPolicyRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackageCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+      - Package Cleanup Policies
+      summary: Get Single Package Cleanup Policy by Key
+      description: This API is called to provide details on a single package cleanup
+        policy.
+      operationId: getPackageCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      - name: checkRepoAvailability
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: Whether to check repository availability when retrieving the
+          policy.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PackageCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Package Cleanup Policies
+      summary: Delete Package Cleanup Policy
+      description: Deletes a cleanup policy. A policy cannot be deleted if it is currently
+        running.
+      operationId: deletePackageCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies:
+    get:
+      tags:
+      - Package Cleanup Policies
+      summary: Get all Package Cleanup Policies
+      description: This API is called to return a list of all the existing package
+        cleanup policies for either a specific project or for the entire system.
+      operationId: getAllPackageCleanupPolicies
+      parameters:
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: This parameter is used when calling this API to return all cleanup
+          policies for a specific project. This parameter is optional for a platform
+          admin, but not using it will return all cleanup policies in Artifactory,
+          both global policies and project-level policies. This parameter is mandatory
+          for a project admin.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PackageCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/{policyKey}/enablement:
+    post:
+      tags:
+      - Package Cleanup Policies
+      summary: Enable/Disable a Package Cleanup Policy
+      description: This REST API is called to enable or disable a package cleanup
+        policy. A policy must be enabled for it to run according to the automated
+        schedule set in the cron expression or to trigger a run manually. A dry run
+        can be performed on a policy that is disabled.
+      operationId: enableDisablePackageCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEnablementRequest'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /packages/policies/{policyKey}/run:
+    put:
+      tags:
+      - Package Cleanup Policies
+      summary: Manually Run Package Cleanup Policy
+      description: This REST API is called to manually run a package cleanup policy.
+      operationId: runPackageCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID of the policy you want to run.
+      - name: dryRun
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Optional, default is FALSE. Dry runs are used to run a policy
+          without actual cleanup. It produces a report used to determine which packages
+          will be removed if an actual run will be performed.
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /bundles/policies:
+    get:
+      tags:
+      - Release Bundle Cleanup Policies
+      summary: Get All Cleanup Bundle Policies
+      description: This API is called to return a list of all the existing release
+        bundle cleanup policies for either a specific project or for the entire system.
+      operationId: getAllReleaseBundleCleanupPolicies
+      parameters:
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: This parameter is used when calling this API to return all cleanup
+          policies for a specific project. This parameter is optional for a platform
+          admin, but not using it will return all cleanup policies in Artifactory,
+          both global policies and project-level policies. This parameter is mandatory
+          for a project admin.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseBundleCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /bundles/policies/{policyKey}:
+    post:
+      tags:
+      - Release Bundle Cleanup Policies
+      summary: Create a Release Bundle Cleanup Policy
+      description: This API is called to create a new release bundle cleanup policy.
+        Release Bundles V2 Cleanup Policies APIs are supported on Artifactory version
+        7.104.2 and later.
+      operationId: createReleaseBundleCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: A unique identifier for the cleanup policy. A minimum of three
+          characters is required, including letters, numbers, underscore and hyphen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseBundleCleanupPolicyRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseBundleCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Release Bundle Cleanup Policies
+      summary: Update Release Bundle Cleanup Policy
+      operationId: updateReleaseBundleCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseBundleCleanupPolicyRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseBundleCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+      - Release Bundle Cleanup Policies
+      summary: Get Single Release Bundle Cleanup Policy by Key
+      description: This API is called to provide details on a single release bundle
+        cleanup policy.
+      operationId: getReleaseBundleCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseBundleCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Release Bundle Cleanup Policies
+      summary: Delete Release Bundle Cleanup Policy
+      description: Deletes a cleanup policy. A policy cannot be deleted if it is currently
+        running.
+      operationId: deleteReleaseBundleCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /bundles/policies/{policyKey}/enablement:
+    post:
+      tags:
+      - Release Bundle Cleanup Policies
+      summary: Enable/Disable Release Bundle Cleanup Policy
+      description: This REST API is called to enable or disable a cleanup policy.
+        A policy must be enabled for it to run according to the automated schedule
+        set in the cron expression or to trigger a run manually. A dry run can be
+        performed on a policy that is disabled.
+      operationId: enableDisableReleaseBundleCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEnablementRequest'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /bundles/policies/{policyKey}/run:
+    put:
+      tags:
+      - Release Bundle Cleanup Policies
+      summary: Manually Run Release Bundle Cleanup Policy
+      description: This REST API is called to manually run a release bundle cleanup
+        policy.
+      operationId: runReleaseBundleCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID of the policy you want to run.
+      - name: dryRun
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Optional, default is FALSE. Dry runs are used to run a policy
+          without actual cleanup. It produces a report used to determine which packages
+          will be removed if an actual run will be performed.
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /builds/policies:
+    get:
+      tags:
+      - Build Cleanup Policies
+      summary: Get All Build Cleanup Policies
+      description: This API is called to return a list of all the existing build cleanup
+        policies for either a specific project or for the entire system.
+      operationId: getAllBuildCleanupPolicies
+      parameters:
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+        description: This parameter is used when calling this API to return all cleanup
+          policies for a specific project. This parameter is optional for a platform
+          admin, but not using it will return all cleanup policies in Artifactory,
+          both global policies and project-level policies. This parameter is mandatory
+          for a project admin.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CleanupPolicyEntry'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /builds/policies/{policyKey}:
+    post:
+      tags:
+      - Build Cleanup Policies
+      summary: Create Build Cleanup Policy
+      description: This API is called to create a new build cleanup policy. Build
+        Cleanup Policies APIs are supported on Artifactory version 7.125 and later.
+      operationId: createBuildCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: A unique identifier for the cleanup policy. A minimum of three
+          characters is required, including letters, numbers, underscore and hyphen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildCleanupPolicyRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+      - Build Cleanup Policies
+      summary: Update Build Cleanup Policy
+      description: This REST API is called to update configuration settings for an
+        existing build cleanup policy. A policy cannot be updated if it is currently
+        running.
+      operationId: updateBuildCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildCleanupPolicyRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+      - Build Cleanup Policies
+      summary: Get Single Build Cleanup Policy by Key
+      description: This API is called to provide details on a single build cleanup
+        policy.
+      operationId: getBuildCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildCleanupPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+      - Build Cleanup Policies
+      summary: Delete Build Cleanup Policy
+      description: Deletes a cleanup policy. A policy cannot be deleted if it is currently
+        running.
+      operationId: deleteBuildCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /builds/policies/{policyKey}/enablement:
+    post:
+      tags:
+      - Build Cleanup Policies
+      summary: Enable/Disable Build Cleanup Policy
+      description: This REST API is called to enable or disable a cleanup policy.
+        A policy must be enabled for it to run according to the automated schedule
+        set in the cron expression or to trigger a run manually. A dry run can be
+        performed on a policy that is disabled.
+      operationId: enableDisableBuildCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEnablementRequest'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /builds/policies/{policyKey}/run:
+    put:
+      tags:
+      - Build Cleanup Policies
+      summary: Manually Run Build Cleanup Policy
+      description: This REST API is called to manually run a build cleanup policy.
+      operationId: runBuildCleanupPolicy
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+        description: ID of the policy you want to run.
+      - name: dryRun
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Optional, default is FALSE. Dry runs are used to run a policy
+          without actual cleanup. It produces a report used to determine which packages
+          will be removed if an actual run will be performed.
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunPolicyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/runs/{runId}:
+    put:
+      tags:
+      - Common Cleanup Policies
+      summary: Stop a Running Cleanup Policy
+      description: This REST API is called to stop a cleanup policy that is currently
+        running. Once a policy has been stopped, it cannot be resumed from the point
+        where it stopped.
+      operationId: stopRunningCleanupPolicy
+      parameters:
+      - name: runId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: An ID that identifies the run. This ID is received when calling
+          the Manually Run Release Bundle Cleanup Policy API and Manually Run Package
+          Cleanup Policy API.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyActionRequest'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/runs/forceStopAll:
+    put:
+      tags:
+      - Common Cleanup Policies
+      summary: Stop All Running Cleanup Policies
+      description: This API is called to stop all running cleanup policies on the
+        global level. This API stops packages, builds and release bundles running
+        policies.
+      operationId: stopAllRunningCleanupPolicies
+      responses:
+        '202':
+          description: Accepted
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/forceDisableAll:
+    put:
+      tags:
+      - Common Cleanup Policies
+      summary: Disable All Cleanup Policies
+      description: This API is called to disable all cleanup policies on the global
+        level. This API disables packages, builds and release bundles policies.
+      operationId: disableAllCleanupPolicies
+      parameters:
+      - name: projectKey
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Optional. If provided, disables policies only for the specified
+          project. If not provided, disables all global-level policies.
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/view:
+    get:
+      tags:
+      - Common Cleanup Policies
+      summary: Get All Cleanup Policies View
+      operationId: getCleanupPoliciesView
+      parameters:
+      - name: itemTypes
+        in: query
+        required: true
+        description: Filter by item types (mandatory, unique values only)
+        schema:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - package
+            - build
+            - releaseBundle
+      - name: policyKey
+        in: query
+        schema:
+          type: string
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupPolicyView'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/runs/view:
+    get:
+      tags:
+      - Common Cleanup Policies
+      summary: Get Policy Runs View
+      operationId: getCleanupPolicyRunsView
+      parameters:
+      - name: itemTypes
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+      - name: from
+        in: query
+        schema:
+          type: integer
+          format: int64
+      - name: to
+        in: query
+        schema:
+          type: integer
+          format: int64
+      - name: policyKey
+        in: query
+        schema:
+          type: string
+      - name: projectKey
+        in: query
+        schema:
+          type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+      - name: pageSize
+        in: query
+        schema:
+          type: integer
+      - name: sortBy
+        in: query
+        schema:
+          type: string
+      - name: sortOrder
+        in: query
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+      - name: excludeBlankExecutions
+        in: query
+        schema:
+          type: string
+        description: Filter to exclude runs with no processed items. Use "true" to
+          exclude.
+      - name: status
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+        description: Filter by run status (e.g., RUNNING, COMPLETED, FAILED).
+      - name: projectKeyList
+        in: query
+        schema:
+          type: array
+          items:
+            type: string
+        description: Filter by multiple project keys.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupPolicyRunView'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/runs/{policyKey}/{triggerId}:
+    get:
+      tags:
+      - Common Cleanup Policies
+      summary: Get Run Details by Trigger ID
+      operationId: getRunByTriggerId
+      parameters:
+      - name: policyKey
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: triggerId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupPolicyRunViewEntry'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/runs/downloadReport:
+    get:
+      tags:
+      - Common Cleanup Policies
+      summary: Download Cleanup Policy Run Report
+      operationId: downloadCleanupPolicyRunReport
+      parameters:
+      - name: policyKey
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy. This parameter is mandatory.
+      - name: runId
+        in: query
+        required: true
+        schema:
+          type: integer
+        description: An ID that identifies the run. This parameter is mandatory.
+      responses:
+        '200':
+          description: The request was successful and the response body contains the
+            binary data of the report.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /policies/runs/summaryReports:
+    get:
+      tags:
+      - Common Cleanup Policies
+      summary: View Cleanup Policy Run Summary Report
+      description: This REST API is called to view a summary report on a cleanup policy
+        run. Platform admins can view run summary reports for both global cleanup
+        policies and project-specific cleanup policies. Since 7.117
+      operationId: viewCleanupPolicyRunSummaryReport
+      parameters:
+      - name: triggerId
+        in: query
+        required: true
+        schema:
+          type: integer
+        description: An ID that identifies the run. This parameter is mandatory.
+      - name: policyKey
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID that identifies the policy. This parameter is mandatory.
+      responses:
+        '200':
+          description: The request was successful and the response body contains the
+            run summary report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunSummaryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - BearerAuth: []
+      - BasicAuth: []
+      - ApiKeyAuth: []
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-JFrog-Art-Api
+    BearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    BadRequestResponse:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: integer
+              message:
+                type: string
+    PolicyEnablementRequest:
+      type: object
+      required:
+      - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: A true value means the policy can be executed. A false value
+            means that it cannot.
+    PolicyActionRequest:
+      type: object
+      required:
+      - action
+      properties:
+        action:
+          type: string
+          enum:
+          - stop
+          description: Use the stop action to stop the policy run.
+    RunPolicyResponse:
+      type: object
+      properties:
+        triggerId:
+          type: integer
+          description: An ID that identifies the run. This ID is used by the Stop
+            a Running Cleanup Policy API and other run-related APIs.
+    PackageCleanupPolicyRequest:
+      type: object
+      required:
+      - key
+      - searchCriteria
+      properties:
+        key:
+          type: string
+          description: An ID that is used to identify the cleanup policy. A minimum
+            of three characters is required and can include letters, numbers, underscore
+            and hyphen.
+        description:
+          type: string
+          maxLength: 256
+          description: A description of the policy.
+        cronExp:
+          type: string
+          description: The cron expression that determines when the policy is run.
+            This parameter is not mandatory, however if left empty the policy will
+            not run automatically and can only be triggered manually.
+        projectKey:
+          type: string
+          description: This key is obtained from the Project Settings screen. This
+            parameter is used only for project-level cleanup policies, it is not used
+            for global-level policies.
+        itemType:
+          type: string
+          description: The type of item (package).
+        durationInMinutes:
+          type: integer
+          description: The maximum duration (in minutes) for policy execution, after
+            which the policy will stop running even if not completed.
+        enabled:
+          type: boolean
+          description: A cleanup policy must be created inactive. This parameter is
+            optional, but if used it must be set to FALSE. If set to TRUE when calling
+            this API, the API call will fail and an error message is received.
+        skipTrashcan:
+          type: boolean
+          description: A true value means that when this policy is executed, packages
+            will be permanently deleted. false means that when the policy is executed
+            packages will be deleted to the Trash Can.
+        searchCriteria:
+          $ref: '#/components/schemas/PackageCleanupSearchCriteria'
+    PackageCleanupSearchCriteria:
+      type: object
+      required:
+      - packageTypes
+      - repos
+      - includedPackages
+      properties:
+        packageTypes:
+          type: array
+          items:
+            type: string
+          description: The package types that are cleaned up by the policy. You must
+            enter at least one package type.
+        repos:
+          type: array
+          items:
+            type: string
+          description: Specify one or more patterns for the repository name(s) on
+            which you want the cleanup policy to run. You can also specify explicit
+            repository names. Specifying at least one pattern or explicit name is
+            mandatory.
+        excludedRepos:
+          type: array
+          items:
+            type: string
+          description: Specify patterns for repository names or explicit repository
+            names that you want excluded from the cleanup policy.
+        includedPackages:
+          type: array
+          items:
+            type: string
+          description: Specify a pattern for a package name or an explicit package
+            name on which you want the cleanup policy to run. To include all packages,
+            use "**".
+        excludedPackages:
+          type: array
+          items:
+            type: string
+          description: Specify explicit package names that you want excluded from
+            the policy. Only explicit names (and not patterns) are accepted.
+        includeAllProjects:
+          type: boolean
+          description: Set this value to true if you want the policy to run on all
+            Artifactory projects. The default value is false. This parameter is relevant
+            only on the global level, for Platform Admins.
+        includedProjects:
+          type: array
+          items:
+            type: string
+          description: Enter the project keys for the projects on which you want the
+            policy to run. To include repositories that are not assigned to any project,
+            enter the project key default.
+        includeAllStages:
+          type: boolean
+          description: Set this value to true if you want the policy to run on all
+            stages/environments. When true, includedStages should be empty.
+        includedStages:
+          type: array
+          items:
+            type: string
+          description: List of specific stages/environments to include in the policy.
+            When includeAllStages is false, at least one stage must be specified.
+        createdBeforeInMonths:
+          type: integer
+          minimum: 0
+          description: The cleanup policy will delete packages based on how long ago
+            they were created. Before Version 7.111 Use this param if you are using
+            versions below 7.111.
+        createdBeforeInDays:
+          type: integer
+          minimum: 0
+          description: The cleanup policy will delete packages based on how long ago
+            they were created. From Version 7.111 Onwards. A day in this context is
+            a 24-hour period from the moment the policy is executed.
+        lastDownloadedBeforeInMonths:
+          type: integer
+          minimum: 0
+          description: The cleanup policy will delete packages based on how long ago
+            they were downloaded. Before Version 7.111.
+        lastDownloadedBeforeInDays:
+          type: integer
+          minimum: 0
+          description: The cleanup policy will delete packages based on how long ago
+            they were downloaded. From Version 7.111 Onwards.
+        keepLastNVersions:
+          type: integer
+          minimum: 0
+          description: Set a value for the number of latest versions to keep. The
+            cleanup policy will remove all versions prior to the number you select
+            here. The latest version is always excluded.
+        includedProperties:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: A key-value pair applied to the lead artifact of a package.
+            Packages with this property will be deleted.
+        excludedProperties:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: A key-value pair applied to the lead artifact of a package.
+            Packages with this property will be excluded from deletion.
+        includedPackageVersions:
+          type: array
+          items:
+            type: string
+          description: Specify package version to include explicitly or use wildcards.
+            Available from V 7.127 (Cloud) and V 7.125.7 (Self-managed).
+        excludedPackageVersions:
+          type: array
+          items:
+            type: string
+          description: Specify explicit package versions that you want excluded from
+            the policy. Supports patterns such as 1.*, *.1.
+    PackageCleanupPolicyResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: The ID that identifies the policy.
+        description:
+          type: string
+          description: Description that was defined for the policy.
+        cronExp:
+          type: string
+          description: The cron expression that determines when the policy is run.
+        projectKey:
+          type: string
+          description: The project key if this is a project-level policy.
+        itemType:
+          type: string
+          description: The type of item (package).
+        durationInMinutes:
+          type: integer
+          description: The maximum duration (in minutes) for policy execution.
+        enabled:
+          type: boolean
+          description: Indicates if the cleanup policy is active (true) or disabled
+            (false).
+        skipTrashcan:
+          type: boolean
+          description: Indicates if packages are permanently deleted or sent to Trash
+            Can.
+        searchCriteria:
+          $ref: '#/components/schemas/PackageCleanupSearchCriteria'
+    ReleaseBundleCleanupPolicyRequest:
+      type: object
+      required:
+      - key
+      - itemType
+      - searchCriteria
+      properties:
+        key:
+          type: string
+          description: A unique identifier for the cleanup policy. A minimum of three
+            characters is required, including letters, numbers, underscore and hyphen.
+        description:
+          type: string
+          maxLength: 256
+          description: A brief description of the cleanup policy.
+        cronExp:
+          type: string
+          description: A cron expression specifying when the cleanup job will run.
+            This parameter is not mandatory, however if left empty the policy will
+            not run automatically and can only be triggered manually.
+        projectKey:
+          type: string
+          description: This key is obtained from the Project Settings screen. This
+            parameter is used only for project-level cleanup policies.
+        itemType:
+          type: string
+          enum:
+          - releaseBundle
+          description: The type of items to clean up (releaseBundle). This field is
+            required.
+        durationInMinutes:
+          type: integer
+          description: The maximum duration (in minutes) for policy execution, after
+            which the policy will stop running even if not completed.
+        searchCriteria:
+          $ref: '#/components/schemas/ReleaseBundleCleanupSearchCriteria'
+    ReleaseBundleCleanupSearchCriteria:
+      type: object
+      required:
+      - includeAllProjects
+      - includedProjects
+      - releaseBundles
+      - excludePromotedEnvironments
+      properties:
+        includeAllProjects:
+          type: boolean
+          description: Specifies whether to include all projects in the search (true
+            to include).
+        includedProjects:
+          type: array
+          items:
+            type: string
+          description: A list of specific project keys to include in the search.
+        releaseBundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReleaseBundleTarget'
+          description: An array specifying the release bundles to consider during
+            cleanup.
+        excludePromotedEnvironments:
+          type: array
+          items:
+            type: string
+          description: A list of environments to exclude from the cleanup process.
+            To exclude all, set to **.
+        excludeAllPromotedEnvironments:
+          type: boolean
+          description: Specifies whether to exclude all promoted environments from
+            cleanup.
+        createdBeforeInMonths:
+          type: integer
+          minimum: 0
+          description: Specifies the time frame for filtering based on item creation
+            date. Before Version 7.119.0.
+        createdBeforeInDays:
+          type: integer
+          minimum: 0
+          description: Specifies the time frame for filtering based on item creation
+            date. From Version 7.119.0 Onwards.
+    ReleaseBundleTarget:
+      type: object
+      required:
+      - name
+      - projectKey
+      properties:
+        name:
+          type: string
+          description: The name of the release bundle. Set "**" to include all bundles.
+        projectKey:
+          type: string
+          description: The project identifier associated with the release bundle.
+            Leave blank for global level.
+    ReleaseBundleCleanupPolicyResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: The ID that identifies the policy.
+        description:
+          type: string
+          description: Description that was defined for the policy.
+        cronExp:
+          type: string
+          description: The cron expression that determines when the policy is run.
+        projectKey:
+          type: string
+          description: The project key if this is a project-level policy.
+        itemType:
+          type: string
+          enum:
+          - releaseBundle
+          description: The type of items (releaseBundle).
+        durationInMinutes:
+          type: integer
+          description: The maximum duration (in minutes) for policy execution.
+        enabled:
+          type: boolean
+          description: Indicates if the cleanup policy is active (true) or disabled
+            (false).
+        searchCriteria:
+          $ref: '#/components/schemas/ReleaseBundleCleanupSearchCriteria'
+    BuildCleanupPolicyRequest:
+      type: object
+      required:
+      - key
+      - itemType
+      - searchCriteria
+      properties:
+        key:
+          type: string
+          description: A unique identifier for the cleanup policy. A minimum of three
+            characters is required, including letters, numbers, underscore and hyphen.
+        description:
+          type: string
+          maxLength: 256
+          description: A brief description of the cleanup policy.
+        cronExp:
+          type: string
+          description: A cron expression specifying when the cleanup job will run.
+            This parameter is not mandatory, however if left empty the policy will
+            not run automatically and can only be triggered manually.
+        projectKey:
+          type: string
+          description: This key is obtained from the Project Settings screen. This
+            parameter is used only for project-level cleanup policies.
+        itemType:
+          type: string
+          enum:
+          - build
+          description: The type of items to clean up (build). This field is required.
+        durationInMinutes:
+          type: integer
+          description: The maximum duration (in minutes) for policy execution, after
+            which the policy will stop running even if not completed.
+        enabled:
+          type: boolean
+          description: Indicates if the cleanup policy is active (true) or disabled
+            (false). A cleanup policy must be created inactive.
+        deleteArtifacts:
+          type: boolean
+          description: Deletes the artifacts associated with the build (true to delete).
+        skipTrashcan:
+          type: boolean
+          description: A true value means that when this policy is executed, builds
+            will be permanently deleted. false means that when the policy is executed
+            builds will be deleted to the Trash Can.
+        searchCriteria:
+          $ref: '#/components/schemas/BuildCleanupSearchCriteria'
+    BuildCleanupSearchCriteria:
+      type: object
+      required:
+      - includeAllProjects
+      - includedProjects
+      - includedBuilds
+      properties:
+        includeAllProjects:
+          type: boolean
+          description: Specifies whether to include all projects in the search (true
+            to include).
+        includedProjects:
+          type: array
+          items:
+            type: string
+          description: A list of specific project keys to include in the search.
+        includedBuilds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildTarget'
+          description: Builds to consider during cleanup.
+        excludeBuildsWithReleaseBundles:
+          type: boolean
+          description: Specifies whether to exclude builds with release bundles (true
+            to exclude).
+        createdBeforeInMonths:
+          type: integer
+          minimum: 0
+          description: Specifies the time frame for filtering based on item creation
+            date (legacy).
+        createdBeforeInDays:
+          type: integer
+          minimum: 0
+          description: Specifies the time frame for filtering based on item creation
+            date (e.g., 40 days).
+    BuildTarget:
+      type: object
+      required:
+      - name
+      - projectKey
+      properties:
+        name:
+          type: string
+          description: The name of the build. Use wildcards at the end to match any
+            suffix.
+        projectKey:
+          type: string
+          description: The project identifier associated with the build. Leave blank
+            for global level.
+    BuildCleanupPolicyResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: The ID that identifies the policy.
+        description:
+          type: string
+          description: Description that was defined for the policy.
+        cronExp:
+          type: string
+          description: The cron expression that determines when the policy is run.
+        projectKey:
+          type: string
+          description: The project key if this is a project-level policy.
+        itemType:
+          type: string
+          enum:
+          - build
+          description: The type of items (build).
+        durationInMinutes:
+          type: integer
+          description: The maximum duration (in minutes) for policy execution.
+        enabled:
+          type: boolean
+          description: Indicates if the cleanup policy is active (true) or disabled
+            (false).
+        deleteArtifacts:
+          type: boolean
+          description: Indicates if artifacts associated with the build are deleted.
+        skipTrashcan:
+          type: boolean
+          description: Indicates if builds are permanently deleted or sent to Trash
+            Can.
+        searchCriteria:
+          $ref: '#/components/schemas/BuildCleanupSearchCriteria'
+    CleanupPolicyView:
+      type: object
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CleanupPolicyEntry'
+    CleanupPolicyEntry:
+      type: object
+      properties:
+        itemType:
+          type: string
+          description: The type of items (package, build, releaseBundle).
+        policyKey:
+          type: string
+          description: The unique identifier of the policy.
+        nextRunTime:
+          type: integer
+          format: int64
+          description: The next scheduled run time in epoch milliseconds.
+        enabled:
+          type: boolean
+          description: Whether the policy is enabled.
+        displayProject:
+          type: string
+          description: The display name of the project.
+        lastRunData:
+          $ref: '#/components/schemas/CleanupPolicyLastRun'
+        includedProjects:
+          type: array
+          items:
+            type: string
+          description: List of included project keys.
+    CleanupPolicyLastRun:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The status of the last run.
+        lastRunTime:
+          type: integer
+          format: int64
+          description: The last run time in epoch milliseconds.
+        dryRun:
+          type: boolean
+          description: Whether the last run was a dry run.
+        runId:
+          type: integer
+          description: The run ID of the last execution.
+        reportDownloaded:
+          type: boolean
+          description: Whether the report was downloaded.
+        totalItems:
+          type: integer
+          format: int64
+          description: Total items processed in the last run.
+    CleanupPolicyRunView:
+      type: object
+      properties:
+        runViews:
+          type: array
+          items:
+            $ref: '#/components/schemas/CleanupPolicyRunViewEntry'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    CleanupPolicyRunViewEntry:
+      type: object
+      properties:
+        runId:
+          type: integer
+        itemType:
+          type: string
+          enum:
+          - package
+          - build
+          - releaseBundle
+        policyKey:
+          type: string
+        displayProject:
+          type: string
+        startTime:
+          type: integer
+          format: int64
+        endTime:
+          type: integer
+          format: int64
+        totalItems:
+          type: integer
+          format: int64
+        cleanedSize:
+          type: integer
+          format: int64
+        cleanedItems:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum:
+          - IN_PROGRESS
+          - IN_PROGRESS_WITH_ERRORS
+          - COMPLETED
+          - COMPLETED_WITH_ERRORS
+          - STOPPED
+          - STOPPING
+          - FAILED
+          - PENDING_WARM
+          - PARTIAL_WARMED
+          - WARMED
+        triggeredBy:
+          type: string
+        manual:
+          type: boolean
+        dryRun:
+          type: boolean
+        policyTaskId:
+          type: integer
+        includedProjects:
+          type: array
+          items:
+            type: string
+    Pagination:
+      type: object
+      properties:
+        pageSize:
+          type: integer
+          format: int64
+          description: Number of items per page.
+        currentPage:
+          type: integer
+          format: int64
+          description: The current page number.
+        lastPage:
+          type: integer
+          format: int64
+          description: The last page number.
+        total:
+          type: integer
+          format: int64
+          description: Total number of items.
+    RunSummaryResponse:
+      type: object
+      properties:
+        policySummary:
+          $ref: '#/components/schemas/PolicySummary'
+        executionSummary:
+          $ref: '#/components/schemas/ExecutionSummary'
+        processedItemsSummary:
+          $ref: '#/components/schemas/ProcessedItemsSummary'
+        runConfiguration:
+          $ref: '#/components/schemas/RunConfiguration'
+    PolicySummary:
+      type: object
+      properties:
+        policyName:
+          type: string
+        runId:
+          type: integer
+        dryRun:
+          type: boolean
+        status:
+          type: string
+        triggeredBy:
+          type: string
+    ExecutionSummary:
+      type: object
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        durationMillis:
+          type: integer
+          format: int64
+    ProcessedItemsSummary:
+      type: object
+      properties:
+        itemType:
+          type: string
+        totalItems:
+          type: integer
+          format: int64
+        processedItems:
+          type: integer
+          format: int64
+        failedItems:
+          type: integer
+          format: int64
+        processedPhysicalSizeBytes:
+          type: integer
+          format: int64
+        processedVirtualSizeBytes:
+          type: integer
+          format: int64
+    RunConfiguration:
+      type: object
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        modifiedAt:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        description:
+          type: string
+        skipTrashCan:
+          type: boolean
+        target:
+          $ref: '#/components/schemas/Target'
+        cleanupCriteria:
+          $ref: '#/components/schemas/CleanupCriteria'
+    Schedule:
+      type: object
+      properties:
+        cronExpression:
+          type: string
+        maxRunDurationMillis:
+          type: integer
+          format: int64
+    Target:
+      type: object
+      properties:
+        reposIncluded:
+          type: array
+          items:
+            type: string
+        reposExcluded:
+          type: array
+          items:
+            type: string
+        packageTypes:
+          type: array
+          items:
+            type: string
+        packagesIncluded:
+          type: array
+          items:
+            type: string
+        packagesExcluded:
+          type: array
+          items:
+            type: string
+        includeAllProjects:
+          type: boolean
+        projectsIncluded:
+          type: array
+          items:
+            type: string
+    CleanupCriteria:
+      type: object
+      properties:
+        createdBefore:
+          type: string
+          description: Human-readable age derived from createdBeforeInDays (for example,
+            "30 days", "2 months", "1 year").
+        lastDownloadedBeforeInDays:
+          type: integer
+          format: int64
+        keepLastNVersions:
+          type: integer
+          format: int64
+x-readme:
+  explorer-enabled: false

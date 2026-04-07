@@ -1,0 +1,141 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - AWS IAM API
+  description: 'AWS IAM Role assignment APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** All APIs require admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: AWS IAM
+  description: APIs for assigning, retrieving, and deleting AWS IAM roles for JFrog
+    Platform users.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/aws/iam_role:
+    put:
+      tags:
+      - AWS IAM
+      summary: PUT AWS IAM Role
+      description: 'Assigns an AWS IAM role to a user.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: putAwsIamRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AwsIamRoleAssignment'
+      responses:
+        '204':
+          description: AWS IAM role assigned (no response body)
+        '400':
+          description: Bad Request - Invalid input
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - User not found
+        '409':
+          description: Conflict - IAM role already assigned to another user
+  /access/api/v1/aws/iam_role/{username}:
+    get:
+      tags:
+      - AWS IAM
+      summary: GET AWS IAM Role
+      description: 'Get information of the AWS IAM role assigned to a user.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getAwsIamRole
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwsIamRoleAssignment'
+        '400':
+          description: Bad Request - User not found
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - No IAM role assigned for this user
+    delete:
+      tags:
+      - AWS IAM
+      summary: DELETE IAM ROLE
+      description: 'Deletes AWS IAM role from a user.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteAwsIamRole
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The username to remove the role from
+      responses:
+        '204':
+          description: AWS IAM role removed (no response body)
+        '400':
+          description: Bad Request - User not found
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    AwsIamRoleAssignment:
+      type: object
+      required:
+      - username
+      - iam_role
+      properties:
+        username:
+          type: string
+          description: The username to assign or query the role for
+        iam_role:
+          type: string
+          description: AWS IAM role ARN to assign to the user
+x-readme:
+  explorer-enabled: false

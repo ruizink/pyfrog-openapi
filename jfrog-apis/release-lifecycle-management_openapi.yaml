@@ -1,0 +1,4320 @@
+openapi: 3.1.0
+info:
+  title: Bundle Handler Service API
+  description: API for managing release bundles in JFrog Artifactory - Based on official
+    JFrog REST API documentation
+  version: 3.x-SNAPSHOT
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}/lifecycle/api/v2
+  description: Release Lifecycle Management API base path
+tags:
+- name: BundleResource
+  description: Release bundle management operations
+- name: PromotionResource
+  description: Release bundle promotion operations
+- name: DistributionResource
+  description: Release bundle distribution operations. Note These endpoints represent
+    the external JFrog Distribution API as documented in the official REST API documentation.
+    The internal BundleDistributionResource.java implements different endpoints for
+    transaction management (transaction/open, transaction/close).
+paths:
+  /release_bundle:
+    post:
+      tags:
+      - BundleResource
+      summary: Create Release Bundle v2 Version
+      description: Creates a new Release Bundle v2, uniquely identified by a combination
+        of repository key, name, and version. You can create a Release Bundle version
+        using one or a combination of the following source types AQL, Artifacts, Packages,
+        Builds, or Release Bundles.
+      operationId: createBundleVersion
+      requestBody:
+        required: true
+        description: Release bundle creation request containing bundle name, version,
+          source type, and source configurations
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBundleSourceRequest'
+            examples:
+              artifacts:
+                summary: Create bundle from artifacts
+                description: Example of creating a bundle from specific artifacts
+                  by path
+                value:
+                  release_bundle_name: my-bundle
+                  release_bundle_version: 1.0.0
+                  source_type: artifacts
+                  source:
+                    artifacts:
+                    - path: path/to/artifact1.jar
+                      sha256: abc123def456...
+                    - path: path/to/artifact2.war
+                  tag: production
+              aql:
+                summary: Create bundle from AQL query
+                description: Example of creating a bundle using Artifactory Query
+                  Language (AQL)
+                value:
+                  release_bundle_name: my-bundle
+                  release_bundle_version: 1.0.0
+                  source_type: aql
+                  source:
+                    aql: 'items.find({"repo": "local-generic", "path": {"$match":
+                      "path/to/*"}})'
+                  tag: production
+              packages:
+                summary: Create bundle from packages
+                description: Example of creating a bundle from packages (Docker, npm,
+                  Maven, etc.)
+                value:
+                  release_bundle_name: my-bundle
+                  release_bundle_version: 1.0.0
+                  source_type: packages
+                  source:
+                    packages:
+                    - package_name: my-docker-image
+                      package_version: 1.0.0
+                      package_type: docker
+                      repository_key: local-docker
+                    - package_name: my-npm-package
+                      package_version: 2.0.0
+                      package_type: npm
+                      repository_key: local-npm
+                  tag: production
+              release_bundles:
+                summary: Create bundle from other release bundles
+                description: Example of creating a bundle that includes artifacts
+                  from other release bundles
+                value:
+                  release_bundle_name: my-bundle
+                  release_bundle_version: 1.0.0
+                  source_type: release_bundles
+                  source:
+                    release_bundles:
+                    - release_bundle_name: source-bundle-1
+                      release_bundle_version: 1.0.0
+                      repository_key: my-repo
+                      project_key: my-project
+                    - release_bundle_name: source-bundle-2
+                      release_bundle_version: 2.0.0
+                  tag: production
+              multiple_sources:
+                summary: Create bundle from multiple source types
+                description: Example of creating a bundle that combines multiple source
+                  types (AQL, artifacts, packages, etc.) in a single request
+                value:
+                  release_bundle_name: my-bundle
+                  release_bundle_version: 1.0.0
+                  sources:
+                  - source_type: aql
+                    aql: 'items.find({"repo": "local-generic", "path": {"$match":
+                      "path/to/*"}})'
+                  - source_type: artifacts
+                    artifacts:
+                    - path: path/to/artifact1.jar
+                      sha256: abc123def456...
+                    - path: path/to/artifact2.war
+                  - source_type: packages
+                    packages:
+                    - package_name: my-docker-image
+                      package_version: 1.0.0
+                      package_type: docker
+                      repository_key: local-docker
+                  - source_type: release_bundles
+                    release_bundles:
+                    - release_bundle_name: source-bundle-1
+                      release_bundle_version: 1.0.0
+                      repository_key: my-repo
+                  tag: production
+      parameters:
+      - name: async
+        in: query
+        description: Whether to create the bundle asynchronously
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: fail_fast
+        in: query
+        description: Whether to fail fast on errors
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Submitted (async) - The creation request was submitted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBundleResponse'
+        '201':
+          description: Created (sync) - The Release Bundle version was created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBundleResponse'
+        '400':
+          description: Bad Request - The request body is malformed, a required parameter
+            is missing, or the AQL is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have write permissions
+            for the target repository.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - A specified resource (source artifact, build, package,
+            or repository) could not be found.
+          content:
+            application/json:
+              schema:
+                type: object
+        '409':
+          description: Already Exists - A Release Bundle with the same name and version
+            already exists in the target repository.
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      tags:
+      - BundleResource
+      summary: Update Release Bundle v2 Version
+      description: Updates an existing draft Release Bundle v2 version by adding new
+        sources and/or applying filters. The bundle must be in draft state to be updated.
+        You can add sources of any supported type (AQL, Artifacts, Packages, Builds,
+        or Release Bundles) and optionally apply inclusion/exclusion filters.
+      operationId: updateBundleVersion
+      requestBody:
+        required: true
+        description: Release bundle update request containing bundle name, version,
+          sources to add, and optional filters
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBundleSourceRequest'
+            examples:
+              add_artifacts:
+                summary: Add artifacts to an existing draft bundle
+                description: Example of adding artifact sources to an existing draft
+                  Release Bundle version
+                value:
+                  release_bundle_name: my-bundle
+                  release_bundle_version: 1.0.0
+                  add_sources:
+                  - source_type: artifacts
+                    artifacts:
+                    - path: path/to/new-artifact.jar
+                      sha256: abc123def456...
+              add_with_filters:
+                summary: Add sources with inclusion/exclusion filters
+                description: Example of adding sources while applying filters to include
+                  or exclude specific artifacts
+                value:
+                  release_bundle_name: my-bundle
+                  release_bundle_version: 1.0.0
+                  add_sources:
+                  - source_type: builds
+                    builds:
+                    - build_name: my-build
+                      build_number: '42'
+                  filters:
+                    included:
+                    - package_type: docker
+                      package_name: my-image
+                    excluded:
+                    - path: '**/test/**'
+      parameters:
+      - name: async
+        in: query
+        description: Whether to update the bundle asynchronously
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: fail_fast
+        in: query
+        description: Whether to fail fast on errors
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: dry_run
+        in: query
+        description: Whether to perform a dry run without actually updating the bundle
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      - name: X-JFrog-Signing-Key-Name
+        in: header
+        description: The name of the signing key to use for signing the release bundle
+        required: false
+        schema:
+          type: string
+          maxLength: 255
+      responses:
+        '200':
+          description: Updated - The Release Bundle version was updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateBundleResponse'
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have write permissions
+            for the target repository.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version or a source
+            resource could not be found. The bundle must exist and be in draft state.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/names:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Names
+      description: Returns a list of Release Bundle v2 names mapped to their repository
+        key (and project key, where applicable).
+      operationId: getBundleNames
+      parameters:
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Fetched - Successfully retrieved bundle names
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBundleIdsResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/groups:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Groups
+      description: Returns a list of Release Bundle v2 names mapped to their repository
+        key. Each element includes the latest version and the total number of versions.
+      operationId: getBundleGroups
+      parameters:
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      - name: filter_by
+        in: query
+        description: Filter criteria
+        required: false
+        schema:
+          type: string
+      - name: filter_by_release_status
+        in: query
+        description: Filter by release status
+        required: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        description: Start date for filtering
+        required: false
+        schema:
+          type: string
+      - name: to
+        in: query
+        description: End date for filtering
+        required: false
+        schema:
+          type: string
+      - name: event
+        in: query
+        description: Event type filter (CREATED, PROMOTED, DISTRIBUTED, UPDATED, FINALIZED)
+        required: false
+        schema:
+          type: string
+          enum:
+          - CREATED
+          - PROMOTED
+          - DISTRIBUTED
+          - UPDATED
+          - FINALIZED
+      - name: order_by
+        in: query
+        description: Field to order by (release_bundle_name, release_bundle_version_latest,
+          created)
+        required: false
+        schema:
+          type: string
+          enum:
+          - release_bundle_name
+          - release_bundle_version_latest
+          - created
+          default: created
+      - name: order_asc
+        in: query
+        description: Order ascending
+        required: false
+        schema:
+          type: boolean
+      - name: offset
+        in: query
+        description: Pagination offset
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Maximum number of results
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 10
+      responses:
+        '200':
+          description: Fetched - Successfully retrieved bundle groups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBundleGroupsResponse'
+  /release_bundle/records/{name}:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Versions
+      description: Returns a list of versions for a specified Release Bundle v2. Records
+        are provided regardless of status, including failed attempts at creation.
+        You can filter the results based on version, creator, tags, status, and where
+        they have been promoted.
+      operationId: getBundleVersions
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      - name: include
+        in: query
+        description: Adds details to the response. Supports 'messages' (returns any
+          error messages generated when creating the Release Bundle version) and 'permissions'
+          (returns user permissions for these versions). Multiple values can be comma-separated.
+        required: false
+        schema:
+          type: string
+      - name: filter_by
+        in: query
+        description: Defines a filter for the list of Release Bundle versions. You
+          can filter according to release_bundle_version and created_by. This parameter
+          has been replaced with new filters (release_bundle_version, created_by,
+          release_status, tag) and will be deprecated in a future version.
+        required: false
+        schema:
+          type: string
+      - name: release_bundle_version
+        in: query
+        description: Filters by the Release Bundle version. Supports a trailing wildcard
+          (*) for prefix searching and multiple comma-separated values.
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      - name: created_by
+        in: query
+        description: Filters by the user who created the Release Bundle.
+        required: false
+        schema:
+          type: string
+      - name: order_by
+        in: query
+        description: Defines the sort criterion for the Release Bundle versions. Options
+          'created' (sorts by creation timestamp), 'created_by' (sorts by creator
+          name), 'release_bundle_name' (sorts by name), 'release_bundle_version' (sorts
+          lexicographically), 'release_bundle_semver' (sorts using SemVer rules; versions
+          that do not conform to SemVer are added to the end sorted lexicographically).
+          Note The release_bundle_semver option pulls the latest 1000 records only
+          and does not support pagination. When this option is selected, the offset
+          must be set to 0, and the maximum limit is 1000.
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - created_by
+          - release_bundle_name
+          - release_bundle_version
+          - release_bundle_semver
+          default: created
+      - name: order_asc
+        in: query
+        description: Defines the sort order. true for ascending order, false for descending
+          order. The default value is false.
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - name: offset
+        in: query
+        description: Sets the number of records to skip for pagination.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Sets the maximum number of versions to return at one time. Used
+          for pagination purposes. The default value is 25. The maximum value is 255.
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 255
+          default: 25
+      - name: tag
+        in: query
+        description: Filters by the assigned Release Bundle tag. Supports a trailing
+          wildcard (*) and multiple comma-separated values.
+        required: false
+        schema:
+          type: string
+          pattern: ^[\w\-.*,]*$
+      - name: release_status
+        in: query
+        description: Filters by the release status of the Release Bundle. Supports
+          multiple comma-separated values. Possible values are 'pre_release' and 'released'.
+        required: false
+        schema:
+          type: string
+          enum:
+          - PRE_RELEASE
+          - RELEASED
+          - TRUSTED_RELEASE
+      responses:
+        '200':
+          description: Submitted (asynchronous) - The request was successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBundlesResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle name does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/records/{name}/{version}:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Version Details
+      description: Returns the details of a selected Release Bundle v2 version, such
+        as its creation time, the user who created it, the artifacts it includes,
+        and so on. The details are stored in the form of a DSSE attestation, a signature
+        envelope with a Base64-encoded payload, which contains a snapshot of the items
+        in the Release Bundle.
+      operationId: getBundleVersion
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      - name: offset
+        in: query
+        description: Sets the number of records to skip before returning the query
+          response. Used for pagination purposes. The default is 0.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Sets the maximum number of artifacts to return at one time. Used
+          for pagination purposes.
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: Fetched - Successfully retrieved bundle version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BundleDescriptorModel'
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have read permissions
+            for the target Release Bundle.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      tags:
+      - BundleResource
+      summary: Delete Release Bundle v2 Version
+      description: Deletes a specific Release Bundle v2 version. Can be performed
+        synchronously or asynchronously.
+      operationId: deleteBundleVersion
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      - name: async
+        in: query
+        description: Determines whether the operation should be asynchronous (true)
+          or synchronous (false). The default value is true.
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: is_remote_delete_by_distribution
+        in: query
+        description: Whether this is a remote delete by distribution
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Submitted (async) - The deletion request was submitted successfully.
+        '204':
+          description: Deleted (sync) - The Release Bundle version was deleted successfully.
+        '400':
+          description: Bad Request - The request body is malformed or a required parameter
+            is missing.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have delete permissions
+            for the target Release Bundle.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/records/{name}/latest:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Latest Version
+      description: Retrieves the latest version of a release bundle by name. Returns
+        the bundle descriptor and includes X-Ray SHA256 in response header if available.
+      operationId: getBundleVersionLatest
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      - name: include
+        in: query
+        description: Fields to include
+        required: false
+        schema:
+          type: string
+      - name: filter_by
+        in: query
+        description: Filter criteria
+        required: false
+        schema:
+          type: string
+      - name: order_by
+        in: query
+        description: Field to order by (created, created_by, release_bundle_version,
+          release_bundle_semver)
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - created_by
+          - release_bundle_version
+          - release_bundle_semver
+          default: created
+      - name: order_asc
+        in: query
+        description: Order ascending
+        required: false
+        schema:
+          type: boolean
+      - name: offset
+        in: query
+        description: Pagination offset
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Maximum number of results
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 1000
+      - name: tag
+        in: query
+        description: Tag filter
+        required: false
+        schema:
+          type: string
+          pattern: ^[\w\-.*,]*$
+      - name: release_status
+        in: query
+        description: Release status filter (PRE_RELEASE, RELEASED, TRUSTED_RELEASE)
+        required: false
+        schema:
+          type: string
+          enum:
+          - PRE_RELEASE
+          - RELEASED
+          - TRUSTED_RELEASE
+      responses:
+        '200':
+          description: OK - Successfully retrieved latest bundle version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BundleDescriptorModel'
+        '400':
+          description: Bad Request - Invalid path or query parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content: {}
+  /release_bundle/signatures/{name}/{version}:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Version Signature
+      description: Retrieves the DSSE envelope signature of a specific Release Bundle
+        v2 version.
+      operationId: getBundleVersionSignature
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - Successfully retrieved bundle signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '400':
+          description: Bad Request - Invalid path or query parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error - An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/statuses/{name}/{version}:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Version Status
+      description: Retrieves the status of a specific Release Bundle v2 version.
+      operationId: getBundleVersionStatus
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - Successfully retrieved bundle status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetStatusResponse'
+        '400':
+          description: Bad Request - Invalid path or query parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error - An unexpected error occurred.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/search-by-artifact:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Versions by Artifact
+      description: Returns a list of Release Bundle v2 versions that contain the specified
+        artifact. Supports filtering by bundle name, artifact path, SHA256, and pagination.
+      operationId: getBundlesByArtifact
+      parameters:
+      - name: release_bundle_name
+        in: query
+        description: Filters by the name of the Release Bundle.
+        required: false
+        schema:
+          type: string
+      - name: artifact_path
+        in: query
+        description: The complete path of the artifact to search for. The request
+          must contain either the artifact_path, the sha256, or both.
+        required: false
+        schema:
+          type: string
+      - name: sha256
+        in: query
+        description: Filters by the SHA-256 checksum of the artifact. The request
+          must contain either the artifact_path, the sha256, or both.
+        required: false
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: Defines the project associated with the Release Bundles. If this
+          parameter is not specified, the default global project is assumed.
+        required: false
+        schema:
+          type: string
+      - name: origin
+        in: query
+        description: Defines where to search for the artifact. 'source' searches the
+          Release Bundle versions that have been created on this device. 'target'
+          searches the Release Bundle versions that have been received by this device
+          when acting as a destination target. If this parameter is not specified,
+          both source and target Release Bundle versions are searched.
+        required: false
+        schema:
+          type: string
+          enum:
+          - both
+          - source
+          - target
+          default: both
+      - name: offset
+        in: query
+        description: Sets the number of records to skip before returning the query
+          response. Used for pagination purposes.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Sets the maximum number of versions to return at one time. Used
+          for pagination purposes. If not set, the default is 1000.
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 1000
+      - name: order_by
+        in: query
+        description: Defines the criterion by which to order the returned records.
+          Options 'release_bundle_name', 'release_bundle_version'. The default is
+          release_bundle_name.
+        required: false
+        schema:
+          type: string
+          enum:
+          - release_bundle_name
+          - release_bundle_version
+      - name: order_asc
+        in: query
+        description: Defines whether to list the Release Bundle versions in ascending
+          (true) or descending (false) order. The default value is true.
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: sort
+        in: query
+        description: Sort criteria
+        required: false
+        schema:
+          type: string
+          default: release_bundle_name:asc,release_bundle_version:desc
+      responses:
+        '200':
+          description: OK - Successfully retrieved bundles containing the artifact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBundlesByArtifactResponse'
+        '400':
+          description: Bad Request - Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content: {}
+  /release_bundle/records/{name}/{version}/tag:
+    put:
+      tags:
+      - BundleResource
+      summary: Assign Tag to Release Bundle v2 Version
+      description: Assigns a descriptive tag to a Release Bundle v2 version. The tag
+        will appear on the card for the Release Bundle version on the Release Lifecycle
+        stages board.
+      operationId: setBundleTag
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BundleTagRequest'
+      responses:
+        '200':
+          description: OK - Tag assigned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetBundleTagResponse'
+              example:
+                tag: my first bundle
+                release_bundle_name: my-bundle
+                release_bundle_version: 1.0.0
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      tags:
+      - BundleResource
+      summary: Delete Release Bundle v2 Version Tag
+      description: Deletes the tag from the selected Release Bundle v2 version.
+      operationId: deleteBundleTag
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Deleted (Sync) - Tag deleted successfully
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/received:
+    get:
+      tags:
+      - BundleResource
+      summary: List Received Release Bundle v2 Versions
+      description: 'Returns a list of Release Bundle v2 versions that have been received
+        on this Artifactory instance
+
+        (e.g. as a distribution target). Results can be filtered and ordered by name,
+        source project key, or date received.
+
+        '
+      operationId: getReceivedBundles
+      parameters:
+      - $ref: '#/components/parameters/ReceivedSourceProjectKeyOptional'
+      - $ref: '#/components/parameters/ReceivedPattern'
+      - $ref: '#/components/parameters/ReceivedOrderByList'
+      - $ref: '#/components/parameters/ReceivedOrderAsc'
+      - $ref: '#/components/parameters/ReceivedOffset'
+      - $ref: '#/components/parameters/ReceivedLimit'
+      responses:
+        '200':
+          description: OK - List of received release bundles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetReceivedBundlesResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /release_bundle/received/{release_bundle_name}:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Received Release Bundle v2 Versions by Name
+      description: Returns the list of versions for a given Release Bundle v2 name
+        that have been received on this instance.
+      operationId: getReceivedBundleVersions
+      parameters:
+      - $ref: '#/components/parameters/ReceivedReleaseBundleName'
+      - $ref: '#/components/parameters/ReceivedSourceProjectKeyRequired'
+      - $ref: '#/components/parameters/ReceivedPattern'
+      - $ref: '#/components/parameters/ReceivedOrderByVersions'
+      - $ref: '#/components/parameters/ReceivedOrderAsc'
+      - $ref: '#/components/parameters/ReceivedOffset'
+      - $ref: '#/components/parameters/ReceivedLimit'
+      responses:
+        '200':
+          description: OK - List of received versions for the given bundle name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetReceivedBundleVersionsResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified Release Bundle name does not exist
+            or has no received versions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /release_bundle/received/{release_bundle_name}/{release_bundle_version}/artifacts:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Received Release Bundle v2 Version Artifacts
+      description: Returns the list of artifacts included in a specific Release Bundle
+        v2 version that has been received on this instance.
+      operationId: getReceivedBundleVersionArtifacts
+      parameters:
+      - $ref: '#/components/parameters/ReceivedReleaseBundleName'
+      - $ref: '#/components/parameters/ReceivedReleaseBundleVersion'
+      - $ref: '#/components/parameters/ReceivedSourceProjectKeyRequired'
+      - $ref: '#/components/parameters/ReceivedPattern'
+      - $ref: '#/components/parameters/ReceivedOrderByArtifacts'
+      - $ref: '#/components/parameters/ReceivedOrderAsc'
+      - $ref: '#/components/parameters/ReceivedOffset'
+      - $ref: '#/components/parameters/ReceivedLimit'
+      responses:
+        '200':
+          description: OK - List of artifacts in the received release bundle version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetReceivedBundleVersionArtifactsResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified Release Bundle version was not received
+            or does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /release_bundle/received/{release_bundle_name}/{release_bundle_version}/status:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Received Release Bundle v2 Version Status
+      description: Returns the status and messages for a specific Release Bundle v2
+        version that has been received on this instance (e.g. distribution/promotion
+        status).
+      operationId: getReceivedBundleVersionStatus
+      parameters:
+      - $ref: '#/components/parameters/ReceivedReleaseBundleName'
+      - $ref: '#/components/parameters/ReceivedReleaseBundleVersion'
+      - $ref: '#/components/parameters/ReceivedSourceProjectKeyRequired'
+      responses:
+        '200':
+          description: OK - Status and messages for the received release bundle version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetStatusResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified Release Bundle version was not received
+            or does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /release_bundle/received/{release_bundle_name}/{release_bundle_version}:
+    delete:
+      tags:
+      - BundleResource
+      summary: Delete Received Release Bundle v2 Version
+      description: 'Deletes a Release Bundle v2 version that has been received on
+        this Artifactory instance (e.g. as a distribution target).
+
+        Used for remote delete from Distribution or cleanup of received bundle data.
+        When async is true, returns 200 with a
+
+        submission message; when false, returns 204 when deletion completes.
+
+        '
+      operationId: deleteReceivedBundleVersion
+      parameters:
+      - $ref: '#/components/parameters/ReceivedReleaseBundleName'
+      - $ref: '#/components/parameters/ReceivedReleaseBundleVersion'
+      - $ref: '#/components/parameters/ReceivedSourceProjectKeyQueryOptional'
+      - $ref: '#/components/parameters/ReceivedAsync'
+      - $ref: '#/components/parameters/ReceivedIsRemoteDeleteByDistribution'
+      responses:
+        '200':
+          description: Accepted (async) - Deletion request submitted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncSubmissionResponse'
+        '204':
+          description: No Content (sync) - The received release bundle version was
+            deleted successfully.
+        '400':
+          description: Bad Request - Invalid parameters or missing source_project_key
+            when required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - The specified Release Bundle version was not received
+            or does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /promotion/release-bundles-by-environment/{environment}:
+    get:
+      tags:
+      - BundleResource
+      summary: Get Release Bundle v2 Versions in a Specific Environment
+      description: Returns a list of Release Bundle v2 versions that have been promoted
+        to a specific environment.
+      operationId: getBundlesByEnvironment
+      parameters:
+      - name: environment
+        in: path
+        description: The name of the environment
+        required: true
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      - name: order_by
+        in: query
+        description: Field to order by
+        required: false
+        schema:
+          type: string
+      - name: order_asc
+        in: query
+        description: Order ascending
+        required: false
+        schema:
+          type: boolean
+      - name: limit
+        in: query
+        description: Maximum number of results
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK - Successfully retrieved bundles in environment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BundleByEnvironmentSummary'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to view promotions for this environment.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified environment does not exist or has
+            no promotions.
+          content:
+            application/json:
+              schema:
+                type: object
+  /promotion/rollback/{name}/{version}:
+    post:
+      tags:
+      - PromotionResource
+      summary: Roll Back Release Bundle v2 Version Promotion
+      description: Removes the latest promotion of a Release Bundle v2 version and
+        restores the version to its previous environment, including the properties
+        and evidence that were present when the version was first created.
+      operationId: rollbackPromotion
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: from_environment
+        in: query
+        description: The name of the current environment in which the Release Bundle
+          version is located. The rollback is executed from this environment.
+        required: true
+        schema:
+          type: string
+      - name: async
+        in: query
+        description: Determines whether the operation should be asynchronous (true)
+          or synchronous (false). The default value is true.
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: project
+        in: query
+        description: Optional project key associated with the promotion
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: false
+        description: Optional details for the rollback promotion, such as a overwrite_strategy.
+          If not provided, a default empty request is used.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRollbackPromotionRequest'
+      responses:
+        '200':
+          description: Submitted (Async) - The rollback request was submitted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RollbackPromotionResponse'
+        '201':
+          description: Rolled Back (Sync) - The promotion was rolled back successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RollbackPromotionResponse'
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+  /promotion/records/{name}:
+    get:
+      tags:
+      - PromotionResource
+      summary: Get Release Bundle v2 Promotions
+      description: Returns the records of all promotions for the specified Release
+        Bundle v2 (regardless of version). All promotion records are provided regardless
+        of status, including failed attempts.
+      operationId: getPromotions
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      - name: include
+        in: query
+        description: Returns any error messages generated when creating the promotion
+        required: false
+        schema:
+          type: string
+      - name: offset
+        in: query
+        description: Sets the number of records to skip before returning the query
+          response. Used for pagination purposes.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Sets the maximum number of versions to return at one time. Used
+          for pagination purposes.
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      - name: filter_by
+        in: query
+        description: Defines a filter for the list of promotions. You can filter according
+          to bundle_version, promotion_environment, promotion_created_by
+        required: false
+        schema:
+          type: string
+      - name: order_by
+        in: query
+        description: Defines the criterion by which to order the list of promotions
+          (created, created_millis, created_by, release_bundle_version, environment)
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - created_millis
+          - created_by
+          - release_bundle_version
+          - environment
+      - name: order_asc
+        in: query
+        description: Defines whether to list the promotions in ascending (true) or
+          descending (false) order. The default value is false.
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Fetched - Successfully retrieved promotions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPromotionsResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+  /promotion/records/{name}/{version}:
+    post:
+      tags:
+      - PromotionResource
+      summary: Promote Release Bundle v2 Version
+      description: Promotes the selected Release Bundle v2 version.
+      operationId: createPromotion
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: async
+        in: query
+        description: Determines whether the operation should be asynchronous (true)
+          or synchronous (false). The default value is true.
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: operation
+        in: query
+        description: Determines how to perform the promotion. 'copy' copies contents
+          to target repository (default). 'move' moves contents from last promotion
+          repository to target repository.
+        required: false
+        schema:
+          type: string
+          enum:
+          - copy
+          - move
+          default: copy
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromotionRequest'
+      responses:
+        '200':
+          description: Submitted (asynchronous) - The request to promote the Release
+            Bundle version was submitted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoteBundleResponse'
+        '201':
+          description: Promoted (synchronous) - The Release Bundle version was promoted
+            successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoteBundleResponse'
+        '400':
+          description: Bad Request - The request was malformed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The Release Bundle name or version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+        '409':
+          description: Conflict - Can occur when trying to promote when another promotion
+            is in progress, or when artifact already exists at target with different
+            checksum.
+          content:
+            application/json:
+              schema:
+                type: object
+    get:
+      tags:
+      - PromotionResource
+      summary: Get Release Bundle v2 Version Promotions
+      description: Returns the details of all promotions for the specified Release
+        Bundle v2 version. All promotion records are provided regardless of status,
+        including failed attempts.
+      operationId: getPromotionsByVersion
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      - name: include
+        in: query
+        description: Returns any error messages generated when creating the promotion
+        required: false
+        schema:
+          type: string
+      - name: offset
+        in: query
+        description: Sets the number of records to skip before returning the query
+          response. Used for pagination purposes.
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Sets the maximum number of versions to return at one time. Used
+          for pagination purposes.
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      - name: filter_by
+        in: query
+        description: Defines a filter for the list of promotions
+        required: false
+        schema:
+          type: string
+      - name: order_by
+        in: query
+        description: Defines the criterion by which to order the list of promotions
+          (created, created_millis, created_by, environment)
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - created_millis
+          - created_by
+          - environment
+      - name: order_asc
+        in: query
+        description: Defines whether to list the promotions in ascending (true) or
+          descending (false) order. The default value is false.
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: Fetched - Successfully retrieved promotions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPromotionsResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+  /promotion/records/{name}/{version}/{created}:
+    get:
+      tags:
+      - PromotionResource
+      summary: Get Release Bundle v2 Version Promotion Details
+      description: Returns the specification of the specified Release Bundle v2 version
+        promotion. The specification file contains a snapshot of the items in the
+        promotion.
+      operationId: getPromotionDetails
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: created
+        in: path
+        description: Promotion creation timestamp in milliseconds
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - Successfully retrieved promotion details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionDetailsResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified promotion does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      tags:
+      - PromotionResource
+      summary: Delete Release Bundle v2 Version Promotion
+      description: Deletes a specific Release Bundle v2 version promotion.
+      operationId: deletePromotion
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: created
+        in: path
+        description: Promotion creation timestamp in milliseconds
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      - name: async
+        in: query
+        description: Determines whether the operation should be asynchronous (true)
+          or synchronous (false). The default value is true.
+        required: false
+        schema:
+          type: boolean
+          default: true
+      responses:
+        '200':
+          description: Submitted (async) - The deletion request was submitted successfully.
+        '204':
+          description: Deleted (sync) - The promotion was deleted successfully.
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have delete permissions
+            for the target promotion.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified promotion does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /promotion/statuses/{name}/{version}/{created}:
+    get:
+      tags:
+      - PromotionResource
+      summary: Get Release Bundle v2 Version Promotion Status
+      description: Retrieves the status of a specific Release Bundle v2 version promotion.
+      operationId: getPromotionStatus
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: created
+        in: path
+        description: Promotion creation timestamp in milliseconds
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - Successfully retrieved promotion status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetStatusResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified promotion does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /promotion/{repositoryPath}:
+    get:
+      tags:
+      - PromotionResource
+      summary: Get Release Bundle v2 Version Promotions with a Specific Artifact
+      description: Returns a list of Release Bundle v2 version promotions that contain
+        the specified artifact.
+      operationId: getPromotionsByArtifact
+      parameters:
+      - name: repositoryPath
+        in: path
+        description: Repository path pattern for the artifact
+        required: true
+        schema:
+          type: string
+      - name: sha256
+        in: query
+        description: SHA256 checksum of the artifact
+        required: false
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      - name: offset
+        in: query
+        description: Pagination offset
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - name: limit
+        in: query
+        description: Maximum number of results
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK - Successfully retrieved promotions containing the artifact
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPromotionsByArtifactResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/distribute/{release_bundle_name}/{release_bundle_version}:
+    post:
+      tags:
+      - DistributionResource
+      summary: Distribute Release Bundle Version v2
+      description: Distributes a Release Bundle v2 version.
+      operationId: distributeBundleVersion
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DistributeBundleRequest'
+      responses:
+        '200':
+          description: Success - Distribution request was submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistributeBundleResponse'
+        '400':
+          description: Bad Request - The request was malformed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The Release Bundle name or version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+        '409':
+          description: Already Exists - A distribution with the same parameters already
+            exists.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/abort/{release_bundle_name}/{release_bundle_version}:
+    put:
+      tags:
+      - DistributionResource
+      summary: Abort Release Bundle V2 Distribution
+      description: Aborts the distribution of a Release Bundle v2 version. The Abort
+        operation affects only those targets that have not yet received the complete
+        Release Bundle.
+      operationId: abortDistribution
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      responses:
+        '202':
+          description: Request accepted for processing
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DistributionTarget'
+        '204':
+          description: Nothing was aborted
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/trackers/{release_bundle_name}/{release_bundle_version}:
+    get:
+      tags:
+      - DistributionResource
+      summary: Get Release Bundle V2 Distributions
+      description: Returns a list of distributions for a specified Release Bundle
+        v2 version.
+      operationId: getDistributions
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Fetched - Successfully retrieved distributions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DistributionTracker'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/trackers/{release_bundle_name}/{release_bundle_version}/{distribution_id}:
+    get:
+      tags:
+      - DistributionResource
+      summary: Get Release Bundle V2 Distribution Details
+      description: Returns the details of a specific distribution of a Release Bundle
+        v2 version.
+      operationId: getDistributionDetails
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: distribution_id
+        in: path
+        description: Distribution ID
+        required: true
+        schema:
+          type: string
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success - Successfully retrieved distribution details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistributionDetailsResponse'
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified distribution does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/remote_delete/{release_bundle_name}/{release_bundle_version}:
+    post:
+      tags:
+      - DistributionResource
+      summary: Remote Delete Release Bundle V2 Distribution
+      description: Deletes the Release Bundle v2 version from the distribution targets.
+        (The Release Bundle version is not deleted locally.)
+      operationId: remoteDeleteDistribution
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteDeleteDistributionRequest'
+      responses:
+        '202':
+          description: Accepted for Deletion - The remote delete request was accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoteDeleteDistributionResponse'
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/key/propagate/{key_name}:
+    post:
+      tags:
+      - DistributionResource
+      summary: Propagate Public Signing Key
+      description: Propagates the public signing key created in Artifactory to Edge
+        nodes. This enables Distribution to distribute a Release Bundle v2 version
+        using the same signing key used in Artifactory to create and promote the Release
+        Bundle.
+      operationId: propagateSigningKey
+      parameters:
+      - name: key_name
+        in: path
+        description: The name of the signing key to propagate
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - Successfully propagated signing key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropagateKeyResponse'
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have Admin permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/export/{release_bundle_name}/{release_bundle_version}:
+    post:
+      tags:
+      - DistributionResource
+      summary: Export Release Bundle Version v2 Archived File
+      description: Triggers the Release Bundle v2 export process from JFrog Distribution.
+        This is used when working in an Air Gap environment.
+      operationId: exportBundleVersion
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportBundleRequest'
+      responses:
+        '202':
+          description: Accepted - Export request was accepted
+        '400':
+          description: Bad Request - The request was malformed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The Release Bundle name or version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+        '409':
+          description: Already Exists - An export for this Release Bundle version
+            already exists.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/export/status/{release_bundle_name}/{release_bundle_version}:
+    get:
+      tags:
+      - DistributionResource
+      summary: Get Exported Release Bundle Version v2 Status
+      description: Returns the status of an exported Release Bundle v2 operation.
+      operationId: getExportStatus
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Completed - Successfully retrieved export status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportStatusResponse'
+        '400':
+          description: Bad Request - Invalid path or query parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Bad Credentials - The provided authentication is invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have the necessary permissions
+            to perform this action.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified export does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+  /distribution/export/delete/{release_bundle_name}/{release_bundle_version}:
+    delete:
+      tags:
+      - DistributionResource
+      summary: Delete Exported Release Bundle v2 Archive File
+      description: Deletes the exported Release Bundle v2 archive from Distribution.
+      operationId: deleteExportArchive
+      parameters:
+      - name: release_bundle_name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: release_bundle_version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Submitted - The deletion request was submitted successfully.
+        '401':
+          description: Bad Credentials - Authentication failed.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have Admin permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+  /release_bundle/{name}/{version}/finalize:
+    post:
+      tags:
+      - BundleResource
+      summary: Finalize Release Bundle v2 Version
+      description: Finalizes a draft Release Bundle v2 version, making it immutable.
+        Once finalized, a bundle version cannot be updated further. This operation
+        is idempotent and will succeed even if the bundle is already finalized.
+      operationId: finalizeBundleVersion
+      parameters:
+      - name: name
+        in: path
+        description: Release bundle name
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.]*$
+      - name: version
+        in: path
+        description: Release bundle version
+        required: true
+        schema:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+      - name: project
+        in: query
+        description: The project key used to determine the Release Bundles repository.
+          By convention, each project may contain only one Release Bundles system
+          repository with the name <project-key>-release-bundles-v2. This query parameter
+          may be used instead of repository_key.
+        required: false
+        schema:
+          type: string
+      - name: repository_key
+        in: query
+        description: The Release Bundles repository identifier that identifies where
+          a Release Bundle version resides. If this parameter and the project query
+          parameter are not specified, the default value of release-bundles-v2 is
+          assumed.
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK - The Release Bundle version was finalized successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizeBundleResponse'
+        '401':
+          description: Bad Credentials - Authentication failed. A valid token is required.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Permission Denied - The user does not have write permissions
+            for the target Release Bundle.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found - The specified Release Bundle version does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+        '409':
+          description: Conflict - The Release Bundle version is not in a state that
+            can be finalized (e.g., it has failed creation).
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  parameters:
+    ReceivedSourceProjectKeyOptional:
+      name: source_project_key
+      in: query
+      description: The project key of the source from which release bundles were distributed.
+        Used to scope received bundles. When not provided, results are not filtered
+        by project.
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
+        minLength: 2
+        maxLength: 32
+    ReceivedSourceProjectKeyRequired:
+      name: source_project_key
+      in: query
+      description: The project key of the source from which the release bundle was
+        distributed. Required for project-scoped release bundles.
+      required: true
+      schema:
+        type: string
+        pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
+        minLength: 2
+        maxLength: 32
+        default: default
+    ReceivedSourceProjectKeyQueryOptional:
+      name: source_project_key
+      in: query
+      description: The project key of the source from which the release bundle was
+        distributed.
+      required: false
+      schema:
+        type: string
+        pattern: ^[a-z][a-z0-9-]*[a-z0-9]$
+        minLength: 2
+        maxLength: 32
+    ReceivedPattern:
+      name: pattern
+      in: query
+      description: Filter by name/version/path. Supports wildcards (e.g. * or my-bundle*).
+        Default is *.
+      required: false
+      schema:
+        type: string
+        default: '*'
+    ReceivedOrderByList:
+      name: order_by
+      in: query
+      description: Sort criterion. Options are 'name', 'source_project_key', 'date_received'.
+      required: false
+      schema:
+        type: string
+        enum:
+        - name
+        - source_project_key
+        - date_received
+        default: date_received
+    ReceivedOrderByVersions:
+      name: order_by
+      in: query
+      description: Sort criterion for versions.
+      required: false
+      schema:
+        type: string
+    ReceivedOrderByArtifacts:
+      name: order_by
+      in: query
+      description: Sort criterion. Options include 'artifact_name', 'package_type',
+        'path', 'size', 'checksum'.
+      required: false
+      schema:
+        type: string
+        enum:
+        - artifact_name
+        - package_type
+        - path
+        - size
+        - checksum
+        default: artifact_name
+    ReceivedOrderAsc:
+      name: order_asc
+      in: query
+      description: Sort ascending when true, descending when false.
+      required: false
+      schema:
+        type: boolean
+        default: false
+    ReceivedOffset:
+      name: offset
+      in: query
+      description: Number of records to skip for pagination.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    ReceivedLimit:
+      name: limit
+      in: query
+      description: Maximum number of records to return. Maximum value is 1000.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+    ReceivedReleaseBundleName:
+      name: release_bundle_name
+      in: path
+      description: Release bundle name
+      required: true
+      schema:
+        type: string
+        pattern: ^\w[\w\-.]*$
+    ReceivedReleaseBundleVersion:
+      name: release_bundle_version
+      in: path
+      description: Release bundle version
+      required: true
+      schema:
+        type: string
+        pattern: ^\w[\w\-.+]*$
+    ReceivedAsync:
+      name: async
+      in: query
+      description: When true (default), the deletion is performed asynchronously and
+        the API returns 200 when the request is accepted. When false, the API returns
+        204 after the deletion completes.
+      required: false
+      schema:
+        type: boolean
+        default: true
+    ReceivedIsRemoteDeleteByDistribution:
+      name: is_remote_delete_by_distribution
+      in: query
+      description: Indicates that this delete is triggered by a Distribution remote
+        delete operation.
+      required: false
+      schema:
+        type: boolean
+        default: false
+  schemas:
+    CreateBundleSourceRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - release_bundle_name
+      - release_bundle_version
+      properties:
+        release_bundle_name:
+          type: string
+          pattern: ^\w[\w\-.]*$
+          description: Release bundle name. Must begin with a letter, underscore,
+            or digit and consist of letters, underscores, dots, hyphens, or digits.
+        release_bundle_version:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+          description: Release bundle version. Must begin with a letter, underscore,
+            or digit and consist of letters, underscores, dots, hyphens, plus signs,
+            or digits.
+        skip_docker_manifest_resolution:
+          type: boolean
+          description: Whether to skip Docker manifest resolution during bundle creation
+          default: false
+        source_type:
+          type: string
+          enum:
+          - aql
+          - builds
+          - artifacts
+          - release_bundles
+          - packages
+          description: Type of source for the bundle. Supported values are 'aql' (Artifactory
+            Query Language), 'builds', 'artifacts', 'release_bundles', or 'packages'.
+        source:
+          type: object
+          description: Single source configuration object. The structure depends on
+            the source_type. For artifacts, it may contain path patterns. For builds,
+            it may contain build name and number. For AQL, it may contain AQL query.
+          additionalProperties: true
+        sources:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Multiple source configurations. Use this when you need to include
+            multiple sources in the bundle. Each source object structure depends on
+            the source_type.
+        tag:
+          type: string
+          pattern: ^[\w\-.]*$
+          maxLength: 128
+          description: Optional tag to assign to the release bundle. Must not contain
+            spaces or special characters except hyphens, underscores, and dots.
+    CreateBundleResponse:
+      type: object
+      properties:
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        release_bundle_name:
+          type: string
+          description: Name of the created release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the created release bundle
+        created:
+          type: string
+          description: Creation timestamp
+        tag:
+          type: string
+          description: Tag assigned to the bundle (only included if not empty)
+    UpdateBundleSourceRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - release_bundle_name
+      - release_bundle_version
+      properties:
+        release_bundle_name:
+          type: string
+          pattern: ^\w[\w\-.]*$
+          description: Release bundle name. Must begin with a letter, underscore,
+            or digit and consist of letters, underscores, dots, hyphens, or digits.
+        release_bundle_version:
+          type: string
+          pattern: ^\w[\w\-.+]*$
+          description: Release bundle version. Must begin with a letter, underscore,
+            or digit and consist of letters, underscores, dots, hyphens, plus signs,
+            or digits.
+        add_sources:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: List of source configurations to add to the existing draft
+            bundle. Each source object structure depends on the source_type (aql,
+            builds, artifacts, release_bundles, packages).
+        filters:
+          $ref: '#/components/schemas/BundleSourceFilters'
+    UpdateBundleResponse:
+      type: object
+      properties:
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        release_bundle_name:
+          type: string
+          description: Name of the updated release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the updated release bundle
+        draft:
+          type: boolean
+          description: Whether the bundle is still in draft state
+        updated:
+          type: string
+          description: Timestamp when the bundle was updated
+        added_artifacts_count:
+          type: integer
+          description: Number of artifacts added in this update
+    BundleSourceFilters:
+      type: object
+      description: Filters to include or exclude specific artifacts from the bundle
+      properties:
+        included:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/BundleSourceFilter'
+          description: List of filters for artifacts to include
+        excluded:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/BundleSourceFilter'
+          description: List of filters for artifacts to exclude
+    BundleSourceFilter:
+      type: object
+      description: A filter criterion for matching artifacts by package type, name,
+        version, path, or SHA-256 checksum
+      properties:
+        package_type:
+          type: string
+          maxLength: 32
+          description: Package type to filter by (e.g., docker, npm, maven)
+        package_name:
+          type: string
+          maxLength: 255
+          description: Package name to filter by
+        package_version:
+          type: string
+          maxLength: 255
+          description: Package version to filter by
+        path:
+          type: string
+          maxLength: 1350
+          description: Artifact path pattern to filter by
+        sha256:
+          type: string
+          maxLength: 64
+          description: SHA-256 checksum to filter by
+    GetBundleIdsResponse:
+      type: object
+      properties:
+        release_bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleId'
+    BundleId:
+      type: object
+      properties:
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        release_bundle_name:
+          type: string
+          description: Name of the release bundle
+        project_key:
+          type: string
+          description: Project key associated with the bundle
+        project_name:
+          type: string
+          description: Name of the project associated with the bundle
+    GetBundleGroupsResponse:
+      type: object
+      properties:
+        release_bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleGroup'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    BundleGroup:
+      type: object
+      properties:
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        project_key:
+          type: string
+          description: Project key associated with the bundle
+        project_name:
+          type: string
+          description: Name of the project associated with the bundle
+        service_id:
+          type: string
+          description: Service ID
+        created:
+          type: string
+          description: Creation timestamp
+        release_bundle_name:
+          type: string
+          description: Name of the release bundle
+        release_bundle_version_latest:
+          type: string
+          description: Latest version of the release bundle
+        release_bundle_versions_count:
+          type: integer
+          description: Total number of versions for this bundle
+    GetBundlesResponse:
+      type: object
+      properties:
+        release_bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleVersionSummary'
+        total:
+          type: integer
+          description: Total number of results.
+        limit:
+          type: integer
+          description: The number of results returned in this page.
+        offset:
+          type: integer
+          description: The offset for the current page of results.
+        next_offset:
+          type: integer
+          description: The offset for the next page of results. A value of -1 indicates
+            there are no more pages.
+    BundleVersionSummary:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the bundle version (STARTED, FAILED, COMPLETED, DELETING)
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        release_bundle_name:
+          type: string
+          description: Name of the release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the release bundle
+        release_bundle_status:
+          type: string
+          description: Release bundle status
+        service_id:
+          type: string
+          description: The unique identifier of the Artifactory instance where the
+            Release Bundle version was created
+        created_by:
+          type: string
+          description: The name of the user who created the Release Bundle. Names
+            longer than 64 characters will appear truncated.
+        created:
+          type: string
+          description: Timestamp when the new version was created (ISO 8601 format)
+        tag:
+          type: string
+          description: The descriptive tag assigned to the Release Bundle version,
+            if any
+        release_status:
+          type: string
+          description: Indicates whether the Release Bundle has been promoted successfully
+            to the official release stage (PROD), making it available for consumption.
+            Possible values are pre_release and released. Requires release 7.120.1
+            or above.
+        current_environment:
+          type: string
+          description: Indicates the most recent environment (for example, QA, Staging)
+            to which the Release Bundle version was promoted successfully. If the
+            version has not yet been promoted, this value will be an empty string.
+            Requires release 7.120.1 or above.
+        current_stage:
+          type: string
+          description: Current stage
+        current_promotion_created:
+          type: string
+          description: Timestamp of current promotion creation
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventMessage'
+          description: Error messages related to the processing of the operation (only
+            included if not empty)
+        permissions:
+          $ref: '#/components/schemas/BundlePermissions'
+          description: Whether the user has permission to promote, distribute, and
+            delete these Release Bundle versions (only included if not null)
+    BundleDescriptorModel:
+      type: object
+      description: Release bundle descriptor model
+      properties:
+        service_id:
+          type: string
+          description: The unique identifier of the Artifactory instance where the
+            Release Bundle version was created
+        created_by:
+          type: string
+          description: The name of the user who created the Release Bundle version.
+            Names longer than 64 characters will appear truncated.
+        created:
+          type: string
+          description: The timestamp when the Release Bundle version was created (ISO
+            8601 standard)
+        created_millis:
+          type: integer
+          format: int64
+          description: The timestamp when the Release Bundle version was created (in
+            milliseconds)
+        total_artifacts_count:
+          type: integer
+          description: The total number of artifacts included in the Release Bundle
+            version
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleItemDescriptorModel'
+          description: List of artifacts in the bundle
+    GetStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the bundle version
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventMessage'
+          description: Event messages (only included if not empty)
+    BundleReceivedReleaseBundle:
+      type: object
+      description: Summary of a release bundle that has been received on this instance
+        (e.g. as a distribution target).
+      properties:
+        name:
+          type: string
+          description: Release bundle name
+        latest_version:
+          type: string
+          description: Latest received version of the release bundle
+        source_project_key:
+          type: string
+          description: Project key of the source from which the bundle was distributed
+        number_of_versions:
+          type: integer
+          description: Total number of received versions for this bundle
+        date_received:
+          type: integer
+          format: int64
+          description: Timestamp when the latest version was received (milliseconds
+            since epoch)
+    GetReceivedBundlesResponse:
+      type: object
+      description: Response for listing received release bundle versions.
+      properties:
+        release_bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleReceivedReleaseBundle'
+          description: List of received release bundles matching the query
+        total:
+          type: integer
+          description: Total number of results
+    BundleReceivedVersion:
+      type: object
+      description: A received release bundle version summary.
+      properties:
+        version:
+          type: string
+          description: Release bundle version
+        date_received:
+          type: integer
+          format: int64
+          description: Timestamp when this version was received (milliseconds since
+            epoch)
+        size:
+          type: integer
+          format: int64
+          description: Total size in bytes of the received bundle version
+    GetReceivedBundleVersionsResponse:
+      type: object
+      description: Response for listing versions of a received release bundle.
+      properties:
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleReceivedVersion'
+          description: List of received versions for the bundle name
+        total:
+          type: integer
+          description: Total number of results
+    BundleVersionArtifact:
+      type: object
+      description: An artifact belonging to a received release bundle version.
+      properties:
+        artifact_name:
+          type: string
+          description: Name of the artifact
+        package_type:
+          type: string
+          description: Package type (e.g. generic, maven, docker)
+        path:
+          type: string
+          description: Repository path of the artifact
+        size:
+          type: integer
+          format: int64
+          description: Size of the artifact in bytes
+        checksum:
+          type: string
+          description: Checksum of the artifact (e.g. SHA-256)
+        properties:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Additional properties attached to the artifact (if any)
+    GetReceivedBundleVersionArtifactsResponse:
+      type: object
+      description: Response for listing artifacts of a received release bundle version.
+      properties:
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleVersionArtifact'
+          description: List of artifacts in the received release bundle version
+        total:
+          type: integer
+          description: Total number of results
+    AsyncSubmissionResponse:
+      type: object
+      description: Response body for an asynchronously submitted operation (e.g. delete
+        received bundle).
+      properties:
+        message:
+          type: string
+          description: Confirmation or status message for the submitted operation
+    ErrorResponse:
+      type: object
+      description: Standard error body for non-2xx responses (400, 401, 403, 404,
+        500). Matches Artifactory-style error format.
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorItem'
+          description: List of error entries
+    ErrorItem:
+      type: object
+      description: A single error entry in an error response.
+      properties:
+        status:
+          type: integer
+          description: HTTP status code (e.g. 400, 401, 403, 404, 500)
+        message:
+          type: string
+          description: Human-readable error message
+    Envelope:
+      type: object
+      description: DSSE (Dead Simple Signing Envelope) signature
+      properties:
+        payload:
+          type: string
+          description: Base64-encoded payload
+        payloadType:
+          type: string
+          description: Type of the payload (e.g., application/vnd.in-toto+json)
+        signatures:
+          type: array
+          items:
+            type: object
+            properties:
+              keyid:
+                type: string
+                description: Key identifier
+              sig:
+                type: string
+                description: Base64-encoded signature
+          description: List of signatures
+    GetBundlesByArtifactResponse:
+      type: object
+      properties:
+        release_bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleByArtifactSummary'
+          description: List of bundles containing the artifact
+        total:
+          type: integer
+          description: Total number of bundles
+        limit:
+          type: integer
+          description: Maximum number of results per page
+        offset:
+          type: integer
+          description: Pagination offset
+    BundleTagRequest:
+      type: object
+      properties:
+        tag:
+          type: string
+          pattern: ^[\w\-.]*$
+          maxLength: 128
+          description: Release bundle tag
+    SetBundleTagResponse:
+      type: object
+      properties:
+        tag:
+          type: string
+          description: Tag assigned to the bundle
+        release_bundle_name:
+          type: string
+          description: Name of the release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the release bundle
+    BundleItemDescriptorModel:
+      type: object
+      description: Descriptor for an artifact item in a bundle
+      properties:
+        path:
+          type: string
+          description: The path of a Release Bundle item relative to its contents
+            directory
+        checksum:
+          type: string
+          description: The SHA-256 checksum of the source artifact
+        source_repository_key:
+          type: string
+          description: The source repository of the artifact
+        package_type:
+          type: string
+          description: The package type of the source repository associated with the
+            artifact
+        package_name:
+          type: string
+          description: The name of the package associated with the artifact
+        package_version:
+          type: string
+          description: The version of the package associated with the artifact
+        size:
+          type: integer
+          format: int64
+          description: The size of the artifact (in bytes)
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleItemProperty'
+          description: The source artifact properties that were present when the Release
+            Bundle version was created (each property includes a key and values)
+    BundleItemProperty:
+      type: object
+      description: Property associated with a bundle item
+      properties:
+        key:
+          type: string
+          description: Property key
+        values:
+          type: array
+          items:
+            type: string
+          description: List of property values
+    BundleByArtifactSummary:
+      type: object
+      description: Summary of a bundle that contains a specific artifact
+      properties:
+        release_bundle_name:
+          type: string
+          description: Name of the release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the release bundle
+        origin:
+          type: string
+          description: Origin of the bundle (source or target)
+        project_key:
+          type: string
+          description: Project key (only if origin is source)
+        source_project_key:
+          type: string
+          description: Source project key (only if origin is target)
+        status:
+          type: string
+          description: Status of the bundle version
+        created_by:
+          type: string
+          description: User who created the bundle
+        created:
+          type: string
+          description: Creation timestamp
+        tag:
+          type: string
+          description: Tag assigned to the bundle
+        release_status:
+          type: string
+          description: Release status
+        current_stage:
+          type: string
+          description: Current stage
+    EventMessage:
+      type: object
+      description: Event message
+      properties:
+        text:
+          type: string
+          description: Message text
+    BundlePermissions:
+      type: object
+      description: Permissions for a bundle
+      properties:
+        create:
+          type: boolean
+          description: Permission to create
+        promote:
+          type: boolean
+          description: Permission to promote
+        distribute:
+          type: boolean
+          description: Permission to distribute
+        delete:
+          type: boolean
+          description: Permission to delete
+        annotate:
+          type: boolean
+          description: Permission to annotate
+    BundleByEnvironmentSummary:
+      type: object
+      description: Summary of a bundle in a specific environment
+      properties:
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        release_bundle_name:
+          type: string
+          description: Name of the release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the release bundle
+        release_status:
+          type: string
+          description: Release status
+        tag:
+          type: string
+          description: Tag assigned to the bundle
+        environment:
+          type: string
+          description: Environment name
+        created:
+          type: string
+          description: Creation timestamp
+        created_millis:
+          type: integer
+          format: int64
+          description: Creation timestamp in milliseconds
+        created_by:
+          type: string
+          description: User who created the bundle
+        project_key:
+          type: string
+          description: Project key associated with the bundle
+    CreatePromotionRequest:
+      type: object
+      properties:
+        environment:
+          type: string
+          description: Name of the target environment for the promotion (deprecated,
+            use stage instead)
+        stage:
+          type: string
+          description: Name of the target environment/stage for the promotion
+        included_repository_keys:
+          type: array
+          items:
+            type: string
+          description: Defines specific repositories to include in the promotion.
+            If left undefined, all repositories (except those specifically excluded)
+            are included.
+        excluded_repository_keys:
+          type: array
+          items:
+            type: string
+          description: Defines specific repositories to exclude from the promotion
+        included_source_paths:
+          type: array
+          items:
+            type: string
+          description: Defines specific source paths to include in the promotion
+        excluded_source_paths:
+          type: array
+          items:
+            type: string
+          description: Defines specific source paths to exclude from the promotion
+        overwrite_strategy:
+          type: string
+          enum:
+          - latest
+          - all
+          - disabled
+          default: disabled
+          description: Specifies the strategy for overwriting artifacts when a promotion
+            would overwrite a file that is not part of the release bundle. `disabled`
+            - (default) The promotion will fail if an artifact can't be overwritten.
+            `all` - The promotion will overwrite the artifact regardless it's tag.
+            `latest` - The promotion will overwrite the artifact only if the artifact
+            has tag `latest`.
+        artifact_additional_properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleItemProperty'
+          description: Key-value pairs that define properties to add to each promoted
+            artifact on top of any existing properties
+        promotion_authorization_type:
+          type: string
+          enum:
+          - undefined
+          - app_trust_authorized_promotion
+          default: undefined
+          description: Type of promotion authorization
+    PromoteBundleResponse:
+      type: object
+      properties:
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        release_bundle_name:
+          type: string
+          description: Name of the release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the release bundle
+        environment:
+          type: string
+          description: Target environment for the promotion
+        included_repository_keys:
+          type: array
+          items:
+            type: string
+        excluded_repository_keys:
+          type: array
+          items:
+            type: string
+        artifact_additional_properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleItemProperty'
+        created:
+          type: string
+          description: Timestamp when the promotion was created (ISO 8601 standard)
+        created_millis:
+          type: integer
+          format: int64
+          description: Timestamp when the promotion was created (in milliseconds)
+        source_environment:
+          type: string
+          description: The source environment from which the Release Bundle version
+            was promoted
+    RollbackPromotionResponse:
+      type: object
+      properties:
+        repository_key:
+          type: string
+          description: Release Bundles repository identifier
+        release_bundle_name:
+          type: string
+          description: Release Bundle name
+        release_bundle_version:
+          type: string
+          description: Release Bundle version
+        rollback_from_environment:
+          type: string
+          description: The source environment of the promotion to be rolled back
+        rollback_to_environment:
+          type: string
+          description: The target environment of the rollback
+    GetPromotionsResponse:
+      type: object
+      properties:
+        promotions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionSummary'
+        total:
+          type: integer
+          description: Total number of promotions
+        limit:
+          type: integer
+          description: Maximum number of results per page
+        offset:
+          type: integer
+          description: Pagination offset
+    PromotionSummary:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the promotion (STARTED, FAILED, COMPLETED, DELETING,
+            SUBMITTED, PENDING, REJECTED)
+        repository_key:
+          type: string
+          description: Unique identifier for the Release Bundles repository
+        release_bundle_name:
+          type: string
+          description: Name of the Release Bundle
+        release_bundle_version:
+          type: string
+          description: Release Bundle version
+        environment:
+          type: string
+          description: Name of the target environment for the promotion
+        source_environment:
+          type: string
+          description: The source environment from which the Release Bundle version
+            was promoted
+        service_id:
+          type: string
+          description: The unique identifier of the Artifactory instance where the
+            Release Bundle was promoted
+        created_by:
+          type: string
+          description: Name of the user who initiated the promotion
+        created:
+          type: string
+          description: Timestamp when the promotion was created (ISO 8601 standard)
+        created_millis:
+          type: integer
+          format: int64
+          description: Timestamp when the promotion was created in milliseconds
+        xray_retrieval_status:
+          type: string
+          description: The current status of the processing of this promotion by Xray
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventMessage'
+          description: Error messages related to the processing of the operation (if
+            any)
+    PromotionDetailsResponse:
+      type: object
+      properties:
+        environment:
+          type: string
+          description: Target environment for the promotion
+        created_by:
+          type: string
+          description: User who created the promotion
+        created:
+          type: string
+          description: Creation timestamp
+        created_millis:
+          type: integer
+          format: int64
+          description: Creation timestamp in milliseconds
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleItemDescriptorModel'
+          description: List of artifacts in the promotion
+    GetPromotionsByArtifactResponse:
+      type: object
+      properties:
+        promotions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionSummary'
+        total:
+          type: integer
+          description: Total number of promotions
+    DistributeBundleRequest:
+      type: object
+      properties:
+        auto_create_missing_repositories:
+          type: boolean
+          description: Determines whether to create missing repositories automatically
+            on the distribution targets. The default value is false.
+        distribution_rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionRule'
+          description: Filters that define which distribution targets to include when
+            distributing the Release Bundle
+        modifications:
+          $ref: '#/components/schemas/DistributionModifications'
+          description: Optional path mapping for the artifacts on the distribution
+            targets
+    DistributionRule:
+      type: object
+      properties:
+        site_name:
+          type: string
+          description: Defines a wildcard filter for a site name. The default value
+            is *.
+        city_name:
+          type: string
+          description: Defines a wildcard filter for a city name. The default value
+            is *.
+        country_codes:
+          type: array
+          items:
+            type: string
+          description: Defines one or more filters for country codes. The default
+            value is [*].
+    DistributionModifications:
+      type: object
+      properties:
+        default_path_mapping_by_last_promotion:
+          type: boolean
+          description: When set to true, the repositories used for the most recent
+            promotion of the Release Bundle version are provided as the path mapping.
+        mappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathMapping'
+          description: Defines the input and output regex mapping pairs
+    PathMapping:
+      type: object
+      properties:
+        input:
+          type: string
+          description: The input regular expression that defines where the artifacts
+            to distribute are located
+        output:
+          type: string
+          description: The output regular expression that defines the target artifact
+            path with parameters from the input regex
+    DistributeBundleResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The ID number of the distribution operation
+        sites:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionTarget'
+          description: The name, service_id and type of each destination target
+    DistributionTarget:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of Edge node serving as the destination target
+        service_id:
+          type: string
+          description: The unique identifier of the Artifactory instance where the
+            Release Bundle was distributed
+        type:
+          type: string
+          description: The destination target device type (e.g. Artifactory)
+    DistributionTracker:
+      type: object
+      properties:
+        distribution_tracker_friendly_id:
+          type: integer
+          description: The sequential distribution number of this Release Bundle version
+        type:
+          type: string
+          description: Indicates whether this action was a distribution request or
+            a remote delete request
+        release_bundle_name:
+          type: string
+          description: Name of the Release Bundle
+        release_bundle_version:
+          type: string
+          description: Release Bundle version
+        storing_repository:
+          type: string
+          description: Name of the source repository
+        status:
+          type: string
+          description: The current status of the Release Bundle (IN_PROGRESS, COMPLETED,
+            CREATED, FAILED, ABORTED, PARTIALLY_ABORTED, ABORT_IN_PROGRESS)
+        distributed_by:
+          type: string
+          description: The user who initiated distribution
+        created:
+          type: string
+          description: Timestamp when the Release Bundle was created
+        finish_time:
+          type: string
+          description: Timestamp when distribution of the Release Bundle version finished
+        targets:
+          type: array
+          items:
+            type: string
+          description: The list of distribution targets
+    DistributionDetailsResponse:
+      type: object
+      properties:
+        distribution_id:
+          type: integer
+          format: int64
+          description: The ID number of the distribution operation
+        distribution_friendly_id:
+          type: integer
+          description: The sequential distribution number of this Release Bundle version
+        type:
+          type: string
+          description: Indicates whether this action was a distribution request or
+            a remote delete request
+        release_bundle_name:
+          type: string
+          description: Name of the Release Bundle
+        release_bundle_version:
+          type: string
+          description: Release Bundle version
+        status:
+          type: string
+          description: The current status of the Release Bundle
+        distributed_by:
+          type: string
+          description: The user who initiated distribution
+        start_time:
+          type: string
+          description: Timestamp when distribution of the Release Bundle version started
+        finish_time:
+          type: string
+          description: Timestamp when distribution of the Release Bundle version finished
+        duration:
+          type: integer
+          description: The duration of the distribution from start to finish (in ms)
+        distribution_rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionRule'
+          description: Defines which distribution targets were included in this distribution
+        sites:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionSiteDetails'
+          description: Provides the details of the distribution operation to each
+            designated target
+    DistributionSiteDetails:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the distribution to this site
+        target_artifactory:
+          $ref: '#/components/schemas/DistributionTarget'
+          description: The target Artifactory instance
+        total_files:
+          type: integer
+          description: Total number of files to distribute
+        total_bytes:
+          type: integer
+          format: int64
+          description: Total number of bytes to distribute
+        distributed_files:
+          type: integer
+          description: Number of files successfully distributed
+        distributed_bytes:
+          type: integer
+          format: int64
+          description: Number of bytes successfully distributed
+        distributed_by:
+          type: string
+          description: User who initiated the distribution
+        start_time:
+          type: string
+          description: Timestamp when distribution to this site started
+        finish_time:
+          type: string
+          description: Timestamp when distribution to this site finished
+        file_errors:
+          type: array
+          items:
+            type: object
+          description: List of file errors encountered during distribution
+        files_in_progress:
+          type: array
+          items:
+            type: object
+          description: List of files currently being distributed
+    RemoteDeleteDistributionRequest:
+      type: object
+      properties:
+        distribution_rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionRule'
+          description: Defines which distribution targets (site_name) to include when
+            performing remote delete
+    RemoteDeleteDistributionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The ID number of the distribution operation
+        sites:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributionTarget'
+          description: The name, service_id and type of each destination target
+    PropagateKeyResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The overall status of the propagation operation
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyPropagationDetail'
+          description: Details of the propagation operation for each Edge node
+    KeyPropagationDetail:
+      type: object
+      properties:
+        jpd_id:
+          type: string
+          description: The ID of the Distribution Edge node
+        name:
+          type: string
+          description: The name of the Edge node
+        key_alias:
+          type: string
+          description: The unique key identifier for the public key
+        status:
+          type: string
+          description: The propagation status for the specified Distribution Edge
+            node
+    ExportBundleRequest:
+      type: object
+      properties:
+        modifications:
+          $ref: '#/components/schemas/DistributionModifications'
+          description: Specifies the path mapping for the artifacts in the form of
+            input and output regular expressions
+    ExportStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The status of the export operation (IN_PROGRESS, FAILED, NOT_TRIGGERED,
+            COMPLETED)
+        exported_by:
+          type: string
+          description: The name of the user who created the export archive
+        exported_at:
+          type: integer
+          format: int64
+          description: The timestamp when the export operation was performed
+        relative_download_url:
+          type: string
+          description: The relative path to the Release Bundle v2 ZIP file, which
+            includes only the repository and the path (no hostname)
+        download_url:
+          type: string
+          description: The URL for downloading the exported Release Bundle v2 ZIP
+            file
+    CreateRollbackPromotionRequest:
+      type: object
+      additionalProperties: false
+      description: Optional parameters for the rollback promotion operation.
+      properties:
+        overwrite_strategy:
+          type: string
+          enum:
+          - all
+          - latest
+          - skip
+          default: skip
+          description: Specifies the strategy for overwriting artifacts during the
+            rollback. It would overwrite a file that is not part of the release bundle.
+            `skip` - (default) The overwrite will be skipped. `all` - the rollback
+            will overwrite the artifact regardless it's tag. `latest` - the rollback
+            will overwrite the artifact only if it has tag `latest`.
+    FinalizeBundleResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        repository_key:
+          type: string
+          description: Repository key where the bundle is stored
+        release_bundle_name:
+          type: string
+          description: Name of the finalized release bundle
+        release_bundle_version:
+          type: string
+          description: Version of the finalized release bundle
+        updated:
+          type: string
+          description: The timestamp when the bundle was last updated.
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+security:
+- bearerAuth: []
+x-readme:
+  explorer-enabled: false

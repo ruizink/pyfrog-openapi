@@ -1,0 +1,405 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - Access Federation API
+  description: 'Access Federation configuration APIs for the JFrog Platform.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (Authorization:
+    Bearer `<token>`)
+
+
+    **Security:** all APIs require admin privileges. privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Access Federation
+  description: APIs for registering, updating, deleting, and managing Access Federation
+    targets in the JFrog Platform.
+security:
+- BearerAuth: []
+paths:
+  /access/api/v1/system/federation:
+    get:
+      tags:
+      - Access Federation
+      summary: Get All Access Federations
+      description: 'Returns all federation targets'' configurations.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getAllAccessFederations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  targets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FederationTarget'
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+    post:
+      tags:
+      - Access Federation
+      summary: Register Access Federation
+      description: 'Registers a new federation target.
+
+
+
+        **Note:** This endpoint manages Access Federation directly on the JPD you
+        are connected to. For centralized federation management across multiple JPDs,
+        we recommend using the [Mission Control Access Federation APIs](https://docs.jfrog.com/administration/reference/configuremcfederation).
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: registerAccessFederation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationTargetCreate'
+      responses:
+        '201':
+          description: Federation target registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationTarget'
+        '400':
+          description: Bad Request - Invalid input (e.g., missing name or url)
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '409':
+          description: Conflict - A federation target with the same name already exists
+  /access/api/v1/system/federation/{serverName}:
+    get:
+      tags:
+      - Access Federation
+      summary: Get Access Federation
+      description: 'Returns the federation target by server name.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: getAccessFederation
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The federation target server name
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationTarget'
+        '400':
+          description: Bad Request - Server name is blank
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Federation target not found
+    patch:
+      tags:
+      - Access Federation
+      summary: Update Access Federation
+      description: 'Updates federation target configurations.
+
+
+        **Note:** Server name and URL cannot be altered.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: updateAccessFederation
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The federation target server name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FederationTargetUpdate'
+            example:
+              entities:
+              - tokens
+              - users
+              - groups
+              active: true
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/FederationTargetUpdate'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FederationTarget'
+              example:
+                name: access-2
+                url: https://access.example.com/access/
+                entities:
+                - users
+                - groups
+                - permissions
+                permission_filters:
+                  include_patterns:
+                  - team_a_*
+                  exclude_patterns:
+                  - none_federated_*
+                group_filters:
+                  include_patterns:
+                  - team_a_*
+                  exclude_patterns:
+                  - none_federated_*
+                active: true
+        '400':
+          description: Bad Request - Invalid input (e.g., attempting to alter name
+            or url)
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Federation target not found
+    delete:
+      tags:
+      - Access Federation
+      summary: Delete Access Federation
+      description: 'Unregisters a federation target.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: deleteAccessFederation
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The federation target server name to unregister
+      responses:
+        '204':
+          description: Federation target unregistered
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Federation target not found
+  /access/api/v1/system/federation/validate_server:
+    post:
+      tags:
+      - Access Federation
+      summary: Validate Target for Circle of Trust
+      description: 'Validates a target server for Circle of Trust federation.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: validateFederationTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - url
+              properties:
+                url:
+                  type: string
+                  description: The target server URL to validate
+      responses:
+        '204':
+          description: Validation successful
+        '400':
+          description: Bad Request - Invalid or empty payload
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+  /access/api/v1/system/federation/{serverName}/full_broadcast:
+    put:
+      tags:
+      - Access Federation
+      summary: Full Broadcast Access Federation
+      description: 'Invokes Access Federation full broadcast from a single federation
+        source to all its federation targets.
+
+
+
+        **Security:** Requires admin privileges.
+
+        '
+      operationId: fullBroadcastAccessFederation
+      parameters:
+      - name: serverName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The federation target server name
+      responses:
+        '202':
+          description: Full broadcast already in progress for this target
+        '204':
+          description: Full broadcast initiated successfully
+        '304':
+          description: Not Modified - Federation target not eligible for full broadcast
+        '400':
+          description: Bad Request - Server name is blank
+        '401':
+          description: Bad Credentials - Invalid credentials
+        '403':
+          description: Permission Denied - Insufficient permissions
+        '404':
+          description: Not Found - Federation target not found
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    FederationTarget:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Federation target name
+        url:
+          type: string
+          description: Federation target URL
+        entities:
+          type: array
+          items:
+            type: string
+            enum:
+            - users
+            - groups
+            - permissions
+            - tokens
+          description: List of entities to federate
+        permission_filters:
+          $ref: '#/components/schemas/PatternFilter'
+        group_filters:
+          $ref: '#/components/schemas/PatternFilter'
+        active:
+          type: boolean
+          description: Whether the federation target is active
+    FederationTargetCreate:
+      type: object
+      required:
+      - name
+      - url
+      properties:
+        name:
+          type: string
+          description: Federation target name
+        url:
+          type: string
+          description: Federation target URL
+        entities:
+          type: array
+          items:
+            type: string
+            enum:
+            - users
+            - groups
+            - permissions
+            - tokens
+          description: List of entities to federate
+          default:
+          - users
+          - groups
+          - permissions
+          - tokens
+        permission_filters:
+          $ref: '#/components/schemas/PatternFilter'
+        group_filters:
+          $ref: '#/components/schemas/PatternFilter'
+        active:
+          type: boolean
+          description: Whether the federation target is active
+          default: true
+        force_override:
+          type: boolean
+          description: Force override existing federation target
+          default: false
+    FederationTargetUpdate:
+      type: object
+      properties:
+        entities:
+          type: array
+          items:
+            type: string
+            enum:
+            - users
+            - groups
+            - permissions
+            - tokens
+          description: List of entities to federate
+        permission_filters:
+          $ref: '#/components/schemas/PatternFilter'
+        group_filters:
+          $ref: '#/components/schemas/PatternFilter'
+        active:
+          type: boolean
+          description: Whether the federation target is active
+    PatternFilter:
+      type: object
+      description: Filter patterns for federation
+      properties:
+        include_patterns:
+          type: array
+          items:
+            type: string
+          description: Patterns to include
+        exclude_patterns:
+          type: array
+          items:
+            type: string
+          description: Patterns to exclude
+x-readme:
+  explorer-enabled: false

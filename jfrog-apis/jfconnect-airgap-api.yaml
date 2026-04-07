@@ -1,0 +1,236 @@
+openapi: 3.1.0
+info:
+  title: JFrog Platform - JFConnect API
+  description: 'Manage air-gapped JFrog Platform Deployments (JPDs) through the JFConnect
+    microservice, including registration, entitlements, and system identification.
+
+
+    **Authentication:** Access Tokens as bearer token in authorization header (`Authorization:
+    Bearer <token>`).
+
+
+    **Security:** Unless otherwise specified, all APIs require Platform Admin privileges.
+
+    '
+  version: 1.0.0
+  contact:
+    name: JFrog Support
+servers:
+- url: https://{jfrog_url}
+tags:
+- name: Entitlements
+  description: Register air-gapped JPDs and apply entitlements through JFConnect.
+- name: System
+  description: System health checks and platform identification.
+security:
+- BearerAuth: []
+paths:
+  /jfconnect/api/v1/offline/start_register:
+    get:
+      tags:
+      - Entitlements
+      summary: JFConnect Start Register for Air-gapped JPD
+      description: 'Starts the offline registration of the air-gapped JPD for entitlements
+        through the JFConnect microservice.
+
+
+        **Prerequisite:** You must [configure your JFrog Platform for an air-gapped
+        environment](https://docs.jfrog.com/installation/docs/configure-jfrog-platform-in-an-air-gapped-environment)
+        before using this API. This includes setting `jfconnect.airgap.enabled: true`
+        in the Artifactory System YAML file and restarting Artifactory.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: startRegisterAirgappedJpd
+      responses:
+        '200':
+          description: Success - Registration initiated
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '405':
+          description: Method Not Allowed - JFConnect is not air-gap enabled. You
+            must configure your JFrog Platform for an air-gapped environment before
+            using this API.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 405
+                  message:
+                    type: string
+                    example: jfconnect is not airgap enabled
+        '500':
+          description: Internal Server Error
+  /jfconnect/api/v1/offline/register:
+    post:
+      tags:
+      - Entitlements
+      summary: JFConnect Apply Entitlements to an Air-Gapped JPD
+      description: "Posts the entitlements to the air-gapped JPD through the JFConnect\
+        \ microservice.\n\nThis request requires two values obtained from the Post\
+        \ Offline Request Token to JFrog Entitlements Service API (`POST https://jes.jfrog.io/api/v1/offline_register`):\n\
+        - `entitlements` - the `entitlements.json` file saved from the response **body**.\n\
+        - `offline_response_token` - the token returned in the response **header**.\n\
+        \n**Sample usage:**\n```\ncurl -L -H 'Authorization: Bearer <TOKEN>' \\\n\
+        \  -X POST 'http://<JFROG_PLATFORM_URL>:8082/jfconnect/api/v1/offline/register'\
+        \ \\\n  --form 'entitlements=@entitlements.json;type=application/json' \\\n\
+        \  --form 'offline_response_token=<offline_response_token>'\n```\n\n**Warning:**\
+        \ You must use the `offline_response_token` (returned during offline registration).\
+        \ Do **not** use the `offline_request_token` from the start register step.\
+        \ The API request fails if the incorrect token is used.\n\n**Security:** Requires\
+        \ Platform Admin privileges.\n"
+      operationId: applyEntitlementsAirgappedJpd
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ApplyEntitlementsRequest'
+      responses:
+        '200':
+          description: Success - Entitlements applied
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request - Invalid entitlements data
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /jfconnect/api/v1/system/jpd_id:
+    get:
+      tags:
+      - System
+      summary: JFConnect GET JPD ID
+      description: 'Gets the ID of the JPD through the JFConnect microservice.
+
+
+        **Security:** Requires Platform Admin privileges.
+
+        '
+      operationId: getJpdId
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /jfconnect/api/v1/system/service_id:
+    get:
+      tags:
+      - System
+      summary: JFConnect GET Service ID
+      description: 'Gets the service ID of the services in the JPD through the JFConnect
+        microservice.
+
+
+        **Security:** Does not require authentication.
+
+        '
+      operationId: getServiceId
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          description: Unauthorized user
+        '403':
+          description: Action not permitted for this account
+        '500':
+          description: Internal Server Error
+  /jfconnect/api/v1/system/readiness:
+    get:
+      tags:
+      - System
+      summary: JFConnect Readiness
+      description: 'Tests the readiness of the JFConnect microservice.
+
+
+        **Security:** Does not require authentication.
+
+        '
+      operationId: checkReadiness
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: OK
+        '503':
+          description: Service is not ready
+  /jfconnect/api/v1/system/liveness:
+    get:
+      tags:
+      - System
+      summary: JFConnect Liveness
+      description: 'Tests the liveness of the JFConnect microservice.
+
+
+        **Security:** Does not require authentication.
+
+        '
+      operationId: checkLiveness
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: OK
+        '503':
+          description: Service is not alive
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Access Token as bearer token
+  schemas:
+    ApplyEntitlementsRequest:
+      type: object
+      properties:
+        entitlements:
+          type: string
+          format: binary
+          description: The entitlements JSON file received from the JFrog Entitlements
+            Service
+        offline_response_token:
+          type: string
+          description: The offline response token received as a response header from
+            the JFrog Entitlements Service
+x-readme:
+  explorer-enabled: false
